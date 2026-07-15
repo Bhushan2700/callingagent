@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tickets - Loggix AI</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; padding: 2rem; }
+        h1 { font-size: 1.8rem; margin-bottom: 0.5rem; color: #fff; }
+        .subtitle { color: #64748b; margin-bottom: 2rem; }
+        
+        /* Stats */
+        .stats { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+        .stat { background: #1e293b; padding: 1rem 1.5rem; border-radius: 8px; border: 1px solid #334155; }
+        .stat-value { font-size: 1.5rem; font-weight: 700; color: #3b82f6; }
+        .stat-label { font-size: 0.85rem; color: #64748b; }
+        
+        /* Table */
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 8px; overflow: hidden; }
+        th { background: #334155; padding: 1rem; text-align: left; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; }
+        td { padding: 1rem; border-bottom: 1px solid #334155; }
+        tr:hover { background: #334155; }
+        
+        /* Status badges */
+        .status { padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+        .status-open { background: #1e3a5f; color: #60a5fa; }
+        .status-in_progress { background: #713f12; color: #fbbf24; }
+        .status-closed { background: #14532d; color: #4ade80; }
+        
+        /* Empty state */
+        .empty { text-align: center; padding: 3rem; color: #64748b; }
+        .empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+        
+        /* Refresh button */
+        .refresh-btn { background: #1e40af; color: #93c5fd; border: 1px solid #3b82f6; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
+        .refresh-btn:hover { background: #1e3a8a; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>Support Tickets</h1>
+            <p class="subtitle">View and manage customer support tickets</p>
+        </div>
+        <button class="refresh-btn" onclick="loadTickets()">Refresh</button>
+    </div>
+    
+    <!-- Stats -->
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-value" id="totalCount">0</div>
+            <div class="stat-label">Total Tickets</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" id="openCount">0</div>
+            <div class="stat-label">Open</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" id="closedCount">0</div>
+            <div class="stat-label">Closed</div>
+        </div>
+    </div>
+    
+    <!-- Ticket Table -->
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Ticket ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Issue</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody id="ticketList">
+                <tr>
+                    <td colspan="7" class="empty">
+                        <div class="empty-icon">📋</div>
+                        <p>Loading tickets...</p>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <script>
+        const API_BASE = window.location.origin;
+        
+        async function loadTickets() {
+            try {
+                const response = await fetch(`${API_BASE}/tickets`);
+                const data = await response.json();
+                const tickets = data.tickets || [];
+                
+                // Update stats
+                document.getElementById('totalCount').textContent = tickets.length;
+                document.getElementById('openCount').textContent = tickets.filter(t => t.status === 'open').length;
+                document.getElementById('closedCount').textContent = tickets.filter(t => t.status === 'closed').length;
+                
+                // Render tickets
+                const tbody = document.getElementById('ticketList');
+                if (tickets.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="empty">
+                                <div class="empty-icon">📋</div>
+                                <p>No tickets yet</p>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                tbody.innerHTML = tickets.reverse().map(ticket => `
+                    <tr>
+                        <td><strong>${ticket.id}</strong></td>
+                        <td>${ticket.name || 'N/A'}</td>
+                        <td>${ticket.email || 'N/A'}</td>
+                        <td>${ticket.phone || 'N/A'}</td>
+                        <td>${ticket.issue ? (ticket.issue.length > 50 ? ticket.issue.substring(0, 50) + '...' : ticket.issue) : 'N/A'}</td>
+                        <td><span class="status status-${ticket.status}">${ticket.status}</span></td>
+                        <td>${new Date(ticket.created_at).toLocaleDateString()}</td>
+                    </tr>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading tickets:', error);
+                document.getElementById('ticketList').innerHTML = `
+                    <tr>
+                        <td colspan="7" class="empty">
+                            <div class="empty-icon">⚠️</div>
+                            <p>Error loading tickets</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+        
+        // Load tickets on page load
+        loadTickets();
+        
+        // Auto-refresh every 30 seconds
+        setInterval(loadTickets, 30000);
+    </script>
+</body>
+</html>

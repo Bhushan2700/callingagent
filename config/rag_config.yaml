@@ -1,0 +1,49 @@
+openai:
+  embedding:
+    model: "text-embedding-3-small"
+    dimensions: 1536
+    batch_size: 512
+
+chunking:
+  max_tokens: 350
+  overlap_tokens: 50
+  min_chunk_tokens: 50
+  respect_headings: true
+
+retrieval:
+  top_k_initial: 10
+  top_k_final: 5
+  confidence_threshold: 0.1
+
+reranking:
+  enabled: true
+  model: "cross-encoder/ms-marco-MiniLM-L-12-v2"
+  top_k: 5
+
+redis:
+  url: "${REDIS_URL}"
+  queue_name: "document_ingestion"
+  job_ttl: 86400
+
+chromadb:
+  path: "./chroma_db"
+  collection: "loggix_knowledge"
+  distance: "cosine"
+
+watcher:
+  paths:
+    - "knowledge/documents/incoming"
+  patterns:
+    - "*.pdf"
+    - "*.txt"
+    - "*.md"
+    - "*.json"
+  ignore_patterns:
+    - "*.tmp"
+    - "*.partial"
+  debounce_seconds: 2
+
+logging:
+  level: "INFO"
+  format: "json"
+  file: "logs/rag_pipeline.log"

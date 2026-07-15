@@ -1,0 +1,23 @@
+fastapi
+uvicorn[standard]
+openai
+python-dotenv
+requests
+chromadb
+redis==5.0.1
+watchdog==3.0.0
+PyMuPDF==1.23.26
+markdown-it-py==3.0.0
+tiktoken==0.7.0
+pyyaml==6.0.1
+httpx>=0.25.0
+dateparser>=1.1
+python-multipart>=0.0.6
+sentence-transformers>=2.2.0
+# Voice AI stack (replaces Vapi)
+pipecat-ai[whisper]>=0.0.100
+moonshine-voice>=0.0.60
+piper-tts[http]>=1.0.0
+groq>=0.11.0
+websockets>=12.0
+loguru>=0.7.0

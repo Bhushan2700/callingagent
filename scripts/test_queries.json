@@ -1,0 +1,129 @@
+{
+  "test_queries": [
+    {
+      "query": "How much do AI voice agents cost?",
+      "expected_topics": ["pricing", "ai_voice_agents", "EUR 15,000-25,000"],
+      "category": "pricing"
+    },
+    {
+      "query": "What's your FileMaker development experience?",
+      "expected_topics": ["filemaker", "clari", "30 years"],
+      "category": "services"
+    },
+    {
+      "query": "How long does a typical project take?",
+      "expected_topics": ["timeline", "weeks", "project"],
+      "category": "process"
+    },
+    {
+      "query": "Are you an internet service provider?",
+      "expected_topics": ["ISP", "software", "not", "disclaimer"],
+      "category": "disclaimer"
+    },
+    {
+      "query": "Can you integrate with DHL?",
+      "expected_topics": ["DHL", "integrations", "logistics"],
+      "category": "services"
+    },
+    {
+      "query": "What's your data privacy policy?",
+      "expected_topics": ["GDPR", "data", "privacy", "hosting"],
+      "category": "policies"
+    },
+    {
+      "query": "Where is Loggix based?",
+      "expected_topics": ["Utrecht", "Netherlands", "Pune", "India"],
+      "category": "company"
+    },
+    {
+      "query": "How do I book a consultation?",
+      "expected_topics": ["consultation", "free", "30-minute", "book"],
+      "category": "process"
+    },
+    {
+      "query": "Who is Bhushan and what does he do?",
+      "expected_topics": ["Bhushan", "AI", "developer", "Pune"],
+      "category": "team"
+    },
+    {
+      "query": "Do you offer web hosting?",
+      "expected_topics": ["hosting", "application", "cloud"],
+      "category": "services"
+    },
+    {
+      "query": "What's included in the free consultation?",
+      "expected_topics": ["free", "30-minute", "consultation", "requirements"],
+      "category": "process"
+    },
+    {
+      "query": "Can you modernize old FileMaker systems?",
+      "expected_topics": ["filemaker", "legacy", "modernization", "upgrade"],
+      "category": "services"
+    },
+    {
+      "query": "What payment terms do you offer?",
+      "expected_topics": ["payment", "40%", "30%", "milestone"],
+      "category": "policies"
+    },
+    {
+      "query": "Are you a shipping company?",
+      "expected_topics": ["shipping", "not", "software", "carrier"],
+      "category": "disclaimer"
+    },
+    {
+      "query": "What technologies do you use for AI?",
+      "expected_topics": ["LLM", "RAG", "voice", "Twilio", "Vapi"],
+      "category": "services"
+    },
+    {
+      "query": "Who is the founder of Loggix?",
+      "expected_topics": ["Jeroen", "Lutmers", "founder", "Utrecht"],
+      "category": "team"
+    },
+    {
+      "query": "Do you sign NDAs?",
+      "expected_topics": ["NDA", "confidential", "disclosure"],
+      "category": "policies"
+    },
+    {
+      "query": "What industries do you work with?",
+      "expected_topics": ["logistics", "manufacturing", "healthcare", "retail"],
+      "category": "company"
+    },
+    {
+      "query": "How much does a mobile app cost?",
+      "expected_topics": ["mobile", "EUR", "fixed", "12-24 weeks"],
+      "category": "pricing"
+    },
+    {
+      "query": "What's your approach to project management?",
+      "expected_topics": ["agile", "discovery", "iterative", "demo"],
+      "category": "process"
+    },
+    {
+      "query": "Can I talk to a person?",
+      "expected_topics": ["manager", "person", "escalation", "reach out"],
+      "category": "process"
+    },
+    {
+      "query": "What makes you different from other agencies?",
+      "expected_topics": ["30 years", "FileMaker", "EU hosting", "global"],
+      "category": "differentiation"
+    },
+    {
+      "query": "Do you provide post-launch support?",
+      "expected_topics": ["support", "maintenance", "bug", "SLA"],
+      "category": "policies"
+    },
+    {
+      "query": "Can you work with our existing team?",
+      "expected_topics": ["collaborate", "team", "extension", "freelancer"],
+      "category": "company"
+    },
+    {
+      "query": "What's your pricing for API integrations?",
+      "expected_topics": ["integration", "EUR", "3,000-8,000", "per integration"],
+      "category": "pricing"
+    }
+  ]
+}

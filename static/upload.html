@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Manager - Loggix RAG</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; padding: 2rem; }
+        h1 { font-size: 1.8rem; margin-bottom: 0.5rem; color: #fff; }
+        h2 { font-size: 1.2rem; margin: 1.5rem 0 1rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+        .subtitle { color: #64748b; margin-bottom: 2rem; }
+        
+        /* Upload Zone */
+        .upload-zone {
+            border: 2px dashed #334155;
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #1e293b;
+        }
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: #3b82f6;
+            background: #1e3a5f;
+        }
+        .upload-zone .icon { font-size: 3rem; margin-bottom: 1rem; }
+        .upload-zone p { color: #94a3b8; margin-bottom: 0.5rem; }
+        .upload-zone .hint { font-size: 0.85rem; color: #64748b; }
+        .upload-zone input { display: none; }
+        
+        /* Status */
+        .status { margin-top: 1rem; padding: 1rem; border-radius: 8px; display: none; }
+        .status.success { display: block; background: #064e3b; border: 1px solid #10b981; color: #6ee7b7; }
+        .status.error { display: block; background: #7f1d1d; border: 1px solid #ef4444; color: #fca5a5; }
+        .status.info { display: block; background: #1e3a5f; border: 1px solid #3b82f6; color: #93c5fd; }
+        
+        /* Progress */
+        .progress { margin-top: 1rem; display: none; }
+        .progress.active { display: block; }
+        .progress-bar { height: 6px; background: #334155; border-radius: 3px; overflow: hidden; }
+        .progress-fill { height: 100%; background: #3b82f6; transition: width 0.3s; }
+        .progress-text { font-size: 0.85rem; color: #94a3b8; margin-top: 0.5rem; }
+        
+        /* Document List */
+        .doc-list { display: flex; flex-direction: column; gap: 0.5rem; }
+        .doc-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            background: #1e293b;
+            border-radius: 8px;
+            border: 1px solid #334155;
+        }
+        .doc-item:hover { border-color: #475569; }
+        .doc-info { flex: 1; }
+        .doc-name { font-weight: 500; color: #fff; }
+        .doc-meta { font-size: 0.85rem; color: #64748b; margin-top: 0.25rem; }
+        .doc-actions { display: flex; gap: 0.5rem; }
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-danger { background: #7f1d1d; color: #fca5a5; border: 1px solid #ef4444; }
+        .btn-danger:hover { background: #991b1b; }
+        .btn-primary { background: #1e40af; color: #93c5fd; border: 1px solid #3b82f6; }
+        .btn-primary:hover { background: #1e3a8a; }
+        
+        /* Empty State */
+        .empty { text-align: center; padding: 2rem; color: #64748b; }
+        
+        /* Stats */
+        .stats { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+        .stat { background: #1e293b; padding: 1rem 1.5rem; border-radius: 8px; border: 1px solid #334155; }
+        .stat-value { font-size: 1.5rem; font-weight: 700; color: #3b82f6; }
+        .stat-label { font-size: 0.85rem; color: #64748b; }
+    </style>
+</head>
+<body>
+    <h1>Document Manager</h1>
+    <p class="subtitle">Upload documents to the RAG knowledge base</p>
+    
+    <!-- Stats -->
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-value" id="docCount">0</div>
+            <div class="stat-label">Documents</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" id="chunkCount">0</div>
+            <div class="stat-label">Chunks</div>
+        </div>
+    </div>
+    
+    <!-- Upload Zone -->
+    <div class="upload-zone" id="dropZone">
+        <div class="icon">📄</div>
+        <p>Drag & drop files here or click to browse</p>
+        <p class="hint">Supports .md, .pdf, .txt, .json</p>
+        <input type="file" id="fileInput" multiple accept=".md,.pdf,.txt,.json">
+    </div>
+    
+    <!-- Progress -->
+    <div class="progress" id="progress">
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+        <div class="progress-text" id="progressText">Uploading...</div>
+    </div>
+    
+    <!-- Status -->
+    <div class="status" id="status"></div>
+    
+    <!-- Document List -->
+    <h2>Ingested Documents</h2>
+    <div class="doc-list" id="docList">
+        <div class="empty">Loading documents...</div>
+    </div>
+    
+    <script>
+        const API_BASE = window.location.origin;
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const progress = document.getElementById('progress');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const status = document.getElementById('status');
+        const docList = document.getElementById('docList');
+        
+        // Drag and drop
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+        
+        // Handle file upload
+        async function handleFiles(files) {
+            if (!files.length) return;
+            
+            progress.classList.add('active');
+            status.className = 'status';
+            status.style.display = 'none';
+            
+            let successCount = 0;
+            let errorCount = 0;
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const pct = Math.round(((i + 1) / files.length) * 100);
+                progressFill.style.width = pct + '%';
+                progressText.textContent = `Uploading ${file.name} (${i + 1}/${files.length})...`;
+                
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    
+                    const response = await fetch(`${API_BASE}/admin/upload`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                        console.error(`Failed to upload ${file.name}`);
+                    }
+                } catch (err) {
+                    errorCount++;
+                    console.error(`Error uploading ${file.name}:`, err);
+                }
+            }
+            
+            progress.classList.remove('active');
+            
+            if (errorCount === 0) {
+                showStatus(`Successfully uploaded ${successCount} file(s)`, 'success');
+            } else {
+                showStatus(`Uploaded ${successCount}, failed ${errorCount}`, errorCount > 0 ? 'error' : 'success');
+            }
+            
+            loadDocuments();
+        }
+        
+        // Show status message
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+        
+        // Load document list
+        async function loadDocuments() {
+            try {
+                const response = await fetch(`${API_BASE}/admin/docs`);
+                const data = await response.json();
+                
+                const docs = data.documents || [];
+                document.getElementById('docCount').textContent = docs.length;
+                
+                let totalChunks = 0;
+                docs.forEach(d => totalChunks += d.chunk_count || 0);
+                document.getElementById('chunkCount').textContent = totalChunks;
+                
+                if (docs.length === 0) {
+                    docList.innerHTML = '<div class="empty">No documents ingested yet</div>';
+                    return;
+                }
+                
+                docList.innerHTML = docs.map(doc => `
+                    <div class="doc-item">
+                        <div class="doc-info">
+                            <div class="doc-name">${doc.doc_id}</div>
+                            <div class="doc-meta">${doc.chunk_count} chunks • ${doc.doc_type}</div>
+                        </div>
+                        <div class="doc-actions">
+                            <button class="btn btn-primary" onclick="reindexDoc('${doc.doc_id}')">Re-index</button>
+                            <button class="btn btn-danger" onclick="deleteDoc('${doc.doc_id}')">Delete</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                docList.innerHTML = '<div class="empty">Error loading documents</div>';
+                console.error('Error loading docs:', err);
+            }
+        }
+        
+        // Delete document
+        async function deleteDoc(docId) {
+            if (!confirm(`Delete "${docId}"?`)) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/docs/${docId}`, { method: 'DELETE' });
+                if (response.ok) {
+                    showStatus(`Deleted ${docId}`, 'success');
+                    loadDocuments();
+                } else {
+                    showStatus('Failed to delete', 'error');
+                }
+            } catch (err) {
+                showStatus('Error deleting document', 'error');
+            }
+        }
+        
+        // Re-index document
+        async function reindexDoc(docId) {
+            try {
+                const response = await fetch(`${API_BASE}/admin/docs/${docId}/reindex`, { method: 'POST' });
+                if (response.ok) {
+                    showStatus(`Re-indexing ${docId}...`, 'info');
+                    setTimeout(loadDocuments, 2000);
+                } else {
+                    showStatus('Failed to re-index', 'error');
+                }
+            } catch (err) {
+                showStatus('Error re-indexing', 'error');
+            }
+        }
+        
+        // Initial load
+        loadDocuments();
+    </script>
+</body>
+</html>
