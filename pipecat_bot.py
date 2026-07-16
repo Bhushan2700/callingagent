@@ -1,7 +1,7 @@
 """
 Loggix AI Voice Receptionist — Pipecat-powered voice bot.
 Replaces Vapi with self-hosted Moonshine STT + Piper TTS + Groq/OpenAI LLM.
-Connects to Telnyx for phone calls.
+Connects to Twilio for phone calls.
 """
 
 import os
@@ -108,20 +108,20 @@ async def run_bot(transport: BaseTransport, handle_sigint: bool):
 
     # ---- Build the pipeline ----
     pipeline = Pipeline([
-        transport.input(),       # Receive audio from Telnyx
+        transport.input(),       # Receive audio from Twilio
         stt,                     # Speech-to-Text (Moonshine)
         user_aggregator,         # Build user message context
         llm,                     # AI Brain (Groq or OpenAI)
         tts,                     # Text-to-Speech (Piper)
-        transport.output(),      # Send audio back to Telnyx
+        transport.output(),      # Send audio back to Twilio
         assistant_aggregator,    # Add AI response to context
     ])
 
     worker = PipelineWorker(
         pipeline,
         params=PipelineParams(
-            audio_in_sample_rate=8000,    # Telnyx audio rate
-            audio_out_sample_rate=8000,   # Telnyx audio rate
+            audio_in_sample_rate=8000,    # Twilio audio rate
+            audio_out_sample_rate=8000,   # Twilio audio rate
             enable_metrics=True,
             enable_usage_metrics=True,
         ),
@@ -150,16 +150,16 @@ async def run_bot(transport: BaseTransport, handle_sigint: bool):
 async def bot(runner_args: RunnerArguments):
     """Main bot entry point — compatible with Pipecat Cloud."""
     transport_params = {
-        "telnyx": lambda: FastAPIWebsocketParams(
+        "twilio": lambda: FastAPIWebsocketParams(
             audio_in_enabled=True,
             audio_out_enabled=True,
         ),
     }
 
-    # create_transport auto-detects Telnyx and builds the serializer
+    # create_transport auto-detects Twilio and builds TwilioFrameSerializer
     transport = await create_transport(runner_args, transport_params)
 
-    # Log caller info from Telnyx handshake
+    # Log caller info from Twilio handshake
     call_data = runner_args.call_data
     if call_data:
         logger.info(f"Incoming call from: {call_data.from_number}")

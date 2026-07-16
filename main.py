@@ -42,11 +42,12 @@ VAPI_ASSISTANT_ID = os.getenv("VAPI_ASSISTANT_ID", "")
 VAPI_PHONE_NUMBER_ID = os.getenv("VAPI_PHONE_NUMBER_ID", "")
 VAPI_BASE = "https://api.vapi.ai"
 
-TELNYX_API_KEY = os.getenv("TELNYX_API_KEY", "")
+TELNYX_API_KEY = os.getenv("TELNYX_API_KEY", "")  # kept for reference
 TELNYX_PHONE_NUMBER = os.getenv("TELNYX_PHONE_NUMBER", "")
-PUBLIC_URL = os.getenv("PUBLIC_URL", "")  # e.g. wss://your-app.up.railway.app
 
-active_calls: set = set()  # ponytail: global set, single-bot concurrency
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
+TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER", "")
 
 class ToolRequest(BaseModel):
     query: str
@@ -456,121 +457,54 @@ async def tickets_page():
     return HTMLResponse(content="<h1>Tickets page not found</h1>", status_code=404)
 
 
-# ==================== TELNYX VOICE API (Call Control) ====================
+# ==================== TWILIO VOICE API (Media Streams) ====================
 
 from loguru import logger as log
-import httpx as httpx_client
 
 
-@app.post("/webhook/telnyx")
-async def telnyx_webhook(request: Request):
-    """Handle Telnyx Voice API webhooks — answer call and start streaming."""
-    try:
-        body = await request.json()
-    except Exception:
-        try:
-            form = await request.form()
-            body = dict(form)
-        except Exception:
-            body = {}
+@app.post("/webhook/twilio")
+async def twilio_webhook(request: Request):
+    """Handle Twilio Voice webhooks — return TwiML to start Media Streams."""
+    form = await request.form()
+    call_sid = form.get("CallSid", "")
+    log.info(f"TWILIO INCOMING: CallSid={call_sid}")
 
-    event = body.get("event", "")
-    data = body.get("data", {})
-    call_control_id = data.get("call_control_id", "")
+    # Auto-detect host for WebSocket URL
+    host = request.url.hostname
+    port = request.url.port
+    if port and port not in (443, 80):
+        ws_url = f"wss://{host}:{port}/ws/call"
+    else:
+        ws_url = f"wss://{host}/ws/call"
 
-    log.info(f"TELNYX EVENT: {event}, call: {call_control_id}")
+    # TwiML: connect caller to our WebSocket Media Stream
+    twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Connect>
+        <Stream url="{ws_url}">
+            <Parameter name="call_sid" value="{call_sid}" />
+        </Stream>
+    </Connect>
+</Response>"""
 
-    if event == "call.initiated":
-        if call_control_id in active_calls:
-            log.warning(f"Call {call_control_id} already active, skipping")
-        else:
-            # Auto-detect host from the incoming request
-            host = request.url.hostname
-            port = request.url.port
-            scheme = "wss"  # Telnyx always expects wss for stream_url
-            if port and port not in (443, 80):
-                stream_base = f"{scheme}://{host}:{port}"
-            else:
-                stream_base = f"{scheme}://{host}"
-            asyncio.create_task(_answer_call(call_control_id, stream_base))
-
-    elif event in ("call.ended", "call.hangup"):
-        active_calls.discard(call_control_id)
-        log.info(f"Call {call_control_id} ended, removed from active set")
-
-    return {"status": "ok"}
+    return Response(content=twiml, media_type="text/xml")
 
 
-async def _answer_call(call_control_id: str, stream_base: str):
-    """Answer call and start WebSocket media streaming."""
-    if not TELNYX_API_KEY:
-        log.error("TELNYX_API_KEY not set!")
-        return
-
-    # Concurrency guard — only one call at a time
-    if len(active_calls) > 0:
-        log.warning(f"Bot busy with {len(active_calls)} call(s), rejecting {call_control_id}")
-        async with httpx_client.AsyncClient(timeout=10) as client:
-            await client.post(
-                f"https://api.telnyx.com/v2/calls/{call_control_id}/actions/hangup",
-                headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
-            )
-        return
-
-    active_calls.add(call_control_id)
-    stream_url = f"{stream_base}/ws/call"
-
-    try:
-        async with httpx_client.AsyncClient(timeout=30) as client:
-            # Answer the call
-            log.info(f"Answering call {call_control_id}...")
-            answer_resp = await client.post(
-                f"https://api.telnyx.com/v2/calls/{call_control_id}/actions/answer",
-                headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
-                json={},
-            )
-            log.info(f"Answer: {answer_resp.status_code} {answer_resp.text[:200]}")
-
-            if answer_resp.status_code not in (200, 201):
-                log.error(f"Failed to answer: {answer_resp.text}")
-                active_calls.discard(call_control_id)
-                return
-
-            # Start bidirectional media streaming
-            log.info(f"Starting stream to {stream_url}")
-            stream_resp = await client.post(
-                f"https://api.telnyx.com/v2/calls/{call_control_id}/actions/stream_start",
-                headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
-                json={"stream_url": stream_url, "stream_bidirectional": True},
-            )
-            log.info(f"Stream: {stream_resp.status_code} {stream_resp.text[:200]}")
-
-            if stream_resp.status_code not in (200, 201):
-                log.error(f"Failed to start stream: {stream_resp.text}")
-                active_calls.discard(call_control_id)
-    except Exception as e:
-        log.error(f"Error handling call {call_control_id}: {e}")
-        active_calls.discard(call_control_id)
+# Backward-compat alias for old Telnyx webhook config
+app.post("/webhook/telnyx")(twilio_webhook)
 
 
 @app.websocket("/ws/call")
 async def websocket_call(websocket: WebSocket):
-    """WebSocket endpoint for Telnyx media streaming — connects to Pipecat bot."""
+    """WebSocket endpoint for Twilio Media Streams — connects to Pipecat bot."""
     from pipecat_bot import bot
     from pipecat.runner.types import RunnerArguments
 
     await websocket.accept()
-    log.info("Telnyx WebSocket connected")
+    log.info("Twilio WebSocket connected")
 
     runner_args = RunnerArguments(websocket=websocket, handle_sigint=False)
-    try:
-        await bot(runner_args)
-    finally:
-        # Cleanup any active call when WS disconnects
-        # ponytail: clear all since single-bot only handles one call
-        if active_calls:
-            log.info(f"WS disconnected, clearing active calls: {active_calls}")
-            active_calls.clear()
+    await bot(runner_args)
 
 
 # ==================== HEALTH CHECK ====================
@@ -584,7 +518,7 @@ async def health_check():
     except Exception:
         redis_status = "unavailable"
 
-    return {"status": "healthy", "redis": redis_status, "telnyx_configured": bool(TELNYX_API_KEY)}
+    return {"status": "healthy", "redis": redis_status, "twilio_configured": bool(TWILIO_ACCOUNT_SID)}
 
 
 if __name__ == "__main__":
