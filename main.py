@@ -718,7 +718,7 @@ async def telnyx_webhook(request: Request):
 
 @app.post("/webhook/twilio")
 async def twilio_webhook(request: Request):
-    """Handle incoming Twilio TwiML webhooks — return TwiML to answer and stream."""
+    """Handle incoming Twilio TwiML webhooks — return TwiML to start bidirectional stream."""
     try:
         form = await request.form()
         body = dict(form)
@@ -728,19 +728,16 @@ async def twilio_webhook(request: Request):
 
     host = "callingagent-production-41e3.up.railway.app"
 
-    # Return TwiML: answer the call + start WebSocket media streaming
+    # TwiML: start bidirectional WebSocket stream
+    # NOTE: Cannot use <Say> before <Connect> — greeting happens after WS connects
     twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say>Hello! Thank you for calling Loggix. I'm your AI assistant. How can I help you today?</Say>
-    <Pause length="2"/>
     <Connect>
-        <Stream url="wss://{host}/ws/call">
-            <Parameter name="caller_id" value="{{{{From}}}}" />
-        </Stream>
+        <Stream url="wss://{host}/ws/call" />
     </Connect>
 </Response>"""
 
-    log.info(f"Returning TwiML to start streaming")
+    log.info(f"Returning TwiML to start bidirectional stream")
     return Response(content=twiml, media_type="application/xml")
 
 
