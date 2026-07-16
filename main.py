@@ -704,6 +704,7 @@ async def telnyx_webhook(request: Request):
     texml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Say>Hello! Thank you for calling Loggix. I'm your AI assistant. How can I help you today?</Say>
+    <Pause length="2"/>
     <Connect>
         <Stream url="wss://{host}/ws/call">
             <Parameter name="caller_id" value="{{{{From}}}}" />
