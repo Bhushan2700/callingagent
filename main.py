@@ -637,7 +637,7 @@ from loguru import logger as log
 async def _handle_incoming_call(call_control_id: str):
     """Answer call and start streaming — runs in background."""
     telnyx_api_key = os.getenv("TELNYX_API_KEY")
-    host = "devoutly-domain-cadmium.trycloudflare.com"
+    host = "callingagent-production-41e3.up.railway.app"
 
     async with httpx.AsyncClient(timeout=30) as client:
         # Answer the call
@@ -698,7 +698,7 @@ async def telnyx_webhook(request: Request):
             body = {}
     log.info(f"=== WEBHOOK === {body}")
 
-    host = "devoutly-domain-cadmium.trycloudflare.com"
+    host = "callingagent-production-41e3.up.railway.app"
 
     # Return TeXML: answer the call + start WebSocket media streaming
     texml = f"""<?xml version="1.0" encoding="UTF-8"?>
