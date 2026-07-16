@@ -67,7 +67,7 @@ async def run_bot(transport: BaseTransport, handle_sigint: bool):
 
     # ---- STT: faster-whisper (runs locally, FREE, ~300ms on GPU) ----
     stt = WhisperSTTService(
-        settings=WhisperSTTService.Settings(model="distil-medium-en")
+        settings=WhisperSTTService.Settings(model="distil-medium.en")
     )
 
     # ---- TTS: Piper (runs locally, FREE, 100ms latency) ----
