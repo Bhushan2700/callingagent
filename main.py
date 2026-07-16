@@ -696,7 +696,7 @@ async def telnyx_webhook(request: Request):
             body = dict(form)
         except Exception:
             body = {}
-    log.info(f"=== WEBHOOK === {body}")
+    log.info(f"=== TELNYX WEBHOOK === {body}")
 
     host = "callingagent-production-41e3.up.railway.app"
 
@@ -714,6 +714,34 @@ async def telnyx_webhook(request: Request):
 
     log.info(f"Returning TeXML to start streaming")
     return Response(content=texml, media_type="application/xml")
+
+
+@app.post("/webhook/twilio")
+async def twilio_webhook(request: Request):
+    """Handle incoming Twilio TwiML webhooks — return TwiML to answer and stream."""
+    try:
+        form = await request.form()
+        body = dict(form)
+    except Exception:
+        body = {}
+    log.info(f"=== TWILIO WEBHOOK === {body}")
+
+    host = "callingagent-production-41e3.up.railway.app"
+
+    # Return TwiML: answer the call + start WebSocket media streaming
+    twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say>Hello! Thank you for calling Loggix. I'm your AI assistant. How can I help you today?</Say>
+    <Pause length="2"/>
+    <Connect>
+        <Stream url="wss://{host}/ws/call">
+            <Parameter name="caller_id" value="{{{{From}}}}" />
+        </Stream>
+    </Connect>
+</Response>"""
+
+    log.info(f"Returning TwiML to start streaming")
+    return Response(content=twiml, media_type="application/xml")
 
 
 @app.websocket("/ws/call")
