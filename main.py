@@ -498,12 +498,12 @@ app.post("/webhook/telnyx")(twilio_webhook)
 async def websocket_call(websocket: WebSocket):
     """WebSocket endpoint for Twilio Media Streams — connects to Pipecat bot."""
     from pipecat_bot import bot
-    from pipecat.runner.types import RunnerArguments
+    from pipecat.runner.types import WebSocketRunnerArguments
 
     await websocket.accept()
     log.info("Twilio WebSocket connected")
 
-    runner_args = RunnerArguments(websocket=websocket, handle_sigint=False)
+    runner_args = WebSocketRunnerArguments(websocket=websocket)
     await bot(runner_args)
 
 
