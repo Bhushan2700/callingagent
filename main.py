@@ -44,6 +44,9 @@ VAPI_BASE = "https://api.vapi.ai"
 
 TELNYX_API_KEY = os.getenv("TELNYX_API_KEY", "")
 TELNYX_PHONE_NUMBER = os.getenv("TELNYX_PHONE_NUMBER", "")
+PUBLIC_URL = os.getenv("PUBLIC_URL", "")  # e.g. wss://your-app.up.railway.app
+
+active_calls: set = set()  # ponytail: global set, single-bot concurrency
 
 class ToolRequest(BaseModel):
     query: str
@@ -478,42 +481,76 @@ async def telnyx_webhook(request: Request):
     log.info(f"TELNYX EVENT: {event}, call: {call_control_id}")
 
     if event == "call.initiated":
-        # Answer the call
-        asyncio.create_task(_answer_call(call_control_id))
+        if call_control_id in active_calls:
+            log.warning(f"Call {call_control_id} already active, skipping")
+        else:
+            # Auto-detect host from the incoming request
+            host = request.url.hostname
+            port = request.url.port
+            scheme = "wss"  # Telnyx always expects wss for stream_url
+            if port and port not in (443, 80):
+                stream_base = f"{scheme}://{host}:{port}"
+            else:
+                stream_base = f"{scheme}://{host}"
+            asyncio.create_task(_answer_call(call_control_id, stream_base))
+
+    elif event in ("call.ended", "call.hangup"):
+        active_calls.discard(call_control_id)
+        log.info(f"Call {call_control_id} ended, removed from active set")
 
     return {"status": "ok"}
 
 
-async def _answer_call(call_control_id: str):
+async def _answer_call(call_control_id: str, stream_base: str):
     """Answer call and start WebSocket media streaming."""
     if not TELNYX_API_KEY:
         log.error("TELNYX_API_KEY not set!")
         return
 
-    host = "callingagent-production-41e3.up.railway.app"
+    # Concurrency guard — only one call at a time
+    if len(active_calls) > 0:
+        log.warning(f"Bot busy with {len(active_calls)} call(s), rejecting {call_control_id}")
+        async with httpx_client.AsyncClient(timeout=10) as client:
+            await client.post(
+                f"https://api.telnyx.com/v2/calls/{call_control_id}/actions/hangup",
+                headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
+            )
+        return
 
-    async with httpx_client.AsyncClient(timeout=30) as client:
-        # Answer the call
-        log.info(f"Answering call {call_control_id}...")
-        answer_resp = await client.post(
-            f"https://api.telnyx.com/v2/calls/{call_control_id}/actions/answer",
-            headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
-            json={},
-        )
-        log.info(f"Answer: {answer_resp.status_code} {answer_resp.text[:200]}")
+    active_calls.add(call_control_id)
+    stream_url = f"{stream_base}/ws/call"
 
-        if answer_resp.status_code not in (200, 201):
-            log.error(f"Failed to answer: {answer_resp.text}")
-            return
+    try:
+        async with httpx_client.AsyncClient(timeout=30) as client:
+            # Answer the call
+            log.info(f"Answering call {call_control_id}...")
+            answer_resp = await client.post(
+                f"https://api.telnyx.com/v2/calls/{call_control_id}/actions/answer",
+                headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
+                json={},
+            )
+            log.info(f"Answer: {answer_resp.status_code} {answer_resp.text[:200]}")
 
-        # Start bidirectional media streaming
-        log.info(f"Starting stream to wss://{host}/ws/call")
-        stream_resp = await client.post(
-            f"https://api.telnyx.com/v2/calls/{call_control_id}/actions/stream_start",
-            headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
-            json={"stream_url": f"wss://{host}/ws/call", "stream_bidirectional": True},
-        )
-        log.info(f"Stream: {stream_resp.status_code} {stream_resp.text[:200]}")
+            if answer_resp.status_code not in (200, 201):
+                log.error(f"Failed to answer: {answer_resp.text}")
+                active_calls.discard(call_control_id)
+                return
+
+            # Start bidirectional media streaming
+            log.info(f"Starting stream to {stream_url}")
+            stream_resp = await client.post(
+                f"https://api.telnyx.com/v2/calls/{call_control_id}/actions/stream_start",
+                headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
+                json={"stream_url": stream_url, "stream_bidirectional": True},
+            )
+            log.info(f"Stream: {stream_resp.status_code} {stream_resp.text[:200]}")
+
+            if stream_resp.status_code not in (200, 201):
+                log.error(f"Failed to start stream: {stream_resp.text}")
+                active_calls.discard(call_control_id)
+    except Exception as e:
+        log.error(f"Error handling call {call_control_id}: {e}")
+        active_calls.discard(call_control_id)
 
 
 @app.websocket("/ws/call")
@@ -526,7 +563,14 @@ async def websocket_call(websocket: WebSocket):
     log.info("Telnyx WebSocket connected")
 
     runner_args = RunnerArguments(websocket=websocket, handle_sigint=False)
-    await bot(runner_args)
+    try:
+        await bot(runner_args)
+    finally:
+        # Cleanup any active call when WS disconnects
+        # ponytail: clear all since single-bot only handles one call
+        if active_calls:
+            log.info(f"WS disconnected, clearing active calls: {active_calls}")
+            active_calls.clear()
 
 
 # ==================== HEALTH CHECK ====================
