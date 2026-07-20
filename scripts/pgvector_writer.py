@@ -21,17 +21,24 @@ class PGVectorWriter:
             config = get_config()
 
         self.db_url = os.getenv("DATABASE_URL") or config.postgresql.get("url", "")
-        if not self.db_url:
-            raise ValueError("DATABASE_URL environment variable or postgresql.url config is required")
-
         self.collection_name = config.postgresql.get("collection", "loggix_knowledge")
-        self._register_vector()
-        self._ensure_table()
+        self._initialized = False
 
     def _get_conn(self):
+        if not self.db_url:
+            raise ValueError("DATABASE_URL environment variable is required")
         conn = psycopg2.connect(self.db_url)
         register_vector(conn)
         return conn
+
+    def _ensure_initialized(self):
+        if self._initialized:
+            return
+        if not self.db_url:
+            raise ValueError("DATABASE_URL environment variable is required")
+        self._register_vector()
+        self._ensure_table()
+        self._initialized = True
 
     def _register_vector(self):
         conn = self._get_conn()
@@ -89,6 +96,7 @@ class PGVectorWriter:
         return hashlib.sha256(text.encode()).hexdigest()[:16]
 
     def upsert_chunks(self, doc_chunks: List[Dict], embeddings: List[List[float]]) -> int:
+        self._ensure_initialized()
         if not doc_chunks or not embeddings:
             return 0
 
@@ -152,6 +160,7 @@ class PGVectorWriter:
             conn.close()
 
     def delete_document(self, doc_id: str) -> int:
+        self._ensure_initialized()
         conn = self._get_conn()
         try:
             cur = conn.cursor()
@@ -163,6 +172,7 @@ class PGVectorWriter:
             conn.close()
 
     def get_document_info(self, doc_id: str) -> Optional[Dict]:
+        self._ensure_initialized()
         conn = self._get_conn()
         try:
             cur = conn.cursor()
@@ -198,6 +208,7 @@ class PGVectorWriter:
             conn.close()
 
     def list_documents(self) -> List[Dict]:
+        self._ensure_initialized()
         conn = self._get_conn()
         try:
             cur = conn.cursor()
@@ -237,6 +248,7 @@ class PGVectorWriter:
             conn.close()
 
     def get_all_texts(self) -> List[Dict]:
+        self._ensure_initialized()
         conn = self._get_conn()
         try:
             cur = conn.cursor()
@@ -260,6 +272,7 @@ class PGVectorWriter:
             conn.close()
 
     def query(self, query_embedding: List[float], n_results: int = 10, where: Dict = None) -> Dict:
+        self._ensure_initialized()
         conn = self._get_conn()
         try:
             cur = conn.cursor()
@@ -319,6 +332,7 @@ class PGVectorWriter:
             conn.close()
 
     def clear_all(self):
+        self._ensure_initialized()
         conn = self._get_conn()
         try:
             cur = conn.cursor()
