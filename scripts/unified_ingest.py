@@ -12,14 +12,14 @@ from scripts.config import get_config
 from scripts.extractors import ExtractorRegistry, DocumentChunk
 from scripts.chunker import HeadingAwareChunker as SemanticChunker
 from scripts.openai_client import get_embedding_client
-from scripts.chromadb_writer import ChromaDBWriter
+from scripts.pgvector_writer import PGVectorWriter
 
 
 class UnifiedIngest:
     def __init__(self):
         self.config = get_config()
         self.chunker = SemanticChunker(self.config)
-        self.writer = ChromaDBWriter(self.config)
+        self.writer = PGVectorWriter(self.config)
         self.embedding_client = None
 
     def _get_embedding_client(self):

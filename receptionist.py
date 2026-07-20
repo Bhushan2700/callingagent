@@ -15,9 +15,9 @@ class LoggixReceptionist:
             api_key=os.getenv("OPENAI_API_KEY"),
         )
 
-        from scripts.chromadb_writer import ChromaDBWriter
-        self._writer = ChromaDBWriter()
-        self.collection = self._writer.collection
+        from scripts.pgvector_writer import PGVectorWriter
+        self._writer = PGVectorWriter()
+        self.writer = self._writer
 
         from scripts.openai_client import get_embedding_client
         self.embedding_client = get_embedding_client()
@@ -73,10 +73,7 @@ RULES:
         query_embedding = await self.embedding_client.embed_query(query)
 
         # 2. Vector search (top-10)
-        results = self.collection.query(
-            query_embeddings=[query_embedding],
-            n_results=10
-        )
+        results = self._writer.query(query_embedding, n_results=10)
 
         if not results or not results.get("documents") or not results["documents"][0]:
             return {"chunks": [], "query_latency_ms": (time.time() - start_total) * 1000, "confidence": 0}

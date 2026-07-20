@@ -15,7 +15,7 @@ from scripts.config import get_config
 from scripts.extractors import ExtractorRegistry
 from scripts.chunker import HeadingAwareChunker as SemanticChunker
 from scripts.openai_client import get_embedding_client
-from scripts.chromadb_writer import ChromaDBWriter
+from scripts.pgvector_writer import PGVectorWriter
 
 
 class RedisQueue:
@@ -65,7 +65,7 @@ class IngestionWorker:
         self.config = get_config()
         self.queue = RedisQueue()
         self.chunker = SemanticChunker(self.config)
-        self.writer = ChromaDBWriter(self.config)
+        self.writer = PGVectorWriter(self.config)
         self.embedding_client = None
         self.running = True
 

@@ -24,14 +24,14 @@ load_dotenv()
 sys.path.insert(0, str(Path(__file__).parent))
 
 from receptionist import LoggixReceptionist
-from scripts.chromadb_writer import ChromaDBWriter
+from scripts.pgvector_writer import PGVectorWriter
 from scripts.unified_ingest import UnifiedIngest
 from scripts.cal_client import CalClient
 
 app = FastAPI()
 app_logger = logging.getLogger("app_logger")
 receptionist = LoggixReceptionist()
-writer = ChromaDBWriter()
+writer = PGVectorWriter()
 ingest = UnifiedIngest()
 cal_client = CalClient()
 

@@ -1,0 +1,17 @@
+venv/
+__pycache__/
+*.pyc
+.env
+.git/
+.mimocode/
+logs/
+chroma_db/
+test_chroma/
+test_chroma2/
+*.exe
+*.zip
+*.rdb
+*.log
+dump.rdb
+node_modules/
+loggix-voice-agent/

@@ -30,6 +30,10 @@ chromadb:
   collection: "loggix_knowledge"
   distance: "cosine"
 
+postgresql:
+  url: "${DATABASE_URL}"
+  collection: "loggix_knowledge"
+
 watcher:
   paths:
     - "knowledge/documents/incoming"

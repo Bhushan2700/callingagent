@@ -65,6 +65,10 @@ class Config:
         return self._config.get("chromadb", {})
 
     @property
+    def postgresql(self):
+        return self._config.get("postgresql", {})
+
+    @property
     def watcher(self):
         return self._config.get("watcher", {})
 

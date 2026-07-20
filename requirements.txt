@@ -3,7 +3,8 @@ uvicorn[standard]
 openai
 python-dotenv
 requests
-chromadb
+psycopg2-binary
+pgvector
 redis==5.0.1
 watchdog==3.0.0
 pymupdf>=1.24.0
