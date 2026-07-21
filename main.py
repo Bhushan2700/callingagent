@@ -85,6 +85,18 @@ async def search_knowledge(request: Request):
 
 def _parse_vapi_request(raw: dict) -> tuple:
     """Extract query/params and tool_call_id from Vapi request."""
+    # Format 1: Flat params (Vapi sends directly)
+    known_fields = {"name", "phone", "email", "enquiry_topic", "appointment_date", "appointment_time", "notes", "date", "time", "query"}
+    if known_fields.intersection(raw.keys()):
+        tool_call_id = None
+        msg = raw.get("message", {})
+        if isinstance(msg, dict):
+            tcs = msg.get("toolCalls", [])
+            if tcs and isinstance(tcs, list):
+                tool_call_id = tcs[0].get("id")
+        return raw, tool_call_id
+
+    # Format 2: Nested in message.toolCalls
     if "query" in raw:
         return raw["query"], None
     tc = raw.get("message", {}).get("toolCalls", [{}])[0]
