@@ -37,7 +37,10 @@ class PGVectorWriter:
     def _get_conn(self):
         if not self.db_url:
             raise ValueError("DATABASE_URL environment variable is required")
-        return psycopg2.connect(self.db_url)
+        url = self.db_url
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql://", 1)
+        return psycopg2.connect(url)
 
     def _ensure_initialized(self):
         if self._initialized:
