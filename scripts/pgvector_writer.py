@@ -40,6 +40,10 @@ class PGVectorWriter:
         url = self.db_url
         if url.startswith("postgres://"):
             url = url.replace("postgres://", "postgresql://", 1)
+        if "?" not in url:
+            url += "?sslmode=require"
+        elif "sslmode" not in url:
+            url += "&sslmode=require"
         return psycopg2.connect(url)
 
     def _ensure_initialized(self):
