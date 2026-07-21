@@ -103,8 +103,15 @@ def _validate_name(name: str) -> str | None:
 
 def _parse_phone(phone: str) -> str | None:
     phone = phone.strip()
+    # Remove common separators
     phone = phone.replace(" ", "").replace("-", "").replace("(", "").replace(")", "").replace(".", "").replace(",", "")
-    word_to_digit = {"zero": "0", "one": "1", "two": "2", "three": "3", "four": "4", "five": "5", "six": "6", "seven": "7", "eight": "8", "nine": "9", "oh": "0", "o": "0"}
+    # Convert spoken words to digits
+    word_to_digit = {
+        "zero": "0", "one": "1", "two": "2", "three": "3", "four": "4",
+        "five": "5", "six": "6", "seven": "7", "eight": "8", "nine": "9",
+        "oh": "0", "o": "0", "to": "2", "too": "2", "for": "4",
+        "ate": "8", "won": "1", "tree": "3", "fiver": "5", "niner": "9"
+    }
     for word, digit in word_to_digit.items():
         phone = phone.replace(word, digit)
     result = ""
@@ -118,9 +125,23 @@ def _parse_phone(phone: str) -> str | None:
 
 def _parse_email(email: str) -> str | None:
     email = email.strip().lower()
-    email = email.replace(" at the rate ", "@").replace(" at ", "@").replace(" dot ", ".")
-    email = email.replace(" ", "")
-    email = email.replace("gmail.com", "gmail.com").replace("gmaill.com", "gmail.com").replace("gmial.com", "gmail.com")
+    # Handle spoken email patterns
+    email = email.replace(" at the rate ", "@").replace(" at the rate of ", "@")
+    email = email.replace(" at ", "@").replace("atat", "@").replace(" at at ", "@")
+    email = email.replace(" dot ", ".").replace(" dotdot ", "..").replace(" dot dot ", "..")
+    email = email.replace(" underscore ", "_").replace(" dash ", "-").replace(" hyphen ", "-")
+    email = email.replace(" ", "").replace(",", "").replace(";", "")
+    # Fix common domain misspellings
+    domain_fixes = {
+        "gmaill.com": "gmail.com", "gmial.com": "gmail.com", "gamil.com": "gmail.com",
+        "g mail.com": "gmail.com", "gmail.con": "gmail.com", "gmail.cmo": "gmail.com",
+        "yahooo.com": "yahoo.com", "yahoo.con": "yahoo.com",
+        "hotmal.com": "hotmail.com", "hotmail.con": "hotmail.com",
+        "outlok.com": "outlook.com", "outlook.con": "outlook.com",
+        "icloud.con": "icloud.com",
+    }
+    for wrong, correct in domain_fixes.items():
+        email = email.replace(wrong, correct)
     if "@" not in email:
         return None
     parts = email.split("@")
@@ -160,7 +181,12 @@ def _validate_time(time_str: str) -> str | None:
     time_str = time_str.strip()
     if not time_str:
         return None
-    time_str = time_str.lower().replace("o'clock", ":00").replace("oclock", ":00").replace("in the morning", "am").replace("in the afternoon", "pm")
+    time_str = time_str.lower()
+    time_str = time_str.replace("o'clock", ":00").replace("oclock", ":00")
+    time_str = time_str.replace("in the morning", "am").replace("in the afternoon", "pm")
+    time_str = time_str.replace("in the evening", "pm").replace("at night", "pm")
+    time_str = time_str.replace("quarter past", ":15").replace("quarter to", ":45")
+    time_str = time_str.replace("half past", ":30")
     parsed = dateparser.parse(time_str, settings={'TIMEZONE': 'UTC', 'RETURN_AS_TIMEZONE_AWARE': True})
     if not parsed:
         return None
@@ -171,7 +197,14 @@ def _validate_time(time_str: str) -> str | None:
 async def book_appointment(request: Request):
     """Book appointment using Cal.com API."""
     raw = await request.json()
+
+    # Log the raw Vapi request for debugging
+    print(f"BOOKING_RAW_REQUEST: {json.dumps(raw, indent=2, default=str)}")
+
     params, tool_call_id = _parse_vapi_request(raw)
+
+    # Log extracted parameters
+    print(f"BOOKING_EXTRACTED_PARAMS: {json.dumps(params, indent=2, default=str)}")
 
     name = params.get("name", "").strip()
     phone = params.get("phone", "").strip()
@@ -179,6 +212,9 @@ async def book_appointment(request: Request):
     enquiry_topic = params.get("enquiry_topic", params.get("notes", "")).strip()
     appointment_date = params.get("appointment_date", params.get("date", "")).strip()
     appointment_time = params.get("appointment_time", params.get("time", "")).strip()
+
+    # Log raw values before parsing
+    print(f"BOOKING_RAW_VALUES: name='{name}', phone='{phone}', email='{email}', topic='{enquiry_topic}', date='{appointment_date}', time='{appointment_time}'")
 
     valid_name = _validate_name(name)
     if not valid_name:
@@ -220,7 +256,7 @@ async def book_appointment(request: Request):
             return {"results": [{"toolCallId": tool_call_id, "error": err}]}
         return {"error": err}
 
-    print(f"BOOKING_RECEIVED: name={name}, phone={phone}, email={email}, date={appointment_date}, time={appointment_time}, topic={enquiry_topic}")
+    print(f"BOOKING_PARSED: name='{valid_name}', phone='{phone}', email='{email}', date='{appointment_date}', time='{appointment_time}', topic='{valid_enquiry}'")
 
     valid_date = _validate_date(appointment_date)
     if not valid_date:
