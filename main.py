@@ -176,9 +176,9 @@ async def book_appointment(request: Request):
     name = params.get("name", "").strip()
     phone = params.get("phone", "").strip()
     email = params.get("email", "").strip()
-    enquiry_topic = params.get("enquiry_topic", "").strip()
-    appointment_date = params.get("appointment_date", "").strip()
-    appointment_time = params.get("appointment_time", "").strip()
+    enquiry_topic = params.get("enquiry_topic", params.get("notes", "")).strip()
+    appointment_date = params.get("appointment_date", params.get("date", "")).strip()
+    appointment_time = params.get("appointment_time", params.get("time", "")).strip()
 
     valid_name = _validate_name(name)
     if not valid_name:
