@@ -3,150 +3,575 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tickets - Loggix AI</title>
+    <title>Loggix AI | Support Tickets</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; padding: 2rem; }
-        h1 { font-size: 1.8rem; margin-bottom: 0.5rem; color: #fff; }
-        .subtitle { color: #64748b; margin-bottom: 2rem; }
-        
-        /* Stats */
-        .stats { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
-        .stat { background: #1e293b; padding: 1rem 1.5rem; border-radius: 8px; border: 1px solid #334155; }
-        .stat-value { font-size: 1.5rem; font-weight: 700; color: #3b82f6; }
-        .stat-label { font-size: 0.85rem; color: #64748b; }
-        
-        /* Table */
-        .table-container { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 8px; overflow: hidden; }
-        th { background: #334155; padding: 1rem; text-align: left; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; }
-        td { padding: 1rem; border-bottom: 1px solid #334155; }
-        tr:hover { background: #334155; }
-        
-        /* Status badges */
-        .status { padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
-        .status-open { background: #1e3a5f; color: #60a5fa; }
-        .status-in_progress { background: #713f12; color: #fbbf24; }
-        .status-closed { background: #14532d; color: #4ade80; }
-        
-        /* Empty state */
-        .empty { text-align: center; padding: 3rem; color: #64748b; }
-        .empty-icon { font-size: 3rem; margin-bottom: 1rem; }
-        
-        /* Refresh button */
-        .refresh-btn { background: #1e40af; color: #93c5fd; border: 1px solid #3b82f6; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
-        .refresh-btn:hover { background: #1e3a8a; }
-        
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+
+        :root {
+            --brand-blue: #0061FF;
+            --brand-glow: rgba(0, 97, 255, 0.4);
+            --bg-dark: #020617;
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-hover: rgba(255, 255, 255, 0.06);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: white;
+            min-height: 100vh;
+            padding: 2rem;
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(0, 97, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(0, 97, 255, 0.04) 0%, transparent 50%);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--brand-blue);
+            color: white;
+            box-shadow: 0 4px 15px var(--brand-glow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--brand-glow);
+        }
+
+        .btn-ghost {
+            background: var(--glass);
+            color: #94a3b8;
+            border: 1px solid var(--glass-border);
+        }
+
+        .btn-ghost:hover {
+            background: var(--glass-hover);
+            color: white;
+        }
+
+        /* Stats Cards */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1.25rem;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--brand-blue);
+            transform: translateY(-2px);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--brand-blue) 0%, #60a5fa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-top: 0.25rem;
+        }
+
+        /* Ticket Grid */
+        .tickets-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .ticket-card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .ticket-card:hover {
+            border-color: var(--brand-blue);
+            background: var(--glass-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .ticket-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .ticket-id {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--brand-blue);
+            background: rgba(0, 97, 255, 0.1);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-open {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .status-in_progress {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .status-closed {
+            background: rgba(34, 197, 94, 0.15);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .ticket-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .ticket-issue {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+
+        .ticket-meta {
+            display: flex;
+            gap: 1.5rem;
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        .ticket-meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: #0f172a;
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal h2 {
+            font-size: 1.3rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            color: white;
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--brand-blue);
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-group select option {
+            background: #1e293b;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+        }
+
+        .empty-state .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .empty-state p {
+            color: #64748b;
+            font-size: 1rem;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #64748b;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .stats { grid-template-columns: repeat(2, 1fr); }
+            .header { flex-direction: column; gap: 1rem; align-items: flex-start; }
+            .ticket-meta { flex-direction: column; gap: 0.5rem; }
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div>
+    <div class="container">
+        <div class="header">
             <h1>Support Tickets</h1>
-            <p class="subtitle">View and manage customer support tickets</p>
+            <div class="header-actions">
+                <button class="btn btn-ghost" onclick="loadTickets()">Refresh</button>
+                <button class="btn btn-primary" onclick="openCreateModal()">+ New Ticket</button>
+            </div>
         </div>
-        <button class="refresh-btn" onclick="loadTickets()">Refresh</button>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalCount">0</div>
+                <div class="stat-label">Total Tickets</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="openCount">0</div>
+                <div class="stat-label">Open</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="progressCount">0</div>
+                <div class="stat-label">In Progress</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="closedCount">0</div>
+                <div class="stat-label">Closed</div>
+            </div>
+        </div>
+
+        <div class="tickets-grid" id="ticketsList">
+            <div class="loading">Loading tickets...</div>
+        </div>
     </div>
-    
-    <!-- Stats -->
-    <div class="stats">
-        <div class="stat">
-            <div class="stat-value" id="totalCount">0</div>
-            <div class="stat-label">Total Tickets</div>
-        </div>
-        <div class="stat">
-            <div class="stat-value" id="openCount">0</div>
-            <div class="stat-label">Open</div>
-        </div>
-        <div class="stat">
-            <div class="stat-value" id="closedCount">0</div>
-            <div class="stat-label">Closed</div>
+
+    <!-- Create Ticket Modal -->
+    <div class="modal-overlay" id="createModal">
+        <div class="modal">
+            <h2>Create Support Ticket</h2>
+            <form onsubmit="createTicket(event)">
+                <div class="form-group">
+                    <label>Name *</label>
+                    <input type="text" id="ticketName" required placeholder="Customer name">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="ticketEmail" placeholder="customer@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="text" id="ticketPhone" placeholder="+31 6 12345678">
+                </div>
+                <div class="form-group">
+                    <label>Issue *</label>
+                    <textarea id="ticketIssue" required placeholder="Describe the issue..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-ghost" onclick="closeCreateModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Ticket</button>
+                </div>
+            </form>
         </div>
     </div>
-    
-    <!-- Ticket Table -->
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>Ticket ID</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Issue</th>
-                    <th>Status</th>
-                    <th>Date</th>
-                </tr>
-            </thead>
-            <tbody id="ticketList">
-                <tr>
-                    <td colspan="7" class="empty">
-                        <div class="empty-icon">📋</div>
-                        <p>Loading tickets...</p>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+
+    <!-- Ticket Detail Modal -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal">
+            <h2 id="detailTitle">Ticket Details</h2>
+            <div id="detailContent"></div>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeDetailModal()">Close</button>
+                <button class="btn btn-primary" id="statusBtn" onclick="updateTicketStatus()">Update Status</button>
+            </div>
+        </div>
     </div>
-    
+
     <script>
         const API_BASE = window.location.origin;
-        
+        let currentTicket = null;
+
         async function loadTickets() {
             try {
                 const response = await fetch(`${API_BASE}/tickets`);
                 const data = await response.json();
                 const tickets = data.tickets || [];
-                
-                // Update stats
+
                 document.getElementById('totalCount').textContent = tickets.length;
                 document.getElementById('openCount').textContent = tickets.filter(t => t.status === 'open').length;
+                document.getElementById('progressCount').textContent = tickets.filter(t => t.status === 'in_progress').length;
                 document.getElementById('closedCount').textContent = tickets.filter(t => t.status === 'closed').length;
-                
-                // Render tickets
-                const tbody = document.getElementById('ticketList');
+
+                const container = document.getElementById('ticketsList');
                 if (tickets.length === 0) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="7" class="empty">
-                                <div class="empty-icon">📋</div>
-                                <p>No tickets yet</p>
-                            </td>
-                        </tr>
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="icon">📋</div>
+                            <p>No support tickets yet</p>
+                        </div>
                     `;
                     return;
                 }
-                
-                tbody.innerHTML = tickets.reverse().map(ticket => `
-                    <tr>
-                        <td><strong>${ticket.id}</strong></td>
-                        <td>${ticket.name || 'N/A'}</td>
-                        <td>${ticket.email || 'N/A'}</td>
-                        <td>${ticket.phone || 'N/A'}</td>
-                        <td>${ticket.issue ? (ticket.issue.length > 50 ? ticket.issue.substring(0, 50) + '...' : ticket.issue) : 'N/A'}</td>
-                        <td><span class="status status-${ticket.status}">${ticket.status}</span></td>
-                        <td>${new Date(ticket.created_at).toLocaleDateString()}</td>
-                    </tr>
+
+                container.innerHTML = tickets.reverse().map(ticket => `
+                    <div class="ticket-card" onclick="openDetail('${ticket.id}')">
+                        <div class="ticket-header">
+                            <span class="ticket-id">${ticket.id}</span>
+                            <span class="status-badge status-${ticket.status}">${ticket.status.replace('_', ' ')}</span>
+                        </div>
+                        <div class="ticket-name">${ticket.name || 'Unknown'}</div>
+                        <div class="ticket-issue">${ticket.issue ? (ticket.issue.length > 120 ? ticket.issue.substring(0, 120) + '...' : ticket.issue) : 'No description'}</div>
+                        <div class="ticket-meta">
+                            <span>📧 ${ticket.email || 'No email'}</span>
+                            <span>📱 ${ticket.phone || 'No phone'}</span>
+                            <span>📅 ${new Date(ticket.created_at).toLocaleDateString()}</span>
+                        </div>
+                    </div>
                 `).join('');
-                
+
             } catch (error) {
                 console.error('Error loading tickets:', error);
-                document.getElementById('ticketList').innerHTML = `
-                    <tr>
-                        <td colspan="7" class="empty">
-                            <div class="empty-icon">⚠️</div>
-                            <p>Error loading tickets</p>
-                        </td>
-                    </tr>
+                document.getElementById('ticketsList').innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">⚠️</div>
+                        <p>Error loading tickets</p>
+                    </div>
                 `;
             }
         }
-        
-        // Load tickets on page load
+
+        function openCreateModal() {
+            document.getElementById('createModal').classList.add('active');
+        }
+
+        function closeCreateModal() {
+            document.getElementById('createModal').classList.remove('active');
+            document.getElementById('ticketName').value = '';
+            document.getElementById('ticketEmail').value = '';
+            document.getElementById('ticketPhone').value = '';
+            document.getElementById('ticketIssue').value = '';
+        }
+
+        async function createTicket(e) {
+            e.preventDefault();
+            const ticket = {
+                name: document.getElementById('ticketName').value,
+                email: document.getElementById('ticketEmail').value,
+                phone: document.getElementById('ticketPhone').value,
+                issue: document.getElementById('ticketIssue').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/tool/raise_ticket`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(ticket)
+                });
+                const data = await response.json();
+                if (data.result || data.results) {
+                    closeCreateModal();
+                    loadTickets();
+                }
+            } catch (error) {
+                console.error('Error creating ticket:', error);
+            }
+        }
+
+        async function openDetail(ticketId) {
+            try {
+                const response = await fetch(`${API_BASE}/tickets/${ticketId}`);
+                currentTicket = await response.json();
+                document.getElementById('detailTitle').textContent = `Ticket ${currentTicket.id}`;
+
+                const statusOptions = ['open', 'in_progress', 'closed'];
+                document.getElementById('detailContent').innerHTML = `
+                    <div style="margin-bottom: 1rem;">
+                        <span class="status-badge status-${currentTicket.status}">${currentTicket.status.replace('_', ' ')}</span>
+                    </div>
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" value="${currentTicket.name || ''}" readonly style="opacity: 0.7;">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="text" value="${currentTicket.email || ''}" readonly style="opacity: 0.7;">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="text" value="${currentTicket.phone || ''}" readonly style="opacity: 0.7;">
+                    </div>
+                    <div class="form-group">
+                        <label>Issue</label>
+                        <textarea readonly style="opacity: 0.7;">${currentTicket.issue || ''}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Update Status</label>
+                        <select id="newStatus">
+                            ${statusOptions.map(s => `<option value="${s}" ${currentTicket.status === s ? 'selected' : ''}>${s.replace('_', ' ')}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Created</label>
+                        <input type="text" value="${new Date(currentTicket.created_at).toLocaleString()}" readonly style="opacity: 0.7;">
+                    </div>
+                `;
+
+                document.getElementById('detailModal').classList.add('active');
+            } catch (error) {
+                console.error('Error loading ticket:', error);
+            }
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.remove('active');
+            currentTicket = null;
+        }
+
+        async function updateTicketStatus() {
+            if (!currentTicket) return;
+            const newStatus = document.getElementById('newStatus').value;
+
+            try {
+                await fetch(`${API_BASE}/tickets/${currentTicket.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                closeDetailModal();
+                loadTickets();
+            } catch (error) {
+                console.error('Error updating ticket:', error);
+            }
+        }
+
         loadTickets();
-        
-        // Auto-refresh every 30 seconds
         setInterval(loadTickets, 30000);
     </script>
 </body>
