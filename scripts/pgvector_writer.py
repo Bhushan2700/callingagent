@@ -1,11 +1,21 @@
 import os
+import json
 import hashlib
+import math
 from datetime import datetime
 from typing import List, Dict, Optional
 import psycopg2
 from psycopg2.extras import execute_values
-from pgvector.psycopg2 import register_vector
 from scripts.config import get_config
+
+
+def _cosine_similarity(a: List[float], b: List[float]) -> float:
+    dot = sum(x * y for x, y in zip(a, b))
+    norm_a = math.sqrt(sum(x * x for x in a))
+    norm_b = math.sqrt(sum(x * x for x in b))
+    if norm_a == 0 or norm_b == 0:
+        return 0.0
+    return dot / (norm_a * norm_b)
 
 
 class PGVectorWriter:
@@ -27,27 +37,15 @@ class PGVectorWriter:
     def _get_conn(self):
         if not self.db_url:
             raise ValueError("DATABASE_URL environment variable is required")
-        conn = psycopg2.connect(self.db_url)
-        register_vector(conn)
-        return conn
+        return psycopg2.connect(self.db_url)
 
     def _ensure_initialized(self):
         if self._initialized:
             return
         if not self.db_url:
             raise ValueError("DATABASE_URL environment variable is required")
-        self._register_vector()
         self._ensure_table()
         self._initialized = True
-
-    def _register_vector(self):
-        conn = self._get_conn()
-        try:
-            cur = conn.cursor()
-            cur.execute("CREATE EXTENSION IF NOT EXISTS vector")
-            conn.commit()
-        finally:
-            conn.close()
 
     def _ensure_table(self):
         conn = self._get_conn()
@@ -73,21 +71,13 @@ class PGVectorWriter:
                     summary TEXT,
                     ingested_at TIMESTAMP DEFAULT NOW(),
                     version INTEGER DEFAULT 1,
-                    embedding vector(1536)
+                    embedding TEXT
                 )
             """)
             cur.execute(f"""
                 CREATE INDEX IF NOT EXISTS idx_{self.collection_name}_doc_id
                 ON {self.collection_name}(doc_id)
             """)
-            try:
-                cur.execute(f"""
-                    CREATE INDEX IF NOT EXISTS idx_{self.collection_name}_embedding
-                    ON {self.collection_name} USING ivfflat (embedding vector_cosine_ops)
-                    WITH (lists = 100)
-                """)
-            except Exception:
-                pass
             conn.commit()
         finally:
             conn.close()
@@ -123,7 +113,7 @@ class PGVectorWriter:
                 metadata.get("summary", ""),
                 datetime.utcnow(),
                 chunk.get("version", 1),
-                embedding
+                json.dumps(embedding)
             ))
 
         conn = self._get_conn()
@@ -277,38 +267,36 @@ class PGVectorWriter:
         try:
             cur = conn.cursor()
 
-            where_clause = ""
-            params = [query_embedding]
-
             if where and "doc_id" in where:
-                where_clause = "WHERE doc_id = %s"
-                params.append(where["doc_id"])
-
-            limit = min(n_results, 100)
-            params.append(limit)
-
-            cur.execute(f"""
-                SELECT chunk_id, text, doc_id, doc_type, section, subsection,
-                       heading_level, page, tags, keywords, summary,
-                       1 - (embedding <=> %s::vector) AS distance
-                FROM {self.collection_name}
-                {where_clause}
-                ORDER BY embedding <=> %s::vector
-                LIMIT %s
-            """, params)
+                cur.execute(f"""
+                    SELECT chunk_id, text, doc_id, doc_type, section, subsection,
+                           heading_level, page, tags, keywords, summary, embedding
+                    FROM {self.collection_name}
+                    WHERE doc_id = %s
+                """, (where["doc_id"],))
+            else:
+                cur.execute(f"""
+                    SELECT chunk_id, text, doc_id, doc_type, section, subsection,
+                           heading_level, page, tags, keywords, summary, embedding
+                    FROM {self.collection_name}
+                """)
 
             rows = cur.fetchall()
 
-            ids = []
-            documents = []
-            metadatas = []
-            distances = []
-
+            scored = []
             for row in rows:
-                ids.append(row[0])
-                documents.append(row[1])
-                metadatas.append({
+                embedding_str = row[11]
+                if not embedding_str:
+                    continue
+                try:
+                    stored_embedding = json.loads(embedding_str)
+                    similarity = _cosine_similarity(query_embedding, stored_embedding)
+                except (json.JSONDecodeError, TypeError):
+                    similarity = 0.0
+
+                scored.append({
                     "chunk_id": row[0],
+                    "text": row[1],
                     "doc_id": row[2],
                     "doc_type": row[3] or "",
                     "section": row[4] or "",
@@ -318,9 +306,30 @@ class PGVectorWriter:
                     "tags": row[8] or "",
                     "keywords": row[9] or "",
                     "summary": row[10] or "",
-                    "distance": 1 - row[11] if row[11] is not None else 1.0
+                    "similarity": similarity
                 })
-                distances.append(row[11] if row[11] is not None else 0.0)
+
+            scored.sort(key=lambda x: x["similarity"], reverse=True)
+            top = scored[:n_results]
+
+            ids = [r["chunk_id"] for r in top]
+            documents = [r["text"] for r in top]
+            metadatas = []
+            for r in top:
+                metadatas.append({
+                    "chunk_id": r["chunk_id"],
+                    "doc_id": r["doc_id"],
+                    "doc_type": r["doc_type"],
+                    "section": r["section"],
+                    "subsection": r["subsection"],
+                    "heading_level": r["heading_level"],
+                    "page": r["page"],
+                    "tags": r["tags"],
+                    "keywords": r["keywords"],
+                    "summary": r["summary"],
+                    "distance": 1 - r["similarity"]
+                })
+            distances = [1 - r["similarity"] for r in top]
 
             return {
                 "ids": [ids],
