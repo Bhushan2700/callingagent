@@ -420,7 +420,7 @@
 
         async function loadTickets() {
             try {
-                const response = await fetch(`${API_BASE}/tickets`);
+                const response = await fetch(`${API_BASE}/api/tickets`);
                 const data = await response.json();
                 const tickets = data.tickets || [];
 
@@ -506,7 +506,7 @@
 
         async function openDetail(ticketId) {
             try {
-                const response = await fetch(`${API_BASE}/tickets/${ticketId}`);
+                const response = await fetch(`${API_BASE}/api/tickets/${ticketId}`);
                 currentTicket = await response.json();
                 document.getElementById('detailTitle').textContent = `Ticket ${currentTicket.id}`;
 
@@ -559,7 +559,7 @@
             const newStatus = document.getElementById('newStatus').value;
 
             try {
-                await fetch(`${API_BASE}/tickets/${currentTicket.id}`, {
+                await fetch(`${API_BASE}/api/tickets/${currentTicket.id}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status: newStatus })

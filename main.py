@@ -372,13 +372,21 @@ async def raise_ticket(request: Request):
     return {"result": result_text}
 
 
-@app.get("/tickets")
+@app.get("/tickets", response_class=HTMLResponse)
+async def tickets_page():
+    tickets_html = static_dir / "tickets.html"
+    if tickets_html.exists():
+        return HTMLResponse(content=tickets_html.read_text(encoding="utf-8"))
+    return HTMLResponse(content="<h1>Tickets page not found</h1>", status_code=404)
+
+
+@app.get("/api/tickets")
 async def list_tickets():
     data = _load_tickets()
     return {"tickets": data.get("tickets", []), "total": len(data.get("tickets", []))}
 
 
-@app.get("/tickets/{ticket_id}")
+@app.get("/api/tickets/{ticket_id}")
 async def get_ticket(ticket_id: str):
     data = _load_tickets()
     for ticket in data.get("tickets", []):
@@ -387,7 +395,7 @@ async def get_ticket(ticket_id: str):
     raise HTTPException(status_code=404, detail=f"Ticket not found: {ticket_id}")
 
 
-@app.patch("/tickets/{ticket_id}")
+@app.patch("/api/tickets/{ticket_id}")
 async def update_ticket(ticket_id: str, request: Request):
     raw = await request.json()
     new_status = raw.get("status", "")
@@ -495,14 +503,6 @@ async def voice_page():
     if voice_html.exists():
         return HTMLResponse(content=voice_html.read_text(encoding="utf-8"))
     return HTMLResponse(content="<h1>Voice page not found</h1>", status_code=404)
-
-
-@app.get("/tickets-page", response_class=HTMLResponse)
-async def tickets_page():
-    tickets_html = static_dir / "tickets.html"
-    if tickets_html.exists():
-        return HTMLResponse(content=tickets_html.read_text(encoding="utf-8"))
-    return HTMLResponse(content="<h1>Tickets page not found</h1>", status_code=404)
 
 
 # ==================== TWILIO VOICE API (Media Streams) ====================
