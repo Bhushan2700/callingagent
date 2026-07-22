@@ -38,6 +38,54 @@
             margin: 0 auto;
         }
 
+        /* Navbar */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+            margin: -2rem -2rem 2rem -2rem;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .nav-brand {
+            font-size: 1.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff 0%, var(--brand-blue) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .nav-link {
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #94a3b8;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-link.active {
+            color: white;
+            background: var(--brand-blue);
+        }
+
         /* Header */
         .header {
             display: flex;
@@ -340,6 +388,14 @@
     </style>
 </head>
 <body>
+    <nav class="navbar">
+        <div class="nav-brand">Loggix AI</div>
+        <div class="nav-links">
+            <a href="/voice" class="nav-link">Voice Agent</a>
+            <a href="/tickets" class="nav-link active">Tickets</a>
+            <a href="/upload" class="nav-link">Documents</a>
+        </div>
+    </nav>
     <div class="container">
         <div class="header">
             <h1>Support Tickets</h1>
