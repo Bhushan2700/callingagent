@@ -14,8 +14,9 @@ httpx>=0.25.0
 dateparser>=1.1
 python-multipart>=0.0.6
 sentence-transformers>=2.2.0
-# Voice AI stack (Pipecat for web, Vapi for phone)
-pipecat-ai[deepgram]>=0.0.100
+# Voice AI stack (replaces Vapi)
+pipecat-ai[whisper]>=0.0.100
+moonshine-voice>=0.0.60
 piper-tts[http]>=1.0.0
 groq>=0.11.0
 websockets>=12.0

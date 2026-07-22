@@ -555,24 +555,6 @@ async def websocket_call(websocket: WebSocket):
     await bot(runner_args)
 
 
-# ==================== PIPECAT WEB VOICE ====================
-
-@app.websocket("/ws/voice")
-async def websocket_voice(websocket: WebSocket):
-    """WebSocket endpoint for Pipecat web voice agent."""
-    try:
-        from pipecat_web import run_web_bot
-        await websocket.accept()
-        logger.info("Pipecat web voice client connected")
-        await run_web_bot(websocket)
-    except Exception as e:
-        logger.error(f"Pipecat web voice error: {e}")
-        try:
-            await websocket.close()
-        except Exception:
-            pass
-
-
 # ==================== HEALTH CHECK ====================
 
 @app.get("/health")
