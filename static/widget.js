@@ -29,6 +29,12 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
 
+        /* Hide Vapi default button */
+        [class*="vapi"] button,
+        [id*="vapi"],
+        [data-vapi],
+        iframe[src*="vapi"] { display: none !important; }
+
         .widget-btn {
             position: fixed;
             ${CONFIG.position.includes('right') ? 'right: 20px' : 'left: 20px'};
@@ -308,6 +314,20 @@
         }
     });
 
+    function hideVapiButtons() {
+        // Hide all Vapi-created buttons in the main document
+        document.querySelectorAll('[class*="vapi"], [id*="vapi"], [data-vapi], iframe[src*="vapi"]').forEach(el => {
+            el.style.display = 'none';
+        });
+        // Also hide any fixed-position buttons that Vapi might create
+        document.querySelectorAll('button').forEach(btn => {
+            const style = window.getComputedStyle(btn);
+            if (style.position === 'fixed' && btn !== widgetBtn && !host.contains(btn)) {
+                btn.style.display = 'none';
+            }
+        });
+    }
+
     // Voice toggle (Vapi)
     voiceToggle.addEventListener('click', () => {
         if (voiceMode) {
@@ -340,6 +360,11 @@
             assistant: CONFIG.vapiAssistant,
             config: { button: { display: 'none' } }
         });
+
+        // Hide any Vapi buttons that appear in the main document
+        hideVapiButtons();
+        const observer = new MutationObserver(hideVapiButtons);
+        observer.observe(document.body, { childList: true, subtree: true });
 
         vapiInstance.on('call-start', () => {
             voiceMode = true;
