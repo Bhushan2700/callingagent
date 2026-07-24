@@ -379,9 +379,14 @@
         });
 
         vapiInstance.on('message', (m) => {
-            if (m.type === 'transcript' && m.transcriptType === 'final') {
+            console.log('Vapi message:', m);
+            // Capture all transcript messages (both partial and final)
+            if (m.type === 'transcript') {
                 const role = m.role === 'user' ? 'You' : 'Agent';
-                addMessage(`${role}: ${m.transcript}`, 'bot');
+                // Only show final transcripts to avoid spam
+                if (m.transcriptType === 'final' && m.transcript) {
+                    addMessage(`${role}: ${m.transcript}`, 'bot');
+                }
             }
         });
 
