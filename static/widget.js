@@ -403,9 +403,8 @@
             stopVoice();
         });
 
-        // Start the call
+        // Vapi SDK handles call start automatically
         addMessage('Connecting to voice...', 'bot');
-        vapiInstance.start();
     }
 
     function stopVoice() {
