@@ -355,6 +355,13 @@
     }
 
     function initVapi() {
+        console.log('Vapi init - apiKey:', CONFIG.vapiKey, 'assistant:', CONFIG.vapiAssistant);
+
+        if (!CONFIG.vapiKey || !CONFIG.vapiAssistant) {
+            addMessage('Voice chat is not configured. Missing Vapi keys.', 'bot');
+            return;
+        }
+
         vapiInstance = window.vapiSDK.run({
             apiKey: CONFIG.vapiKey,
             assistant: CONFIG.vapiAssistant,
