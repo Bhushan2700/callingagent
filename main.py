@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from fastapi import FastAPI, Request, Response, HTTPException, UploadFile, File, WebSocket
 from fastapi.responses import PlainTextResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import dateparser
@@ -29,6 +30,7 @@ from scripts.unified_ingest import UnifiedIngest
 from scripts.cal_client import CalClient
 
 app = FastAPI()
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 app_logger = logging.getLogger("app_logger")
 receptionist = LoggixReceptionist()
 writer = PGVectorWriter()
@@ -503,6 +505,63 @@ async def voice_page():
     if voice_html.exists():
         return HTMLResponse(content=voice_html.read_text(encoding="utf-8"))
     return HTMLResponse(content="<h1>Voice page not found</h1>", status_code=404)
+
+
+@app.get("/widget", response_class=HTMLResponse)
+async def widget_page():
+    widget_html = static_dir / "widget.html"
+    if widget_html.exists():
+        return HTMLResponse(content=widget_html.read_text(encoding="utf-8"))
+    return HTMLResponse(content="<h1>Widget page not found</h1>", status_code=404)
+
+
+# ==================== WIDGET API ENDPOINTS ====================
+
+@app.post("/api/chat")
+async def api_chat(request: Request):
+    """Text chat endpoint for the embeddable widget."""
+    raw = await request.json()
+    message = raw.get("message", "").strip()
+    history = raw.get("history", [])
+
+    if not message:
+        return {"error": "Message is required"}
+
+    try:
+        response = await receptionist.get_response(message, history)
+        return {"response": response}
+    except Exception as e:
+        app_logger.error(f"Chat error: {e}")
+        return {"response": "Sorry, I encountered an error. Please try again."}
+
+
+@app.post("/api/search")
+async def api_search(request: Request):
+    """Search endpoint for the embeddable widget."""
+    raw = await request.json()
+    query = raw.get("query", "").strip()
+
+    if not query:
+        return {"error": "Query is required"}
+
+    try:
+        result = await receptionist.search(query)
+        chunks = result.get("chunks", [])
+        formatted = []
+        for i, c in enumerate(chunks):
+            section = c.get("section", "General")
+            if c.get("subsection"):
+                section = f"{section} > {c.get('subsection')}"
+            formatted.append({
+                "text": c["text"],
+                "doc_id": c.get("doc_id", ""),
+                "section": section,
+                "similarity": round(c.get("similarity", 0), 3)
+            })
+        return {"results": formatted, "count": len(formatted)}
+    except Exception as e:
+        app_logger.error(f"Search error: {e}")
+        return {"results": [], "count": 0}
 
 
 # ==================== TWILIO VOICE API (Media Streams) ====================
