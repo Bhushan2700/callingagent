@@ -390,6 +390,10 @@
             addMessage('Voice connection error.', 'bot');
             stopVoice();
         });
+
+        // Start the call
+        addMessage('Connecting to voice...', 'bot');
+        vapiInstance.start();
     }
 
     function stopVoice() {
