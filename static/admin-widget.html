@@ -289,16 +289,8 @@
                 </div>
             </div>
             <div class="embed-box">
-                <div class="label">Embed Script</div>
-                <code id="embed-code">&lt;script&gt;
-window.LoggixWidget = {
-    title: "Loggix AI Support",
-    greeting: "Hi! I'm the Loggix AI assistant. How can I help you today?",
-    primaryColor: "#0061FF",
-    position: "bottom-right"
-};
-&lt;/script&gt;
-&lt;script src="<script-base>/static/widget.js"&gt;&lt;/script&gt;</code>
+                <div class="label">Embed Script — add to any website</div>
+                <code id="embed-code"></code>
                 <button class="copy-btn" id="copy-btn">Copy Embed Code</button>
             </div>
         </div>
@@ -410,20 +402,24 @@ window.LoggixWidget = {
                 let val = el.value.trim();
                 if (val === DEFAULTS[key]) continue;
                 if (key === 'icon') {
-                    configLines.push(`    ${key}: \`${val}\``);
+                    configLines.push('    ' + key + ': `' + val + '`');
                 } else if (key === 'position' && val === 'bottom-right') {
                     continue;
                 } else {
-                    configLines.push(`    ${key}: ${JSON.stringify(val)}`);
+                    configLines.push('    ' + key + ': ' + JSON.stringify(val));
                 }
             }
-            const configStr = configLines.length ? `\n${configLines.join(',\n')}\n` : '';
-            document.getElementById('embed-code').textContent =
-`<script>
-window.LoggixWidget = {${configStr || ' '}
-};
-</script>
-<script src="${scriptBase}/static/widget.js"></script>`;
+            const tag = '<' + 'script';
+            const close = '<' + '/script>';
+            if (configLines.length) {
+                const configStr = '\n' + configLines.join(',\n') + '\n';
+                document.getElementById('embed-code').textContent =
+                    tag + '>\nwindow.LoggixWidget = {' + configStr + '};\n' + close + '\n' +
+                    tag + ' src="' + scriptBase + '/static/widget.js">' + close;
+            } else {
+                document.getElementById('embed-code').textContent =
+                    tag + ' src="' + scriptBase + '/static/widget.js">' + close;
+            }
         }
 
         for (const [key, el] of Object.entries(fields)) {
