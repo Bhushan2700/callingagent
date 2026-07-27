@@ -484,6 +484,70 @@ async def upload_document(file: UploadFile = File(...)):
         return {"status": "error", "filename": file.filename, "message": f"File saved but ingestion failed: {str(e)}"}
 
 
+# ==================== WIDGET CONFIG ====================
+
+WIDGET_CONFIG_FILE = Path(__file__).parent / "data" / "widget_config.json"
+
+DEFAULT_WIDGET_CONFIG = {
+    "title": "Loggix AI Support",
+    "greeting": "Hi! I'm the Loggix AI assistant. How can I help you today?",
+    "primaryColor": "#0061FF",
+    "primaryHover": "#0051d4",
+    "backgroundColor": "#0f172a",
+    "headerBg": "rgba(255,255,255,0.03)",
+    "textColor": "#ffffff",
+    "botMessageBg": "rgba(255,255,255,0.06)",
+    "icon": "",
+    "position": "bottom-right"
+}
+
+
+def _load_widget_config() -> dict:
+    if WIDGET_CONFIG_FILE.exists():
+        try:
+            with open(WIDGET_CONFIG_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return dict(DEFAULT_WIDGET_CONFIG)
+
+
+def _save_widget_config(config: dict):
+    WIDGET_CONFIG_FILE.parent.mkdir(exist_ok=True)
+    merged = dict(DEFAULT_WIDGET_CONFIG)
+    merged.update(config)
+    with open(WIDGET_CONFIG_FILE, "w") as f:
+        json.dump(merged, f, indent=2)
+
+
+ALLOWED_POSITIONS = ["bottom-right", "bottom-left"]
+
+
+@app.get("/api/admin/widget-config")
+async def get_widget_config():
+    return _load_widget_config()
+
+
+@app.put("/api/admin/widget-config")
+async def update_widget_config(request: Request):
+    raw = await request.json()
+    if not isinstance(raw, dict):
+        raise HTTPException(status_code=400, detail="Invalid config")
+    pos = raw.get("position", "bottom-right")
+    if pos not in ALLOWED_POSITIONS:
+        raise HTTPException(status_code=400, detail=f"position must be one of {ALLOWED_POSITIONS}")
+    _save_widget_config(raw)
+    return {"status": "ok", "config": _load_widget_config()}
+
+
+@app.get("/admin/widget", response_class=HTMLResponse)
+async def admin_widget_page():
+    admin_html = static_dir / "admin-widget.html"
+    if admin_html.exists():
+        return HTMLResponse(content=admin_html.read_text(encoding="utf-8"))
+    return HTMLResponse(content="<h1>Admin Widget page not found</h1>", status_code=404)
+
+
 # ==================== STATIC FILES ====================
 
 static_dir = Path(__file__).parent / "static"

@@ -1,20 +1,29 @@
-/**
- * Loggix AI Chat Widget
- * Embeddable chat widget with text chat + voice support
- * Usage: <script src="https://your-domain.com/static/widget.js"></script>
- */
-(function() {
+(async function() {
     const API_BASE = window.LoggixWidget?.apiBase || window.location.origin;
     const CONFIG = {
-        position: window.LoggixWidget?.position || 'bottom-right',
-        theme: window.LoggixWidget?.theme || 'dark',
-        greeting: window.LoggixWidget?.greeting || 'Hi! How can I help you today?',
-        title: window.LoggixWidget?.title || 'Loggix AI Support',
-        vapiKey: window.LoggixWidget?.vapiKey || '',
-        vapiAssistant: window.LoggixWidget?.vapiAssistant || '',
+        position: 'bottom-right',
+        title: 'Loggix AI Support',
+        greeting: 'Hi! How can I help you today?',
+        primaryColor: '#0061FF',
+        primaryHover: '#0051d4',
+        backgroundColor: '#0f172a',
+        headerBg: 'rgba(255,255,255,0.03)',
+        textColor: '#ffffff',
+        botMessageBg: 'rgba(255,255,255,0.06)',
+        icon: '',
+        vapiKey: '',
+        vapiAssistant: '',
     };
 
-    // Pre-load Vapi SDK
+    if (window.LoggixWidget) {
+        Object.assign(CONFIG, window.LoggixWidget);
+    } else {
+        try {
+            const res = await fetch(`${API_BASE}/api/admin/widget-config`);
+            if (res.ok) Object.assign(CONFIG, await res.json());
+        } catch(e) {}
+    }
+
     if (CONFIG.vapiKey && !window.vapiSDK) {
         const vapiScript = document.createElement('script');
         vapiScript.src = 'https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js';
@@ -22,48 +31,47 @@
         document.head.appendChild(vapiScript);
     }
 
-    // Create host element
     const host = document.createElement('div');
     host.id = 'loggix-widget-host';
     document.body.appendChild(host);
 
     const shadow = host.attachShadow({ mode: 'open' });
 
-    // Inject styles
     const style = document.createElement('style');
+    const align = CONFIG.position.includes('right') ? 'right' : 'left';
     style.textContent = `
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
 
         .widget-btn {
             position: fixed;
-            ${CONFIG.position.includes('right') ? 'right: 20px' : 'left: 20px'};
+            ${align}: 20px;
             bottom: 20px;
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #0061FF 0%, #0041CC 100%);
+            background: linear-gradient(135deg, ${CONFIG.primaryColor} 0%, ${CONFIG.primaryHover} 100%);
             border: none;
             cursor: pointer;
-            box-shadow: 0 4px 20px rgba(0, 97, 255, 0.4);
+            box-shadow: 0 4px 20px ${CONFIG.primaryColor}66;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: all 0.3s ease;
             z-index: 999999;
         }
-        .widget-btn:hover { transform: scale(1.1); box-shadow: 0 6px 25px rgba(0, 97, 255, 0.5); }
+        .widget-btn:hover { transform: scale(1.1); box-shadow: 0 6px 25px ${CONFIG.primaryColor}99; }
         .widget-btn.active { background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4); animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4); } 50% { box-shadow: 0 4px 30px rgba(16, 185, 129, 0.6); } }
         .widget-btn svg { width: 28px; height: 28px; fill: white; }
 
         .chat-panel {
             position: fixed;
-            ${CONFIG.position.includes('right') ? 'right: 20px' : 'left: 20px'};
+            ${align}: 20px;
             bottom: 90px;
             width: 380px;
             height: 520px;
-            background: #0f172a;
+            background: ${CONFIG.backgroundColor};
             border-radius: 20px;
             border: 1px solid rgba(255,255,255,0.1);
             box-shadow: 0 20px 60px rgba(0,0,0,0.5);
@@ -76,13 +84,13 @@
 
         .chat-header {
             padding: 16px 20px;
-            background: rgba(255,255,255,0.03);
+            background: ${CONFIG.headerBg};
             border-bottom: 1px solid rgba(255,255,255,0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .chat-header h3 { color: white; font-size: 14px; font-weight: 700; }
+        .chat-header h3 { color: ${CONFIG.textColor}; font-size: 14px; font-weight: 700; }
         .chat-header-actions { display: flex; gap: 8px; }
         .header-btn {
             width: 32px; height: 32px; border-radius: 8px; border: none;
@@ -115,14 +123,14 @@
             line-height: 1.5;
             word-wrap: break-word;
         }
-        .message.user { align-self: flex-end; background: #0061FF; color: white; border-bottom-right-radius: 4px; }
-        .message.bot { align-self: flex-start; background: rgba(255,255,255,0.06); color: #e2e8f0; border-bottom-left-radius: 4px; }
+        .message.user { align-self: flex-end; background: ${CONFIG.primaryColor}; color: white; border-bottom-right-radius: 4px; }
+        .message.bot { align-self: flex-start; background: ${CONFIG.botMessageBg}; color: ${CONFIG.textColor}; border-bottom-left-radius: 4px; }
         .message.system { align-self: center; background: transparent; color: #64748b; font-size: 11px; }
 
         .typing-indicator {
             align-self: flex-start;
             padding: 10px 14px;
-            background: rgba(255,255,255,0.06);
+            background: ${CONFIG.botMessageBg};
             border-radius: 14px;
             display: none;
         }
@@ -144,15 +152,15 @@
             border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05);
             color: white; font-size: 13px; outline: none; font-family: inherit;
         }
-        .chat-input input:focus { border-color: #0061FF; }
+        .chat-input input:focus { border-color: ${CONFIG.primaryColor}; }
         .chat-input input::placeholder { color: #64748b; }
         .send-btn {
             width: 40px; height: 40px; border-radius: 12px; border: none;
-            background: #0061FF; cursor: pointer;
+            background: ${CONFIG.primaryColor}; cursor: pointer;
             display: flex; align-items: center; justify-content: center;
             transition: background 0.2s;
         }
-        .send-btn:hover { background: #0051d4; }
+        .send-btn:hover { background: ${CONFIG.primaryHover}; }
         .send-btn:disabled { background: #334155; cursor: not-allowed; }
         .send-btn svg { width: 18px; height: 18px; fill: white; }
 
@@ -165,17 +173,20 @@
         @media (max-width: 480px) {
             .chat-panel {
                 width: calc(100% - 20px); height: calc(100% - 100px);
-                ${CONFIG.position.includes('right') ? 'right: 10px' : 'left: 10px'}; bottom: 80px;
+                ${align}: 10px; bottom: 80px;
             }
         }
     `;
     shadow.appendChild(style);
 
-    // Build HTML
+    const iconSvg = CONFIG.icon && CONFIG.icon.trim()
+        ? CONFIG.icon.trim()
+        : '<svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>';
+
     const container = document.createElement('div');
     container.innerHTML = `
         <button class="widget-btn" id="widget-btn">
-            <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>
+            ${iconSvg}
         </button>
 
         <div class="chat-panel" id="chat-panel">
@@ -209,7 +220,6 @@
     `;
     shadow.appendChild(container);
 
-    // Elements
     const widgetBtn = shadow.getElementById('widget-btn');
     const chatPanel = shadow.getElementById('chat-panel');
     const chatMessages = shadow.getElementById('chat-messages');
@@ -225,7 +235,6 @@
     let vapiInstance = null;
     let voiceMode = false;
 
-    // Toggle chat panel
     widgetBtn.addEventListener('click', () => {
         isOpen = !isOpen;
         chatPanel.classList.toggle('open', isOpen);
@@ -237,7 +246,6 @@
         chatPanel.classList.remove('open');
     });
 
-    // Send message
     async function sendMessage() {
         const text = chatInput.value.trim();
         if (!text) return;
@@ -284,7 +292,6 @@
         }
     });
 
-    // Voice toggle
     voiceToggle.addEventListener('click', () => {
         if (voiceMode) {
             stopVoice();
@@ -299,7 +306,6 @@
             return;
         }
 
-        // Wait for Vapi SDK to load
         if (!window.vapiSDK) {
             addMessage('Loading voice service...', 'system');
             const checkInterval = setInterval(() => {
@@ -308,7 +314,6 @@
                     initVapi();
                 }
             }, 100);
-            // Timeout after 5 seconds
             setTimeout(() => {
                 clearInterval(checkInterval);
                 if (!window.vapiSDK) {
@@ -344,7 +349,6 @@
 
             vapiInstance.on('message', (m) => {
                 if (m.type === 'transcript' && m.transcriptType === 'final' && m.transcript) {
-                    const role = m.role === 'user' ? 'You' : 'Agent';
                     addMessage(`${m.transcript}`, m.role === 'user' ? 'user' : 'bot');
                 }
             });

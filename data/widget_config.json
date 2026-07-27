@@ -1,0 +1,12 @@
+{
+  "title": "Loggix AI Support",
+  "greeting": "Hi! I'm the Loggix AI assistant. How can I help you today?",
+  "primaryColor": "#0061FF",
+  "primaryHover": "#0051d4",
+  "backgroundColor": "#0f172a",
+  "headerBg": "rgba(255,255,255,0.03)",
+  "textColor": "#ffffff",
+  "botMessageBg": "rgba(255,255,255,0.06)",
+  "icon": "",
+  "position": "bottom-right"
+}
