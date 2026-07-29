@@ -39,6 +39,7 @@ export default function WidgetConfigPage() {
   };
 
   const embedCode = () => {
+    const baseUrl = window.location.origin;
     const configLines = [];
     for (const [key, val] of Object.entries(config)) {
       if (val === DEFAULTS[key]) continue;
@@ -53,9 +54,9 @@ export default function WidgetConfigPage() {
     const tag = '<' + 'script';
     const close = '<' + '/script>';
     if (configLines.length) {
-      return `${tag}>\nwindow.LoggixWidget = {\n${configLines.join(',\n')}\n};\n${close}\n${tag} src="/static/widget.js">${close}`;
+      return `${tag}>\nwindow.LoggixWidget = {\n${configLines.join(',\n')}\n};\n${close}\n${tag} src="${baseUrl}/static/widget.js">${close}`;
     }
-    return `${tag} src="/static/widget.js">${close}`;
+    return `${tag} src="${baseUrl}/static/widget.js">${close}`;
   };
 
   const copyEmbed = () => {

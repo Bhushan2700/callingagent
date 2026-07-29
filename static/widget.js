@@ -1,5 +1,6 @@
 (async function() {
-    const API_BASE = window.LoggixWidget?.apiBase || window.location.origin;
+    const scriptEl = document.currentScript;
+    const API_BASE = window.LoggixWidget?.apiBase || (scriptEl ? new URL(scriptEl.src).origin : window.location.origin);
     const CONFIG = {
         position: 'bottom-right',
         title: 'Loggix AI Support',

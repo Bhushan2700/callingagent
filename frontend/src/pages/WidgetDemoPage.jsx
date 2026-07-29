@@ -27,16 +27,7 @@ export default function WidgetDemoPage() {
     return () => { document.body.removeChild(script); };
   }, []);
 
-  const embedCode = `<script>
-window.LoggixWidget = {
-  title: "Loggix AI Support",
-  greeting: "Hi! I'm the Loggix AI assistant. How can I help you today?",
-  primaryColor: "#0061FF",
-  vapiKey: "a15e4ada-0005-4628-9ec0-d4761e080cb4",
-  vapiAssistant: "cdc4601d-364c-4d0a-a515-d4d39feb9fa6"
-};
-<\/script>
-<script src="/static/widget.js"><\/script>`;
+  const embedCode = `<script src="${window.location.origin}/static/widget.js"><\/script>`;
 
   const copyEmbed = () => {
     navigator.clipboard.writeText(embedCode);
