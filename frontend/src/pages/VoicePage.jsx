@@ -12,35 +12,33 @@ export default function VoicePage() {
     script.defer = true;
     script.async = true;
     script.onload = () => {
-      window.initVapi = () => {
-        const publicKey = "a15e4ada-0005-4628-9ec0-d4761e080cb4";
-        const assistantId = "cdc4601d-364c-4d0a-a515-d4d39feb9fa6";
+      const publicKey = "a15e4ada-0005-4628-9ec0-d4761e080cb4";
+      const assistantId = "cdc4601d-364c-4d0a-a515-d4d39feb9fa6";
 
-        window.startCall = () => {
-          const instance = window.vapiSDK.run({
-            apiKey: publicKey,
-            assistant: assistantId,
-            config: { button: { display: "none" } }
-          });
+      window.startCall = () => {
+        const instance = window.vapiSDK.run({
+          apiKey: publicKey,
+          assistant: assistantId,
+          config: { button: { display: "none" } }
+        });
 
-          instance.on('call-start', () => setActive(true));
-          instance.on('call-end', () => { setActive(false); vapiRef.current = null; });
-          instance.on('message', (m) => {
-            if (m.type === 'transcript' && m.transcriptType === 'final') {
-              setTranscripts(prev => [...prev, { role: m.role === 'user' ? 'You' : 'Agent', text: m.transcript }]);
-            }
-          });
-          instance.on('error', () => { setActive(false); vapiRef.current = null; });
-          vapiRef.current = instance;
-        };
-
-        window.stopCall = () => {
-          if (vapiRef.current) {
-            vapiRef.current.stop();
-            vapiRef.current = null;
+        instance.on('call-start', () => setActive(true));
+        instance.on('call-end', () => { setActive(false); vapiRef.current = null; });
+        instance.on('message', (m) => {
+          if (m.type === 'transcript' && m.transcriptType === 'final') {
+            setTranscripts(prev => [...prev, { role: m.role === 'user' ? 'You' : 'Agent', text: m.transcript }]);
           }
-          setActive(false);
-        };
+        });
+        instance.on('error', () => { setActive(false); vapiRef.current = null; });
+        vapiRef.current = instance;
+      };
+
+      window.stopCall = () => {
+        if (vapiRef.current) {
+          vapiRef.current.stop();
+          vapiRef.current = null;
+        }
+        setActive(false);
       };
     };
     document.body.appendChild(script);
