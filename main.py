@@ -586,6 +586,8 @@ async def voice_page():
 
 @app.get("/widget", response_class=HTMLResponse)
 async def widget_page():
+    if frontend_index:
+        return FileResponse(frontend_index)
     widget_html = static_dir / "widget.html"
     if widget_html.exists():
         return HTMLResponse(content=widget_html.read_text(encoding="utf-8"))
