@@ -8,7 +8,7 @@ import httpx
 from pathlib import Path
 from datetime import datetime, timezone
 from fastapi import FastAPI, Request, Response, HTTPException, UploadFile, File, WebSocket
-from fastapi.responses import PlainTextResponse, HTMLResponse
+from fastapi.responses import PlainTextResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -376,6 +376,8 @@ async def raise_ticket(request: Request):
 
 @app.get("/tickets", response_class=HTMLResponse)
 async def tickets_page():
+    if frontend_index:
+        return FileResponse(frontend_index)
     tickets_html = static_dir / "tickets.html"
     if tickets_html.exists():
         return HTMLResponse(content=tickets_html.read_text(encoding="utf-8"))
@@ -542,6 +544,8 @@ async def update_widget_config(request: Request):
 
 @app.get("/admin/widget", response_class=HTMLResponse)
 async def admin_widget_page():
+    if frontend_index:
+        return FileResponse(frontend_index)
     admin_html = static_dir / "admin-widget.html"
     if admin_html.exists():
         return HTMLResponse(content=admin_html.read_text(encoding="utf-8"))
@@ -554,9 +558,16 @@ static_dir = Path(__file__).parent / "static"
 static_dir.mkdir(exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
+# Mount the built SPA frontend
+frontend_dist = Path(__file__).parent / "frontend" / "dist"
+if frontend_dist.exists():
+    app.mount("/assets", StaticFiles(directory=str(frontend_dist / "assets")), name="spa_assets")
+
 
 @app.get("/upload", response_class=HTMLResponse)
 async def upload_page():
+    if frontend_index:
+        return FileResponse(frontend_index)
     upload_html = static_dir / "upload.html"
     if upload_html.exists():
         return HTMLResponse(content=upload_html.read_text(encoding="utf-8"))
@@ -565,6 +576,8 @@ async def upload_page():
 
 @app.get("/voice", response_class=HTMLResponse)
 async def voice_page():
+    if frontend_index:
+        return FileResponse(frontend_index)
     voice_html = static_dir / "voice.html"
     if voice_html.exists():
         return HTMLResponse(content=voice_html.read_text(encoding="utf-8"))
@@ -690,6 +703,18 @@ async def health_check():
         redis_status = "unavailable"
 
     return {"status": "healthy", "redis": redis_status, "twilio_configured": bool(TWILIO_ACCOUNT_SID)}
+
+
+# ==================== SPA Catch-All (must be last) ====================
+
+frontend_index = frontend_dist / "index.html" if frontend_dist.exists() else None
+
+
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str):
+    if frontend_index and not any(full_path.startswith(p) for p in ("api/", "admin/", "tool/", "webhook/", "ws/", "static/", "assets/", "health")):
+        return FileResponse(frontend_index)
+    return HTMLResponse(content="<h1>Not found</h1>", status_code=404)
 
 
 if __name__ == "__main__":
