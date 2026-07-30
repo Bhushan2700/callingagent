@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import StatCard from '../components/StatCard.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import Modal from '../components/Modal.jsx';
@@ -12,9 +12,15 @@ export default function TicketsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [currentTicket, setCurrentTicket] = useState(null);
+  const [newStatus, setNewStatus] = useState('open');
   const [form, setForm] = useState({ name: '', email: '', phone: '', issue: '' });
 
   useEffect(() => { loadTickets(); }, []);
+
+  useEffect(() => {
+    const interval = setInterval(loadTickets, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   async function loadTickets() {
     setLoading(true);
@@ -34,12 +40,12 @@ export default function TicketsPage() {
   async function openDetail(id) {
     const ticket = await getTicket(id);
     setCurrentTicket(ticket);
+    setNewStatus(ticket.status);
     setDetailOpen(true);
   }
 
   async function handleStatusUpdate() {
     if (!currentTicket) return;
-    const newStatus = document.getElementById('newStatus').value;
     await updateTicket(currentTicket.id, newStatus);
     setDetailOpen(false);
     loadTickets();
@@ -158,7 +164,7 @@ export default function TicketsPage() {
             </div>
             <div className="form-group">
               <label>Update Status</label>
-              <select id="newStatus" defaultValue={currentTicket.status}>
+              <select value={newStatus} onChange={e => setNewStatus(e.target.value)}>
                 {['open', 'in_progress', 'closed'].map(s => (
                   <option key={s} value={s}>{s.replace('_', ' ')}</option>
                 ))}
