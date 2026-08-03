@@ -83,11 +83,14 @@ RULES:
     async def search(self, query: str, tenant_id: str = "") -> dict:
         start_total = time.time()
 
+        if not tenant_id:
+            raise ValueError("tenant_id is required for search")
+
         # 1. Embed query
         query_embedding = await self.embedding_client.embed_query(query)
 
         # 2. Vector search (top-10)
-        where = {"tenant_id": tenant_id} if tenant_id else None
+        where = {"tenant_id": tenant_id}
         results = self._writer.query(query_embedding, n_results=10, where=where)
 
         if not results or not results.get("documents") or not results["documents"][0]:
@@ -170,6 +173,9 @@ RULES:
     async def get_response(self, user_input: str, history: list = None, tenant_id: str = "") -> str:
         if history is None:
             history = []
+
+        if not tenant_id:
+            return "I'm sorry, I couldn't identify your account. Please try again."
 
         search_result = await self.search(user_input, tenant_id=tenant_id)
         chunks = search_result["chunks"]

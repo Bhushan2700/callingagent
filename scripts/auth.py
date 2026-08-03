@@ -3,7 +3,12 @@ import jwt
 import os
 from datetime import datetime, timedelta, timezone
 
-JWT_SECRET = os.getenv("JWT_SECRET", "dev-secret-change-in-production")
+from dotenv import load_dotenv
+load_dotenv()
+
+JWT_SECRET = os.environ.get("JWT_SECRET")
+if not JWT_SECRET:
+    raise RuntimeError("JWT_SECRET env var is required — set it before starting the app")
 JWT_EXPIRY_HOURS = 24 * 7
 
 

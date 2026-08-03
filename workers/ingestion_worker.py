@@ -88,6 +88,7 @@ class IngestionWorker:
 
         doc_id = job.get("doc_id", file_path.name)
         doc_type = job.get("doc_type", "document")
+        tenant_id = job.get("tenant_id", "")
         file_hash = job.get("file_hash") or self._compute_file_hash(file_path)
 
         self.queue.mark_processed(file_hash)
@@ -106,13 +107,14 @@ class IngestionWorker:
             chunk["doc_type"] = doc_type
             chunk["source_path"] = str(file_path)
             chunk["file_hash"] = file_hash
+            chunk["tenant_id"] = tenant_id
 
         texts = [c["text"] for c in semantic_chunks]
 
         embed_client = self._get_embedding_client()
         embeddings = await embed_client.embed_passages(texts)
 
-        self.writer.delete_document(doc_id)
+        self.writer.delete_document(doc_id, tenant_id=tenant_id)
 
         count = self.writer.upsert_chunks(semantic_chunks, embeddings)
         return count
@@ -121,7 +123,7 @@ class IngestionWorker:
         doc_id = job.get("doc_id")
         if not doc_id:
             raise ValueError("doc_id required for delete action")
-        return self.writer.delete_document(doc_id)
+        return self.writer.delete_document(doc_id, tenant_id=job.get("tenant_id", ""))
 
     async def process_reindex(self, job: dict) -> int:
         doc_id = job.get("doc_id")
@@ -147,7 +149,8 @@ class IngestionWorker:
         return await self.process_ingest({
             "file_path": str(found),
             "doc_id": doc_id,
-            "doc_type": "structured" if "structured" in str(found) else "document"
+            "doc_type": "structured" if "structured" in str(found) else "document",
+            "tenant_id": job.get("tenant_id", "")
         })
 
     async def run(self):

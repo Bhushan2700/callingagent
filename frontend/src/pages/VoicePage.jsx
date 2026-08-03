@@ -13,9 +13,14 @@ export default function VoicePage() {
     script.async = true;
     script.onload = () => {
       const publicKey = "a15e4ada-0005-4628-9ec0-d4761e080cb4";
-      const assistantId = localStorage.getItem('loggix_assistant_id') || "cdc4601d-364c-4d0a-a515-d4d39feb9fa6";
+      const assistantId = localStorage.getItem('loggix_assistant_id');
 
       window.startCall = () => {
+        if (!assistantId) {
+          setActive(false);
+          setTranscripts(prev => [...prev, { role: 'System', text: 'No voice assistant configured for this account yet. Ask your admin to set one up.' }]);
+          return;
+        }
         const instance = window.vapiSDK.run({
           apiKey: publicKey,
           assistant: assistantId,

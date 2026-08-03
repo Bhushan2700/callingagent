@@ -12,8 +12,8 @@ const DEFAULTS = {
   botMessageBg: "rgba(255,255,255,0.06)",
   icon: "",
   position: "bottom-right",
-  vapiKey: "a15e4ada-0005-4628-9ec0-d4761e080cb4",
-  vapiAssistant: "cdc4601d-364c-4d0a-a515-d4d39feb9fa6",
+  vapiKey: (window.LoggixWidget && window.LoggixWidget.vapiKey) || '',
+  vapiAssistant: (window.LoggixWidget && window.LoggixWidget.vapiAssistant) || '',
   tenantId: getTenantId() || '',
 };
 

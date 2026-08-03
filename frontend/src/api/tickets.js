@@ -1,4 +1,4 @@
-import { authHeaders } from './auth.js';
+import { authHeaders, getTenantId } from './auth.js';
 
 const BASE = '';
 
@@ -16,8 +16,8 @@ export async function getTicket(id) {
 export async function createTicket(ticket) {
   const res = await fetch(`${BASE}/tool/raise_ticket`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(ticket),
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ ...ticket, tenant_id: getTenantId() }),
   });
   return res.json();
 }

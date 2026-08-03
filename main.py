@@ -36,7 +36,8 @@ from scripts.vapi_client import create_assistant
 from scripts.storage import storage
 
 app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+cors_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "*").split(",") if o.strip()]
+app.add_middleware(CORSMiddleware, allow_origins=cors_origins, allow_credentials=False if "*" in cors_origins else True, allow_methods=["*"], allow_headers=["*"])
 app_logger = logging.getLogger("app_logger")
 
 
@@ -95,6 +96,32 @@ class DeleteRequest(BaseModel):
 # ==================== AUTH & DB HELPERS ====================
 
 
+class RateLimiter:
+    """Minimal in-memory sliding-window limiter. Fine for a single instance."""
+    def __init__(self, limit: int, window_seconds: int = 60):
+        self.limit = limit
+        self.window = window_seconds
+        self.hits = {}
+
+    def allow(self, key: str) -> bool:
+        now = datetime.now(timezone.utc).timestamp()
+        bucket = self.hits.setdefault(key, [])
+        bucket[:] = [t for t in bucket if now - t < self.window]
+        if len(bucket) >= self.limit:
+            return False
+        bucket.append(now)
+        return True
+
+
+login_limiter = RateLimiter(limit=10, window_seconds=60)
+register_limiter = RateLimiter(limit=5, window_seconds=60)
+chat_limiter = RateLimiter(limit=30, window_seconds=60)
+
+
+def client_ip(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
+
+
 def get_db():
     url = os.getenv("DATABASE_URL", "")
     if url.startswith("postgres://"):
@@ -116,11 +143,69 @@ def get_current_tenant(request: Request) -> str:
     return tenant_id
 
 
+def tenant_exists(tenant_id: str) -> bool:
+    if not tenant_id:
+        return False
+    try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT 1 FROM tenants WHERE id = %s", (tenant_id,))
+            return cur.fetchone() is not None
+    except Exception:
+        return False
+
+
+def tenant_id_by_assistant(assistant_id: str) -> str:
+    """Map a Vapi assistant_id back to its owning tenant."""
+    if not assistant_id:
+        return ""
+    try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT id FROM tenants WHERE assistant_id = %s", (assistant_id,))
+            row = cur.fetchone()
+            return row[0] if row else ""
+    except Exception:
+        return ""
+
+
+def _resolve_tenant_from_raw(raw: dict) -> str:
+    """Resolve tenant server-side from the payload (assistant id or validated tenant_id).
+
+    Handles both flat Vapi tool args and the nested message.toolCalls format.
+    """
+    merged = dict(raw)
+    tc = (raw.get("message") or {}).get("toolCalls") or []
+    if tc and isinstance(tc, list):
+        fn = tc[0].get("function", {})
+        args = fn.get("arguments", "{}")
+        if isinstance(args, str):
+            try:
+                args = json.loads(args)
+            except (json.JSONDecodeError, TypeError):
+                args = {}
+        if isinstance(args, dict):
+            merged.update(args)
+
+    assistant_id = merged.get("assistant_id", "") or (merged.get("assistant") or {}).get("id", "")
+    if assistant_id:
+        tenant_id = tenant_id_by_assistant(assistant_id)
+        if tenant_id:
+            return tenant_id
+
+    ten_id = str(merged.get("tenant_id", "")).strip()
+    if ten_id and tenant_exists(ten_id):
+        return ten_id
+    return ""
+
+
 # ==================== AUTH ENDPOINTS ====================
 
 
 @app.post("/api/auth/register")
 async def register(request: Request):
+    if not register_limiter.allow(client_ip(request)):
+        raise HTTPException(status_code=429, detail="Too many registration attempts. Try again later.")
     raw = await request.json()
     email = raw.get("email", "").strip().lower()
     password = raw.get("password", "")
@@ -136,7 +221,7 @@ async def register(request: Request):
 
     if VAPI_KEY:
         try:
-            assistant = create_assistant(VAPI_KEY, name)
+            assistant = await create_assistant(name, tenant_id)
             if assistant and "id" in assistant:
                 assistant_id = assistant["id"]
         except Exception as e:
@@ -159,6 +244,8 @@ async def register(request: Request):
 
 @app.post("/api/auth/login")
 async def login(request: Request):
+    if not login_limiter.allow(client_ip(request)):
+        raise HTTPException(status_code=429, detail="Too many login attempts. Try again later.")
     raw = await request.json()
     email = raw.get("email", "").strip().lower()
     password = raw.get("password", "")
@@ -199,8 +286,10 @@ async def search_knowledge(request: Request):
     """Tool endpoint for Vapi voice agent to search the knowledge base."""
     raw = await request.json()
     query = raw.get("query", "")
-    tenant_id = raw.get("tenant_id", "").strip()
-    
+    tenant_id = _resolve_tenant_from_raw(raw)
+    if not tenant_id:
+        return {"result": "Sorry, I couldn't identify your account. Please try again."}
+
     result = await receptionist.search(query, tenant_id=tenant_id)
     chunks = result.get("chunks", [])
 
@@ -453,11 +542,17 @@ async def book_appointment(request: Request):
 async def raise_ticket(request: Request):
     raw = await request.json()
     params, tool_call_id = _parse_vapi_request(raw)
-    tenant_id = params.get("tenant_id", "").strip()
+    tenant_id = _resolve_tenant_from_raw(raw)
     name = params.get("name", "").strip()
     phone = params.get("phone", "").strip()
     email = params.get("email", "").strip()
     issue = params.get("issue", "").strip()
+
+    if not tenant_id:
+        err = "Sorry, I couldn't identify your account. Please try again."
+        if tool_call_id:
+            return {"results": [{"toolCallId": tool_call_id, "error": err}]}
+        return {"error": err}
 
     if not name:
         err = "Please provide your name."
@@ -591,11 +686,11 @@ async def reindex_document(doc_id: str, request: Request):
 
 
 @app.post("/admin/ingest/trigger")
-async def trigger_ingest(request: Request, path: str = "knowledge/documents/incoming"):
+async def trigger_ingest(request: Request):
     tenant_id = get_current_tenant(request)
-    folder_path = Path(__file__).parent / path
+    folder_path = Path(__file__).parent / "knowledge" / "documents" / "incoming"
     if not folder_path.exists():
-        raise HTTPException(status_code=404, detail=f"Folder not found: {path}")
+        raise HTTPException(status_code=404, detail="Folder not found: knowledge/documents/incoming")
     results = await ingest.ingest_directory(folder_path, recursive=False, tenant_id=tenant_id)
     total_chunks = sum(results.values())
     return {"status": "completed", "files_processed": len(results), "total_chunks": total_chunks, "details": results}
@@ -615,25 +710,26 @@ async def full_reindex(request: Request, confirm: bool = False):
 async def upload_document(request: Request, file: UploadFile = File(...)):
     tenant_id = get_current_tenant(request)
     allowed_ext = {".md", ".pdf", ".txt", ".json"}
-    ext = Path(file.filename).suffix.lower()
+    filename = Path(file.filename).name  # strip any directory components
+    ext = Path(filename).suffix.lower()
     if ext not in allowed_ext:
         raise HTTPException(status_code=400, detail=f"File type {ext} not supported. Use: {', '.join(allowed_ext)}")
 
     content = await file.read()
-    storage.upload(tenant_id, file.filename, content)
+    storage.upload(tenant_id, filename, content)
 
     incoming_dir = Path(__file__).parent / "knowledge" / "documents" / "incoming"
     incoming_dir.mkdir(parents=True, exist_ok=True)
-    local_path = incoming_dir / file.filename
+    local_path = incoming_dir / filename
     with open(local_path, "wb") as f:
         f.write(content)
 
     try:
         result = await ingest.ingest_file(local_path, tenant_id=tenant_id)
-        return {"status": "success", "filename": file.filename, "chunks": result, "message": f"Successfully ingested {file.filename}: {result} chunks"}
+        return {"status": "success", "filename": filename, "chunks": result, "message": f"Successfully ingested {filename}: {result} chunks"}
     except Exception as e:
-        app_logger.warning(f"Ingestion error for {file.filename}: {e}")
-        return {"status": "error", "filename": file.filename, "message": f"File saved but ingestion failed: {str(e)}"}
+        app_logger.warning(f"Ingestion error for {filename}: {e}")
+        return {"status": "error", "filename": filename, "message": f"File saved but ingestion failed: {str(e)}"}
 
 
 # ==================== WIDGET CONFIG ====================
@@ -707,6 +803,8 @@ async def public_widget_config(tenant_id: str = ""):
 
 @app.post("/api/public/chat")
 async def public_chat(request: Request):
+    if not chat_limiter.allow(client_ip(request)):
+        return {"error": "Too many requests. Please try again later."}
     raw = await request.json()
     message = raw.get("message", "").strip()
     history = raw.get("history", [])
@@ -714,8 +812,8 @@ async def public_chat(request: Request):
 
     if not message:
         return {"error": "Message is required"}
-    if not tenant_id:
-        return {"error": "tenant_id is required"}
+    if not tenant_id or not tenant_exists(tenant_id):
+        return {"error": "Invalid tenant_id"}
 
     try:
         response = await receptionist.get_response(message, history, tenant_id=tenant_id)
@@ -733,8 +831,8 @@ async def public_search(request: Request):
 
     if not query:
         return {"error": "Query is required"}
-    if not tenant_id:
-        return {"error": "tenant_id is required"}
+    if not tenant_id or not tenant_exists(tenant_id):
+        return {"error": "Invalid tenant_id"}
 
     try:
         result = await receptionist.search(query, tenant_id=tenant_id)
@@ -890,6 +988,11 @@ async def vapi_webhook(request: Request):
                 args = {}
         else:
             args = raw_args or {}
+
+        if isinstance(args, dict):
+            assistant_id = (message.get("assistant") or {}).get("id", "")
+            if assistant_id:
+                args.setdefault("assistant_id", assistant_id)
 
         handler = handlers.get(name)
         if not handler:

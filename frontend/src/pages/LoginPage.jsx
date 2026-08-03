@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mic, MessageSquare, Calendar, ArrowLeft } from 'lucide-react';
+import { Mic, MessageSquare, Calendar, ArrowRight } from 'lucide-react';
 import { login } from '../api/auth.js';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
