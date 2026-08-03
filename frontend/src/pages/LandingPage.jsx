@@ -51,17 +51,81 @@ const useCases = [
 export default function LandingPage() {
   return (
     <div>
+      <nav style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0,
+        zIndex: 100,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '1rem 2.5rem',
+        background: 'rgba(2,6,23,0.7)',
+        backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <div style={{
+            width: 34, height: 34,
+            borderRadius: 10,
+            background: 'var(--brand-gradient)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '1.1rem', fontWeight: 800, color: '#fff',
+            boxShadow: '0 4px 15px var(--brand-glow)',
+          }}>L</div>
+          <span style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.5px' }}>Loggix AI</span>
+        </div>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <Link to="/login" style={{ textDecoration: 'none' }}>
+            <button style={{
+              padding: '0.55rem 1.4rem',
+              borderRadius: 12,
+              border: '1px solid var(--glass-border)',
+              background: 'var(--glass)',
+              color: 'var(--text-secondary)',
+              fontWeight: 600,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              transition: 'all 0.3s',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--glass-hover)'; e.currentTarget.style.color = '#fff' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'var(--glass)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
+            >
+              Login
+            </button>
+          </Link>
+          <Link to="/register" style={{ textDecoration: 'none' }}>
+            <button style={{
+              padding: '0.55rem 1.4rem',
+              borderRadius: 12,
+              border: 'none',
+              background: 'var(--brand-gradient)',
+              color: '#fff',
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              boxShadow: '0 4px 16px var(--brand-glow)',
+              transition: 'all 0.3s',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 24px var(--brand-glow)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 16px var(--brand-glow)' }}
+            >
+              Sign Up Free
+            </button>
+          </Link>
+        </div>
+      </nav>
+
       <div style={{
         minHeight: '90vh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '4rem 2rem',
+        padding: '6rem 2rem 4rem',
         position: 'relative',
         overflow: 'hidden',
         backgroundImage: `
           radial-gradient(circle at 20% 30%, rgba(0,97,255,0.12) 0%, transparent 50%),
-          radial-gradient(circle at 80% 70%, rgba(0,97,255,0.06) 0%, transparent 50%)
+          radial-gradient(circle at 80% 70%, rgba(139,92,246,0.08) 0%, transparent 50%)
         `,
       }}
         id="hero"
@@ -71,21 +135,21 @@ export default function LandingPage() {
             display: 'inline-block',
             padding: '0.5rem 1.25rem',
             borderRadius: 20,
-            background: 'rgba(0,97,255,0.15)',
-            border: '1px solid rgba(0,97,255,0.3)',
-            color: '#60a5fa',
+            background: 'rgba(139,92,246,0.15)',
+            border: '1px solid rgba(139,92,246,0.3)',
+            color: '#a78bfa',
             fontSize: '0.85rem',
             fontWeight: 600,
             marginBottom: '1.5rem',
           }}>
-            AI-Powered Voice & Chat Support
+            AI-Powered Voice &amp; Chat Support
           </div>
           <h1 style={{
             fontSize: 'clamp(2.2rem, 5vw, 3.5rem)',
             fontWeight: 800,
             lineHeight: 1.1,
             marginBottom: '1.5rem',
-            background: 'linear-gradient(135deg, #fff 0%, #0061FF 50%, #60a5fa 100%)',
+            background: 'linear-gradient(135deg, #fff 0%, #818cf8 50%, #60a5fa 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
           }}>
@@ -103,23 +167,27 @@ export default function LandingPage() {
             and appointment booking — powered by your own knowledge base.
           </p>
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link to="/voice" style={{ textDecoration: 'none' }}>
+            <Link to="/register" style={{ textDecoration: 'none' }}>
               <button style={{
                 padding: '1rem 2rem',
                 borderRadius: 14,
                 border: 'none',
-                background: 'linear-gradient(135deg, #0061FF, #0051d4)',
+                background: 'var(--brand-gradient)',
                 color: 'white',
                 fontWeight: 700,
                 fontSize: '1rem',
                 cursor: 'pointer',
-                boxShadow: '0 4px 20px rgba(0,97,255,0.4)',
+                boxShadow: '0 4px 24px var(--brand-glow)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                animation: 'pulse-glow 2s infinite',
-              }}>
-                Try Voice Agent <Mic size={18} />
+                animation: 'pulse-glow 2.5s infinite',
+                transition: 'transform 0.3s',
+              }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0) scale(1)' }}
+              >
+                Get Started Free <ArrowRight size={18} />
               </button>
             </Link>
             <Link to="/setup" style={{ textDecoration: 'none' }}>
@@ -132,11 +200,18 @@ export default function LandingPage() {
                 fontWeight: 700,
                 fontSize: '1rem',
                 cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
               }}>
-                Setup Guide
+                <Mic size={18} /> Try Voice Agent
               </button>
             </Link>
           </div>
+          <p style={{ marginTop: '1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            Already have an account?{' '}
+            <Link to="/login" style={{ color: '#818cf8', fontWeight: 600 }}>Sign in</Link>
+          </p>
         </div>
         <div style={{ position: 'absolute', bottom: '2rem', left: 0, right: 0, textAlign: 'center' }}>
           <ChevronDown size={32} color="#64748b" style={{ animation: 'bounce 2s infinite' }} />
@@ -170,15 +245,15 @@ export default function LandingPage() {
                 transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
                 transitionDelay: `${i * 0.1}s`,
               }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--brand-blue)'; e.currentTarget.style.transform = 'translateY(-6px) scale(1.02)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,97,255,0.2)' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#818cf8'; e.currentTarget.style.transform = 'translateY(-6px) scale(1.02)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(139,92,246,0.2)' }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.transform = 'translateY(0) scale(1)'; e.currentTarget.style.boxShadow = 'none' }}
               >
                 <div style={{
                   fontSize: '0.8rem',
                   fontWeight: 800,
-                  color: 'var(--brand-blue)',
+                  color: 'var(--brand-accent)',
                   marginBottom: '1rem',
-                  opacity: 0.6,
+                  opacity: 0.8,
                 }}>
                   {item.step}
                 </div>
@@ -215,19 +290,20 @@ export default function LandingPage() {
                     transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
                     transitionDelay: `${i * 0.05}s`,
                   }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--brand-blue)'; e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,97,255,0.2)' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#818cf8'; e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(139,92,246,0.2)' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.transform = 'translateY(0) scale(1)'; e.currentTarget.style.boxShadow = 'none' }}
                   >
                     <div style={{
                       width: 44, height: 44,
                       borderRadius: 12,
-                      background: 'rgba(0,97,255,0.15)',
+                      background: 'linear-gradient(135deg, rgba(0,97,255,0.2), rgba(139,92,246,0.2))',
+                      border: '1px solid rgba(139,92,246,0.2)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       marginBottom: '1rem',
                     }}>
-                      <Icon size={22} color="#0061FF" />
+                      <Icon size={22} color="#818cf8" />
                     </div>
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.5rem' }}>{feat.title}</h3>
                     <p style={{ color: '#94a3b8', fontSize: '0.9rem', lineHeight: 1.6 }}>{feat.desc}</p>
@@ -266,19 +342,20 @@ export default function LandingPage() {
                   transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
                   transitionDelay: `${i * 0.05}s`,
                 }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--brand-blue)'; e.currentTarget.style.transform = 'translateX(4px)'; e.currentTarget.style.boxShadow = '0 0 20px rgba(0,97,255,0.15)' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#818cf8'; e.currentTarget.style.transform = 'translateX(4px)'; e.currentTarget.style.boxShadow = '0 0 20px rgba(139,92,246,0.15)' }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.boxShadow = 'none' }}
                 >
                   <div style={{
                     width: 44, height: 44,
                     borderRadius: 12,
-                    background: 'rgba(0,97,255,0.15)',
+                    background: 'linear-gradient(135deg, rgba(0,97,255,0.2), rgba(139,92,246,0.2))',
+                    border: '1px solid rgba(139,92,246,0.2)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
                   }}>
-                    <Icon size={22} color="#0061FF" />
+                    <Icon size={22} color="#818cf8" />
                   </div>
                   <div>
                     <h3 style={{ fontSize: '1.05rem', fontWeight: 600, marginBottom: '0.3rem' }}>{uc.title}</h3>
@@ -295,33 +372,52 @@ export default function LandingPage() {
         <div style={{
           padding: '4rem 2rem',
           textAlign: 'center',
-          background: 'rgba(0,97,255,0.05)',
-          borderTop: '1px solid rgba(0,97,255,0.15)',
+          background: 'rgba(139,92,246,0.06)',
+          borderTop: '1px solid rgba(139,92,246,0.15)',
         }}>
           <h2 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '1rem' }}>
             Ready to Try It?
           </h2>
           <p style={{ color: '#94a3b8', fontSize: '1.05rem', marginBottom: '2rem', maxWidth: 500, margin: '0 auto 2rem' }}>
-            Hear the AI in action. No signup required.
+            Set up your AI receptionist in minutes. Start free.
           </p>
-          <Link to="/voice" style={{ textDecoration: 'none' }}>
-            <button style={{
-              padding: '1rem 2.5rem',
-              borderRadius: 14,
-              border: 'none',
-              background: 'linear-gradient(135deg, #0061FF, #0051d4)',
-              color: 'white',
-              fontWeight: 700,
-              fontSize: '1.05rem',
-              cursor: 'pointer',
-              boxShadow: '0 4px 20px rgba(0,97,255,0.4)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-            }}>
-              Launch Voice Agent <Mic size={18} />
-            </button>
-          </Link>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link to="/register" style={{ textDecoration: 'none' }}>
+              <button style={{
+                padding: '1rem 2.5rem',
+                borderRadius: 14,
+                border: 'none',
+                background: 'var(--brand-gradient)',
+                color: 'white',
+                fontWeight: 700,
+                fontSize: '1.05rem',
+                cursor: 'pointer',
+                boxShadow: '0 4px 24px var(--brand-glow)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}>
+                Sign Up Free <ArrowRight size={18} />
+              </button>
+            </Link>
+            <Link to="/voice" style={{ textDecoration: 'none' }}>
+              <button style={{
+                padding: '1rem 2.5rem',
+                borderRadius: 14,
+                border: '1px solid var(--glass-border)',
+                background: 'var(--glass)',
+                color: 'white',
+                fontWeight: 700,
+                fontSize: '1.05rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}>
+                <Mic size={18} /> Launch Voice Agent
+              </button>
+            </Link>
+          </div>
         </div>
       </RevealOnScroll>
 

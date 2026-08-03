@@ -61,7 +61,8 @@ export default function Navbar() {
               fontWeight: 600,
               whiteSpace: 'nowrap',
               color: isActive ? '#fff' : '#94a3b8',
-              background: isActive ? 'var(--brand-blue)' : 'transparent',
+              background: isActive ? 'var(--brand-gradient)' : 'transparent',
+              boxShadow: isActive ? '0 4px 12px var(--brand-glow)' : 'none',
               transition: 'all 0.3s',
               textDecoration: 'none',
             })}
@@ -80,7 +81,13 @@ export default function Navbar() {
               color: '#94a3b8',
               fontSize: '0.8rem',
               cursor: 'pointer',
-            }}>Logout</button>
+              transition: 'all 0.3s',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--glass-hover)'; e.currentTarget.style.color = '#fff' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#94a3b8' }}
+            >
+              Logout
+            </button>
           </>
         )}
       </div>

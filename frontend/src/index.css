@@ -1,10 +1,15 @@
 :root {
   --brand-blue: #0061FF;
-  --brand-glow: rgba(0, 97, 255, 0.4);
+  --brand-indigo: #4F46E5;
+  --brand-accent: #8B5CF6;
+  --brand-cyan: #22D3EE;
+  --brand-glow: rgba(79, 70, 229, 0.45);
+  --brand-gradient: linear-gradient(135deg, #0061FF 0%, #4F46E5 55%, #8B5CF6 100%);
   --bg-dark: #020617;
-  --glass: rgba(255, 255, 255, 0.03);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-hover: rgba(255, 255, 255, 0.06);
+  --bg-deep: #0a0f2c;
+  --glass: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-hover: rgba(255, 255, 255, 0.08);
   --text-primary: #ffffff;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
@@ -28,6 +33,10 @@
 body {
   font-family: 'Plus Jakarta Sans', sans-serif;
   background: var(--bg-dark);
+  background-image:
+    radial-gradient(ellipse at 20% 0%, rgba(79, 70, 229, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(0, 97, 255, 0.08) 0%, transparent 50%);
+  background-attachment: fixed;
   color: var(--text-primary);
   min-height: 100vh;
 }
