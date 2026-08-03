@@ -1,4 +1,5 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext.jsx';
 
 const links = [
   { to: '/dashboard', label: 'Dashboard' },
@@ -11,6 +12,14 @@ const links = [
 ];
 
 export default function Navbar() {
+  const { user, logoutUser } = useAuth();
+  const nav = useNavigate();
+
+  const handleLogout = () => {
+    logoutUser();
+    nav('/');
+  };
+
   return (
     <nav style={{
       display: 'flex',
@@ -39,6 +48,7 @@ export default function Navbar() {
         gap: '0.5rem',
         overflowX: 'auto',
         WebkitOverflowScrolling: 'touch',
+        alignItems: 'center',
       }}>
         {links.map(l => (
           <NavLink
@@ -59,6 +69,20 @@ export default function Navbar() {
             {l.label}
           </NavLink>
         ))}
+        {user && (
+          <>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '0 0.5rem' }}>{user.name}</span>
+            <button onClick={handleLogout} style={{
+              padding: '0.4rem 0.8rem',
+              borderRadius: 8,
+              border: '1px solid var(--glass-border)',
+              background: 'transparent',
+              color: '#94a3b8',
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+            }}>Logout</button>
+          </>
+        )}
       </div>
     </nav>
   );

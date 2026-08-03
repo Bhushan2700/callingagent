@@ -5,8 +5,11 @@ import json
 import asyncio
 import logging
 import httpx
+import redis as redis_module
+import psycopg2
 from pathlib import Path
 from datetime import datetime, timezone
+from uuid import uuid4
 from fastapi import FastAPI, Request, Response, HTTPException, UploadFile, File, WebSocket
 from fastapi.responses import PlainTextResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -28,6 +31,9 @@ from receptionist import LoggixReceptionist
 from scripts.pgvector_writer import PGVectorWriter
 from scripts.unified_ingest import UnifiedIngest
 from scripts.cal_client import CalClient
+from scripts.auth import hash_password, verify_password, create_token, decode_token
+from scripts.vapi_client import create_assistant
+from scripts.storage import storage
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
@@ -37,7 +43,26 @@ writer = PGVectorWriter()
 ingest = UnifiedIngest()
 cal_client = CalClient()
 
-sessions = {}
+redis_client = None
+redis_url = os.getenv("REDIS_URL", "")
+if redis_url:
+    try:
+        redis_client = redis_module.from_url(redis_url, decode_responses=True)
+    except Exception:
+        pass
+
+DEFAULT_WIDGET_CONFIG = {
+    "title": "Loggix AI Support",
+    "greeting": "Hi! I'm the Loggix AI assistant. How can I help you today?",
+    "primaryColor": "#0061FF",
+    "primaryHover": "#0051d4",
+    "backgroundColor": "#0f172a",
+    "headerBg": "rgba(255,255,255,0.03)",
+    "textColor": "#ffffff",
+    "botMessageBg": "rgba(255,255,255,0.06)",
+    "icon": "",
+    "position": "bottom-right",
+}
 
 VAPI_KEY = os.getenv("VAPI_PRIVATE_KEY")
 VAPI_ASSISTANT_ID = os.getenv("VAPI_ASSISTANT_ID", "")
@@ -58,6 +83,106 @@ class DeleteRequest(BaseModel):
     doc_id: str
 
 
+# ==================== AUTH & DB HELPERS ====================
+
+
+def get_db():
+    url = os.getenv("DATABASE_URL", "")
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql://", 1)
+    if "?" not in url:
+        url += "?sslmode=require"
+    elif "sslmode" not in url:
+        url += "&sslmode=require"
+    return psycopg2.connect(url)
+
+
+def get_current_tenant(request: Request) -> str:
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    tenant_id = decode_token(token)
+    if not tenant_id:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    return tenant_id
+
+
+# ==================== AUTH ENDPOINTS ====================
+
+
+@app.post("/api/auth/register")
+async def register(request: Request):
+    raw = await request.json()
+    email = raw.get("email", "").strip().lower()
+    password = raw.get("password", "")
+    name = raw.get("name", "").strip()
+    if not email or not password or not name:
+        raise HTTPException(status_code=400, detail="email, password, and name are required")
+    if len(password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+
+    hashed = hash_password(password)
+    tenant_id = str(uuid4())
+    assistant_id = ""
+
+    if VAPI_KEY:
+        try:
+            assistant = create_assistant(VAPI_KEY, name)
+            if assistant and "id" in assistant:
+                assistant_id = assistant["id"]
+        except Exception as e:
+            app_logger.warning(f"Vapi assistant creation failed for {email}: {e}")
+
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM tenants WHERE email = %s", (email,))
+        if cur.fetchone():
+            raise HTTPException(status_code=409, detail="Email already registered")
+        cur.execute(
+            "INSERT INTO tenants (id, email, password_hash, name, assistant_id) VALUES (%s, %s, %s, %s, %s)",
+            (tenant_id, email, hashed, name, assistant_id),
+        )
+        conn.commit()
+
+    token = create_token(tenant_id)
+    return {"token": token, "tenant_id": tenant_id, "name": name, "email": email, "assistant_id": assistant_id}
+
+
+@app.post("/api/auth/login")
+async def login(request: Request):
+    raw = await request.json()
+    email = raw.get("email", "").strip().lower()
+    password = raw.get("password", "")
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="email and password are required")
+
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT id, password_hash, name, assistant_id FROM tenants WHERE email = %s", (email,))
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        tenant_id, password_hash, name, assistant_id = row
+
+    if not verify_password(password, password_hash):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    token = create_token(tenant_id)
+    return {"token": token, "tenant_id": tenant_id, "name": name, "email": email, "assistant_id": assistant_id or ""}
+
+
+@app.get("/api/auth/me")
+async def me(request: Request):
+    tenant_id = get_current_tenant(request)
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT id, email, name, assistant_id, created_at FROM tenants WHERE id = %s", (tenant_id,))
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Tenant not found")
+        return {"tenant_id": row[0], "email": row[1], "name": row[2], "assistant_id": row[3], "created_at": row[4].isoformat()}
+
+
 # ==================== RAG SEARCH TOOL ====================
 
 @app.post("/tool/search_knowledge")
@@ -65,8 +190,9 @@ async def search_knowledge(request: Request):
     """Tool endpoint for Vapi voice agent to search the knowledge base."""
     raw = await request.json()
     query = raw.get("query", "")
+    tenant_id = raw.get("tenant_id", "").strip()
     
-    result = await receptionist.search(query)
+    result = await receptionist.search(query, tenant_id=tenant_id)
     chunks = result.get("chunks", [])
 
     formatted = []
@@ -313,34 +439,12 @@ async def book_appointment(request: Request):
 
 # ==================== TICKETING SYSTEM ====================
 
-TICKETS_FILE = Path(__file__).parent / "data" / "tickets.json"
-
-
-def _load_tickets() -> dict:
-    if TICKETS_FILE.exists():
-        with open(TICKETS_FILE, "r") as f:
-            return json.load(f)
-    return {"tickets": [], "next_id": 1}
-
-
-def _save_tickets(data: dict):
-    TICKETS_FILE.parent.mkdir(exist_ok=True)
-    with open(TICKETS_FILE, "w") as f:
-        json.dump(data, f, indent=2)
-
-
-def _generate_ticket_id(data: dict) -> str:
-    today = datetime.now(timezone.utc).strftime("%Y%m%d")
-    ticket_num = data.get("next_id", 1)
-    ticket_id = f"TKT-{today}-{ticket_num:03d}"
-    data["next_id"] = ticket_num + 1
-    return ticket_id
-
 
 @app.post("/tool/raise_ticket")
 async def raise_ticket(request: Request):
     raw = await request.json()
     params, tool_call_id = _parse_vapi_request(raw)
+    tenant_id = params.get("tenant_id", "").strip()
     name = params.get("name", "").strip()
     phone = params.get("phone", "").strip()
     email = params.get("email", "").strip()
@@ -361,11 +465,15 @@ async def raise_ticket(request: Request):
     if email:
         email = _parse_email(email) or email
 
-    data = _load_tickets()
-    ticket_id = _generate_ticket_id(data)
-    ticket = {"id": ticket_id, "name": name, "phone": phone, "email": email, "issue": issue, "status": "open", "created_at": datetime.now(timezone.utc).isoformat()}
-    data["tickets"].append(ticket)
-    _save_tickets(data)
+    ticket_id = f"TKT-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{uuid4().hex[:6].upper()}"
+
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO tickets (tenant_id, ticket_id, name, phone, email, issue) VALUES (%s, %s, %s, %s, %s, %s)",
+            (tenant_id, ticket_id, name, phone, email, issue),
+        )
+        conn.commit()
 
     result_text = f"Your ticket has been created successfully! Ticket ID: {ticket_id}. Our team will review your issue and get back to you soon."
 
@@ -385,101 +493,135 @@ async def tickets_page():
 
 
 @app.get("/api/tickets")
-async def list_tickets():
-    data = _load_tickets()
-    return {"tickets": data.get("tickets", []), "total": len(data.get("tickets", []))}
+async def list_tickets(request: Request):
+    tenant_id = get_current_tenant(request)
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT ticket_id, name, phone, email, issue, status, created_at FROM tickets WHERE tenant_id = %s ORDER BY created_at DESC",
+            (tenant_id,),
+        )
+        rows = cur.fetchall()
+        tickets = [
+            {"id": r[0], "name": r[1], "phone": r[2], "email": r[3], "issue": r[4], "status": r[5], "created_at": r[6].isoformat()}
+            for r in rows
+        ]
+    return {"tickets": tickets, "total": len(tickets)}
 
 
 @app.get("/api/tickets/{ticket_id}")
-async def get_ticket(ticket_id: str):
-    data = _load_tickets()
-    for ticket in data.get("tickets", []):
-        if ticket["id"] == ticket_id:
-            return ticket
-    raise HTTPException(status_code=404, detail=f"Ticket not found: {ticket_id}")
+async def get_ticket(ticket_id: str, request: Request):
+    tenant_id = get_current_tenant(request)
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT ticket_id, name, phone, email, issue, status, created_at FROM tickets WHERE tenant_id = %s AND ticket_id = %s",
+            (tenant_id, ticket_id),
+        )
+        r = cur.fetchone()
+        if not r:
+            raise HTTPException(status_code=404, detail=f"Ticket not found: {ticket_id}")
+        return {"id": r[0], "name": r[1], "phone": r[2], "email": r[3], "issue": r[4], "status": r[5], "created_at": r[6].isoformat()}
 
 
 @app.patch("/api/tickets/{ticket_id}")
 async def update_ticket(ticket_id: str, request: Request):
+    tenant_id = get_current_tenant(request)
     raw = await request.json()
     new_status = raw.get("status", "")
     if new_status not in ["open", "in_progress", "closed"]:
         raise HTTPException(status_code=400, detail="Status must be open, in_progress, or closed")
-    data = _load_tickets()
-    for ticket in data.get("tickets", []):
-        if ticket["id"] == ticket_id:
-            ticket["status"] = new_status
-            _save_tickets(data)
-            return ticket
-    raise HTTPException(status_code=404, detail=f"Ticket not found: {ticket_id}")
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE tickets SET status = %s WHERE tenant_id = %s AND ticket_id = %s RETURNING ticket_id, name, phone, email, issue, status, created_at",
+            (new_status, tenant_id, ticket_id),
+        )
+        r = cur.fetchone()
+        conn.commit()
+        if not r:
+            raise HTTPException(status_code=404, detail=f"Ticket not found: {ticket_id}")
+        return {"id": r[0], "name": r[1], "phone": r[2], "email": r[3], "issue": r[4], "status": r[5], "created_at": r[6].isoformat()}
 
 
 # ==================== ADMIN ENDPOINTS ====================
 
 @app.get("/admin/docs")
-async def list_documents():
-    docs = writer.list_documents()
+async def list_documents(request: Request):
+    tenant_id = get_current_tenant(request)
+    docs = writer.list_documents(tenant_id=tenant_id)
     return {"documents": docs, "total": len(docs)}
 
 
 @app.get("/admin/docs/{doc_id}")
-async def get_document(doc_id: str):
-    info = writer.get_document_info(doc_id)
+async def get_document(doc_id: str, request: Request):
+    tenant_id = get_current_tenant(request)
+    info = writer.get_document_info(doc_id, tenant_id=tenant_id)
     if not info:
         raise HTTPException(status_code=404, detail=f"Document not found: {doc_id}")
     return info
 
 
 @app.delete("/admin/docs/{doc_id}")
-async def delete_document(doc_id: str):
-    count = writer.delete_document(doc_id)
+async def delete_document(doc_id: str, request: Request):
+    tenant_id = get_current_tenant(request)
+    count = writer.delete_document(doc_id, tenant_id=tenant_id)
     if count == 0:
         raise HTTPException(status_code=404, detail=f"Document not found: {doc_id}")
     return {"deleted_chunks": count, "doc_id": doc_id}
 
 
 @app.post("/admin/docs/{doc_id}/reindex")
-async def reindex_document(doc_id: str):
+async def reindex_document(doc_id: str, request: Request):
+    tenant_id = get_current_tenant(request)
     from workers.ingestion_worker import RedisQueue
     queue = RedisQueue()
-    job = {"action": "reindex", "doc_id": doc_id}
+    job = {"action": "reindex", "doc_id": doc_id, "tenant_id": tenant_id}
     job_id = queue.enqueue(job)
     return {"status": "queued", "job_id": job_id, "doc_id": doc_id}
 
 
 @app.post("/admin/ingest/trigger")
-async def trigger_ingest(path: str = "knowledge/documents/incoming"):
+async def trigger_ingest(request: Request, path: str = "knowledge/documents/incoming"):
+    tenant_id = get_current_tenant(request)
     folder_path = Path(__file__).parent / path
     if not folder_path.exists():
         raise HTTPException(status_code=404, detail=f"Folder not found: {path}")
-    results = await ingest.ingest_directory(folder_path, recursive=False)
+    results = await ingest.ingest_directory(folder_path, recursive=False, tenant_id=tenant_id)
     total_chunks = sum(results.values())
     return {"status": "completed", "files_processed": len(results), "total_chunks": total_chunks, "details": results}
 
 
 @app.post("/admin/ingest/reindex")
-async def full_reindex(confirm: bool = False):
+async def full_reindex(request: Request, confirm: bool = False):
+    tenant_id = get_current_tenant(request)
     if not confirm:
         return {"status": "confirmation_required", "message": "Set confirm=true to proceed"}
-    results = await ingest.full_reindex()
+    results = await ingest.full_reindex(tenant_id=tenant_id)
     total_chunks = sum(results.values())
     return {"status": "completed", "files_processed": len(results), "total_chunks": total_chunks, "details": results}
 
 
 @app.post("/admin/upload")
-async def upload_document(file: UploadFile = File(...)):
+async def upload_document(request: Request, file: UploadFile = File(...)):
+    tenant_id = get_current_tenant(request)
     allowed_ext = {".md", ".pdf", ".txt", ".json"}
     ext = Path(file.filename).suffix.lower()
     if ext not in allowed_ext:
         raise HTTPException(status_code=400, detail=f"File type {ext} not supported. Use: {', '.join(allowed_ext)}")
+
+    content = await file.read()
+    key = f"{tenant_id}/{file.filename}"
+    storage.upload(key, content)
+
     incoming_dir = Path(__file__).parent / "knowledge" / "documents" / "incoming"
     incoming_dir.mkdir(parents=True, exist_ok=True)
-    file_path = incoming_dir / file.filename
-    content = await file.read()
-    with open(file_path, "wb") as f:
+    local_path = incoming_dir / file.filename
+    with open(local_path, "wb") as f:
         f.write(content)
+
     try:
-        result = await ingest.ingest_file(file_path)
+        result = await ingest.ingest_file(local_path, tenant_id=tenant_id)
         return {"status": "success", "filename": file.filename, "chunks": result, "message": f"Successfully ingested {file.filename}: {result} chunks"}
     except Exception as e:
         app_logger.warning(f"Ingestion error for {file.filename}: {e}")
@@ -488,58 +630,50 @@ async def upload_document(file: UploadFile = File(...)):
 
 # ==================== WIDGET CONFIG ====================
 
-WIDGET_CONFIG_FILE = Path(__file__).parent / "data" / "widget_config.json"
 
-DEFAULT_WIDGET_CONFIG = {
-    "title": "Loggix AI Support",
-    "greeting": "Hi! I'm the Loggix AI assistant. How can I help you today?",
-    "primaryColor": "#0061FF",
-    "primaryHover": "#0051d4",
-    "backgroundColor": "#0f172a",
-    "headerBg": "rgba(255,255,255,0.03)",
-    "textColor": "#ffffff",
-    "botMessageBg": "rgba(255,255,255,0.06)",
-    "icon": "",
-    "position": "bottom-right"
-}
-
-
-def _load_widget_config() -> dict:
-    if WIDGET_CONFIG_FILE.exists():
-        try:
-            with open(WIDGET_CONFIG_FILE, "r") as f:
-                return json.load(f)
-        except Exception:
-            pass
+def _get_widget_db(tenant_id: str) -> dict:
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT config FROM widget_configs WHERE tenant_id = %s", (tenant_id,))
+        row = cur.fetchone()
+        if row:
+            return json.loads(row[0])
     return dict(DEFAULT_WIDGET_CONFIG)
 
 
-def _save_widget_config(config: dict):
-    WIDGET_CONFIG_FILE.parent.mkdir(exist_ok=True)
+def _save_widget_db(tenant_id: str, config: dict):
     merged = dict(DEFAULT_WIDGET_CONFIG)
     merged.update(config)
-    with open(WIDGET_CONFIG_FILE, "w") as f:
-        json.dump(merged, f, indent=2)
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO widget_configs (tenant_id, config) VALUES (%s, %s) "
+            "ON CONFLICT (tenant_id) DO UPDATE SET config = %s, updated_at = NOW()",
+            (tenant_id, json.dumps(merged), json.dumps(merged)),
+        )
+        conn.commit()
 
 
 ALLOWED_POSITIONS = ["bottom-right", "bottom-left"]
 
 
 @app.get("/api/admin/widget-config")
-async def get_widget_config():
-    return _load_widget_config()
+async def get_widget_config(request: Request):
+    tenant_id = get_current_tenant(request)
+    return _get_widget_db(tenant_id)
 
 
 @app.put("/api/admin/widget-config")
 async def update_widget_config(request: Request):
+    tenant_id = get_current_tenant(request)
     raw = await request.json()
     if not isinstance(raw, dict):
         raise HTTPException(status_code=400, detail="Invalid config")
     pos = raw.get("position", "bottom-right")
     if pos not in ALLOWED_POSITIONS:
         raise HTTPException(status_code=400, detail=f"position must be one of {ALLOWED_POSITIONS}")
-    _save_widget_config(raw)
-    return {"status": "ok", "config": _load_widget_config()}
+    _save_widget_db(tenant_id, raw)
+    return {"status": "ok", "config": _get_widget_db(tenant_id)}
 
 
 @app.get("/admin/widget", response_class=HTMLResponse)
@@ -550,6 +684,68 @@ async def admin_widget_page():
     if admin_html.exists():
         return HTMLResponse(content=admin_html.read_text(encoding="utf-8"))
     return HTMLResponse(content="<h1>Admin Widget page not found</h1>", status_code=404)
+
+
+# ==================== PUBLIC WIDGET API ====================
+
+
+@app.get("/api/public/widget-config")
+async def public_widget_config(tenant_id: str = ""):
+    if not tenant_id:
+        raise HTTPException(status_code=400, detail="tenant_id is required")
+    config = _get_widget_db(tenant_id)
+    return {"config": config, "tenant_id": tenant_id}
+
+
+@app.post("/api/public/chat")
+async def public_chat(request: Request):
+    raw = await request.json()
+    message = raw.get("message", "").strip()
+    history = raw.get("history", [])
+    tenant_id = raw.get("tenant_id", "").strip()
+
+    if not message:
+        return {"error": "Message is required"}
+    if not tenant_id:
+        return {"error": "tenant_id is required"}
+
+    try:
+        response = await receptionist.get_response(message, history, tenant_id=tenant_id)
+        return {"response": response}
+    except Exception as e:
+        app_logger.error(f"Chat error for tenant {tenant_id}: {e}")
+        return {"response": "Sorry, I encountered an error. Please try again."}
+
+
+@app.post("/api/public/search")
+async def public_search(request: Request):
+    raw = await request.json()
+    query = raw.get("query", "").strip()
+    tenant_id = raw.get("tenant_id", "").strip()
+
+    if not query:
+        return {"error": "Query is required"}
+    if not tenant_id:
+        return {"error": "tenant_id is required"}
+
+    try:
+        result = await receptionist.search(query, tenant_id=tenant_id)
+        chunks = result.get("chunks", [])
+        formatted = []
+        for i, c in enumerate(chunks):
+            section = c.get("section", "General")
+            if c.get("subsection"):
+                section = f"{section} > {c.get('subsection')}"
+            formatted.append({
+                "text": c["text"],
+                "doc_id": c.get("doc_id", ""),
+                "section": section,
+                "similarity": round(c.get("similarity", 0), 3)
+            })
+        return {"results": formatted, "count": len(formatted)}
+    except Exception as e:
+        app_logger.error(f"Search error for tenant {tenant_id}: {e}")
+        return {"results": [], "count": 0}
 
 
 # ==================== STATIC FILES ====================
@@ -599,6 +795,7 @@ async def widget_page():
 @app.post("/api/chat")
 async def api_chat(request: Request):
     """Text chat endpoint for the embeddable widget."""
+    tenant_id = get_current_tenant(request)
     raw = await request.json()
     message = raw.get("message", "").strip()
     history = raw.get("history", [])
@@ -607,16 +804,17 @@ async def api_chat(request: Request):
         return {"error": "Message is required"}
 
     try:
-        response = await receptionist.get_response(message, history)
+        response = await receptionist.get_response(message, history, tenant_id=tenant_id)
         return {"response": response}
     except Exception as e:
-        app_logger.error(f"Chat error: {e}")
+        app_logger.error(f"Chat error for tenant {tenant_id}: {e}")
         return {"response": "Sorry, I encountered an error. Please try again."}
 
 
 @app.post("/api/search")
 async def api_search(request: Request):
     """Search endpoint for the embeddable widget."""
+    tenant_id = get_current_tenant(request)
     raw = await request.json()
     query = raw.get("query", "").strip()
 
@@ -624,7 +822,7 @@ async def api_search(request: Request):
         return {"error": "Query is required"}
 
     try:
-        result = await receptionist.search(query)
+        result = await receptionist.search(query, tenant_id=tenant_id)
         chunks = result.get("chunks", [])
         formatted = []
         for i, c in enumerate(chunks):
@@ -639,7 +837,7 @@ async def api_search(request: Request):
             })
         return {"results": formatted, "count": len(formatted)}
     except Exception as e:
-        app_logger.error(f"Search error: {e}")
+        app_logger.error(f"Search error for tenant {tenant_id}: {e}")
         return {"results": [], "count": 0}
 
 

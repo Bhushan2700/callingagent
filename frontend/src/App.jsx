@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext.jsx';
 import Navbar from './components/Navbar.jsx';
+import ProtectedRoute from './components/ProtectedRoute.jsx';
 import LandingPage from './pages/LandingPage.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import WidgetDemoPage from './pages/WidgetDemoPage.jsx';
@@ -8,28 +10,43 @@ import VoicePage from './pages/VoicePage.jsx';
 import TicketsPage from './pages/TicketsPage.jsx';
 import DocumentsPage from './pages/DocumentsPage.jsx';
 import WidgetConfigPage from './pages/WidgetConfigPage.jsx';
+import LoginPage from './pages/LoginPage.jsx';
+import RegisterPage from './pages/RegisterPage.jsx';
+import OnboardingPage from './pages/OnboardingPage.jsx';
 import './App.css';
 
-export default function App() {
+function AppContent() {
   const location = useLocation();
-  const isLanding = location.pathname === '/';
+  const noNav = ['/', '/login', '/register'];
+  const showNav = !noNav.includes(location.pathname);
 
   return (
     <>
-      {!isLanding && <Navbar />}
+      {showNav && <Navbar />}
       <div className="page-container">
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/widget" element={<WidgetDemoPage />} />
           <Route path="/setup" element={<SetupGuide />} />
-          <Route path="/voice" element={<VoicePage />} />
-          <Route path="/tickets" element={<TicketsPage />} />
-          <Route path="/documents" element={<DocumentsPage />} />
-          <Route path="/admin/widget" element={<WidgetConfigPage />} />
+          <Route path="/voice" element={<ProtectedRoute><VoicePage /></ProtectedRoute>} />
+          <Route path="/tickets" element={<ProtectedRoute><TicketsPage /></ProtectedRoute>} />
+          <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
+          <Route path="/admin/widget" element={<ProtectedRoute><WidgetConfigPage /></ProtectedRoute>} />
+          <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
     </>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

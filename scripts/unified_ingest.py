@@ -34,7 +34,7 @@ class UnifiedIngest:
                 sha256.update(chunk)
         return sha256.hexdigest()
 
-    async def ingest_file(self, file_path: Path, doc_id: str = None, doc_type: str = None) -> int:
+    async def ingest_file(self, file_path: Path, doc_id: str = None, doc_type: str = None, tenant_id: str = "") -> int:
         file_path = Path(file_path)
         if not file_path.exists():
             raise FileNotFoundError(f"File not found: {file_path}")
@@ -57,18 +57,19 @@ class UnifiedIngest:
             chunk["doc_type"] = doc_type
             chunk["source_path"] = str(file_path)
             chunk["file_hash"] = file_hash
+            chunk["tenant_id"] = tenant_id
 
         texts = [c["text"] for c in semantic_chunks]
 
         embed_client = self._get_embedding_client()
         embeddings = await embed_client.embed_passages(texts)
 
-        self.writer.delete_document(doc_id)
+        self.writer.delete_document(doc_id, tenant_id=tenant_id)
 
         count = self.writer.upsert_chunks(semantic_chunks, embeddings)
         return count
 
-    async def ingest_directory(self, directory: Path, recursive: bool = True) -> Dict[str, int]:
+    async def ingest_directory(self, directory: Path, recursive: bool = True, tenant_id: str = "") -> Dict[str, int]:
         directory = Path(directory)
         if not directory.exists():
             raise FileNotFoundError(f"Directory not found: {directory}")
@@ -79,7 +80,7 @@ class UnifiedIngest:
         for file_path in directory.glob(pattern):
             if file_path.is_file() and file_path.suffix.lower() in [".json", ".pdf", ".md", ".txt"]:
                 try:
-                    count = await self.ingest_file(file_path)
+                    count = await self.ingest_file(file_path, tenant_id=tenant_id)
                     results[str(file_path)] = count
                     print(f"  Ingested {file_path.name}: {count} chunks")
                 except Exception as e:
@@ -88,19 +89,19 @@ class UnifiedIngest:
 
         return results
 
-    async def full_reindex(self) -> Dict[str, int]:
+    async def full_reindex(self, tenant_id: str = "") -> Dict[str, int]:
         print("Starting full reindex...")
         results = {}
 
         structured_path = Path(__file__).parent.parent / "knowledge" / "structured"
         if structured_path.exists():
             print(f"\nIngesting structured files from {structured_path}...")
-            results.update(await self.ingest_directory(structured_path, recursive=False))
+            results.update(await self.ingest_directory(structured_path, recursive=False, tenant_id=tenant_id))
 
         incoming_path = Path(__file__).parent.parent / "knowledge" / "documents" / "incoming"
         if incoming_path.exists():
             print(f"\nIngesting documents from {incoming_path}...")
-            results.update(await self.ingest_directory(incoming_path, recursive=False))
+            results.update(await self.ingest_directory(incoming_path, recursive=False, tenant_id=tenant_id))
 
         total_chunks = sum(results.values())
         print(f"\nFull reindex complete: {total_chunks} total chunks from {len(results)} files")

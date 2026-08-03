@@ -1,6 +1,8 @@
 (async function() {
     const scriptEl = document.currentScript;
     const API_BASE = window.LoggixWidget?.apiBase || (scriptEl ? new URL(scriptEl.src).origin : window.location.origin);
+    const TENANT_ID = window.LoggixWidget?.tenantId || '';
+
     const CONFIG = {
         position: 'bottom-right',
         title: 'Loggix AI Support',
@@ -18,10 +20,15 @@
 
     if (window.LoggixWidget) {
         Object.assign(CONFIG, window.LoggixWidget);
-    } else {
+    }
+
+    if (TENANT_ID) {
         try {
-            const res = await fetch(`${API_BASE}/api/admin/widget-config`);
-            if (res.ok) Object.assign(CONFIG, await res.json());
+            const res = await fetch(`${API_BASE}/api/public/widget-config?tenant_id=${encodeURIComponent(TENANT_ID)}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.config) Object.assign(CONFIG, data.config);
+            }
         } catch(e) {}
     }
 
@@ -259,10 +266,12 @@
         history.push({ role: 'user', content: text });
 
         try {
-            const res = await fetch(`${API_BASE}/api/chat`, {
+            const payload = { message: text, history: history.slice(-10) };
+            if (TENANT_ID) payload.tenant_id = TENANT_ID;
+            const res = await fetch(`${API_BASE}/api/public/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: text, history: history.slice(-10) })
+                body: JSON.stringify(payload)
             });
             const data = await res.json();
             const response = data.response || 'Sorry, I could not process your request.';

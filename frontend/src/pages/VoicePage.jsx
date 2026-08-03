@@ -13,7 +13,7 @@ export default function VoicePage() {
     script.async = true;
     script.onload = () => {
       const publicKey = "a15e4ada-0005-4628-9ec0-d4761e080cb4";
-      const assistantId = "cdc4601d-364c-4d0a-a515-d4d39feb9fa6";
+      const assistantId = localStorage.getItem('loggix_assistant_id') || "cdc4601d-364c-4d0a-a515-d4d39feb9fa6";
 
       window.startCall = () => {
         const instance = window.vapiSDK.run({

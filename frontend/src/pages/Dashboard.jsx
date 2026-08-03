@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom';
 import { getTickets } from '../api/tickets.js';
 import { getDocuments } from '../api/documents.js';
 import StatCard from '../components/StatCard.jsx';
+import { getTenantName } from '../api/auth.js';
 
 export default function Dashboard() {
   const [tickets, setTickets] = useState([]);
   const [docs, setDocs] = useState([]);
+  const tenantName = getTenantName();
 
   useEffect(() => {
     getTickets().then(setTickets).catch(() => {});
@@ -17,7 +19,7 @@ export default function Dashboard() {
     <div style={{ padding: '2rem', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
       <div style={{ marginBottom: '2rem' }}>
         <h1 style={{ fontSize: '1.8rem', fontWeight: 800, background: 'linear-gradient(135deg, #fff 0%, #94a3b8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-          Dashboard
+          {tenantName || 'Dashboard'}
         </h1>
         <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
           Loggix AI Receptionist Console

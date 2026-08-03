@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getWidgetConfig, updateWidgetConfig } from '../api/widget.js';
+import { getTenantId } from '../api/auth.js';
 
 const DEFAULTS = {
   title: "Loggix AI Support",
@@ -40,23 +41,22 @@ export default function WidgetConfigPage() {
 
   const embedCode = () => {
     const baseUrl = window.location.origin;
-    const configLines = [];
+    const tenantId = getTenantId();
+    const overrides = [];
     for (const [key, val] of Object.entries(config)) {
       if (val === DEFAULTS[key]) continue;
       if (key === 'icon') {
-        configLines.push(`    ${key}: \`${val}\``);
+        overrides.push(`    ${key}: \`${val}\``);
       } else if (key === 'position' && val === 'bottom-right') {
         continue;
       } else {
-        configLines.push(`    ${key}: ${JSON.stringify(val)}`);
+        overrides.push(`    ${key}: ${JSON.stringify(val)}`);
       }
     }
+    overrides.push(`    tenantId: ${JSON.stringify(tenantId)}`);
     const tag = '<' + 'script';
     const close = '<' + '/script>';
-    if (configLines.length) {
-      return `${tag}>\nwindow.LoggixWidget = {\n${configLines.join(',\n')}\n};\n${close}\n${tag} src="${baseUrl}/static/widget.js">${close}`;
-    }
-    return `${tag} src="${baseUrl}/static/widget.js">${close}`;
+    return `${tag}>\nwindow.LoggixWidget = {\n${overrides.join(',\n')}\n};\n${close}\n${tag} src="${baseUrl}/static/widget.js">${close}`;
   };
 
   const copyEmbed = () => {
