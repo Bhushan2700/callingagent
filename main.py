@@ -38,6 +38,15 @@ from scripts.storage import storage
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 app_logger = logging.getLogger("app_logger")
+
+
+@app.on_event("startup")
+async def startup_migrate():
+    try:
+        from scripts.db_migrations import run_migrations
+        run_migrations()
+    except Exception as e:
+        app_logger.warning(f"Auto-migration failed: {e}")
 receptionist = LoggixReceptionist()
 writer = PGVectorWriter()
 ingest = UnifiedIngest()
