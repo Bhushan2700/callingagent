@@ -620,8 +620,7 @@ async def upload_document(request: Request, file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail=f"File type {ext} not supported. Use: {', '.join(allowed_ext)}")
 
     content = await file.read()
-    key = f"{tenant_id}/{file.filename}"
-    storage.upload(key, content)
+    storage.upload(tenant_id, file.filename, content)
 
     incoming_dir = Path(__file__).parent / "knowledge" / "documents" / "incoming"
     incoming_dir.mkdir(parents=True, exist_ok=True)
@@ -848,6 +847,64 @@ async def api_search(request: Request):
     except Exception as e:
         app_logger.error(f"Search error for tenant {tenant_id}: {e}")
         return {"results": [], "count": 0}
+
+
+# ==================== VAPI WEBHOOK (Assistant events + tool calls) ====================
+
+class _VapiRequest:
+    """Minimal Request stand-in so tool handlers only need .json()."""
+    def __init__(self, data: dict):
+        self._data = data
+
+    async def json(self):
+        return self._data
+
+
+@app.post("/webhook/vapi")
+async def vapi_webhook(request: Request):
+    """Receive Vapi assistant messages. Acknowledges status events and
+    dispatches function-call messages to the existing /tool/* handlers."""
+    raw = await request.json()
+    message = raw.get("message", {})
+    msg_type = message.get("type", "")
+
+    if msg_type in ("status-update", "end-of-call-report", "transcript", "transcript-transcript-update"):
+        return {"status": "received", "type": msg_type}
+
+    tool_calls = message.get("toolCalls") or []
+    results = []
+    handlers = {
+        "search_knowledge": lambda args: search_knowledge(_VapiRequest(args)),
+        "book_appointment": lambda args: book_appointment(_VapiRequest(args)),
+        "raise_ticket": lambda args: raise_ticket(_VapiRequest(args)),
+    }
+
+    for tc in tool_calls:
+        fn = tc.get("function", {})
+        name = fn.get("name", "")
+        raw_args = fn.get("arguments", "{}")
+        if isinstance(raw_args, str):
+            try:
+                args = json.loads(raw_args)
+            except (json.JSONDecodeError, TypeError):
+                args = {}
+        else:
+            args = raw_args or {}
+
+        handler = handlers.get(name)
+        if not handler:
+            results.append({"toolCallId": tc.get("id"), "error": f"Unknown tool: {name}"})
+            continue
+
+        resp = await handler(args)
+        if isinstance(resp, dict) and "results" in resp:
+            results.extend(resp["results"])
+        else:
+            results.append({"toolCallId": tc.get("id"), "result": (resp or {}).get("result", "")})
+
+    if results:
+        return {"results": results}
+    return {"status": "received"}
 
 
 # ==================== TWILIO VOICE API (Media Streams) ====================
