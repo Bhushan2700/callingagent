@@ -166,6 +166,34 @@ def shared_tenant_id() -> str:
         return ""
 
 
+def tenant_id_by_assistant(assistant_id: str) -> str:
+    """Map a Vapi assistant_id back to its owning tenant."""
+    if not assistant_id:
+        return ""
+    try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT id FROM tenants WHERE assistant_id = %s", (assistant_id,))
+            row = cur.fetchone()
+            return row[0] if row else ""
+    except Exception:
+        return ""
+
+
+def _resolve_tenant_from_raw(raw: dict) -> str:
+    """Resolve tenant from the Vapi tool payload via assistant_id, fallback to tenant_id."""
+    assistant_id = str(raw.get("assistant_id", "") or "").strip()
+    if assistant_id:
+        tid = tenant_id_by_assistant(assistant_id)
+        if tid:
+            return tid
+
+    ten_id = str(raw.get("tenant_id", "")).strip()
+    if ten_id and tenant_exists(ten_id):
+        return ten_id
+    return ""
+
+
 # ==================== AUTH ENDPOINTS ====================
 
 
@@ -292,7 +320,15 @@ async def search_knowledge(request: Request):
     raw = await _parse_body(request)
     query = raw.get("query", "")
 
-    result = await receptionist.search(query)
+    tenant_id = _resolve_tenant_from_raw(raw) or shared_tenant_id()
+    if not tenant_id:
+        return {"result": "Sorry, I couldn't identify your account. Please try again."}
+
+    try:
+        result = await receptionist.search(query, tenant_id=tenant_id)
+    except Exception as e:
+        app_logger.error(f"SEARCH ERROR: {e}", exc_info=True)
+        return {"result": "Search temporarily unavailable. Please try again."}
     chunks = result.get("chunks", [])
 
     formatted = []
@@ -544,7 +580,7 @@ async def book_appointment(request: Request):
 async def raise_ticket(request: Request):
     raw = await _parse_body(request)
     params, tool_call_id = _parse_vapi_request(raw)
-    tenant_id = shared_tenant_id()
+    tenant_id = _resolve_tenant_from_raw(raw) or shared_tenant_id()
     name = params.get("name", "").strip()
     phone = params.get("phone", "").strip()
     email = params.get("email", "").strip()
@@ -837,7 +873,7 @@ async def public_chat(request: Request):
         return {"error": "Invalid tenant_id"}
 
     try:
-        response = await receptionist.get_response(message, history)
+        response = await receptionist.get_response(message, history, tenant_id=tenant_id)
         return {"response": response}
     except Exception as e:
         app_logger.error(f"Chat error for tenant {tenant_id}: {e}")
@@ -858,7 +894,7 @@ async def public_search(request: Request):
         return {"error": "Invalid tenant_id"}
 
     try:
-        result = await receptionist.search(query)
+        result = await receptionist.search(query, tenant_id=tenant_id)
         chunks = result.get("chunks", [])
         formatted = []
         for i, c in enumerate(chunks):
@@ -933,7 +969,7 @@ async def api_chat(request: Request):
         return {"error": "Message is required"}
 
     try:
-        response = await receptionist.get_response(message, history)
+        response = await receptionist.get_response(message, history, tenant_id=tenant_id)
         return {"response": response}
     except Exception as e:
         app_logger.error(f"Chat error for tenant {tenant_id}: {e}")
@@ -951,7 +987,7 @@ async def api_search(request: Request):
         return {"error": "Query is required"}
 
     try:
-        result = await receptionist.search(query)
+        result = await receptionist.search(query, tenant_id=tenant_id)
         chunks = result.get("chunks", [])
         formatted = []
         for i, c in enumerate(chunks):
@@ -973,11 +1009,18 @@ async def api_search(request: Request):
 # ==================== VAPI WEBHOOK (Assistant events + tool calls) ====================
 
 class _VapiRequest:
-    """Minimal Request stand-in so tool handlers only need .json()."""
+    """Minimal Request stand-in so tool handlers work with _parse_body()."""
     def __init__(self, data: dict):
         self._data = data
 
+    @property
+    def headers(self):
+        return {}
+
     async def json(self):
+        return self._data
+
+    async def form(self):
         return self._data
 
 

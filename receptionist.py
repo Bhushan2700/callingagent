@@ -80,14 +80,18 @@ RULES:
 - Never guess missing information
 - English only unless caller speaks Dutch"""
 
-    async def search(self, query: str) -> dict:
+    async def search(self, query: str, tenant_id: str = "") -> dict:
         start_total = time.time()
+
+        if not tenant_id:
+            raise ValueError("tenant_id is required for search")
 
         # 1. Embed query
         query_embedding = await self.embedding_client.embed_query(query)
 
         # 2. Vector search (top-10)
-        results = self._writer.query(query_embedding, n_results=10)
+        where = {"tenant_id": tenant_id}
+        results = self._writer.query(query_embedding, n_results=10, where=where)
 
         if not results or not results.get("documents") or not results["documents"][0]:
             return {"chunks": [], "query_latency_ms": (time.time() - start_total) * 1000, "confidence": 0}
@@ -167,11 +171,14 @@ RULES:
         except Exception as e:
             print(f"Logging error: {e}")
 
-    async def get_response(self, user_input: str, history: list = None) -> str:
+    async def get_response(self, user_input: str, history: list = None, tenant_id: str = "") -> str:
         if history is None:
             history = []
 
-        search_result = await self.search(user_input)
+        if not tenant_id:
+            return "I'm sorry, I couldn't identify your account. Please try again."
+
+        search_result = await self.search(user_input, tenant_id=tenant_id)
         chunks = search_result["chunks"]
 
         if not chunks or search_result["confidence"] < self.confidence_threshold:
