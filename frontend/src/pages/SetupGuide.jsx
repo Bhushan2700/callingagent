@@ -69,9 +69,10 @@ const platforms = [
   <!-- Loggix AI Widget -->
   <script>
   window.LoggixWidget = {
+    tenantId: "YOUR_TENANT_ID",
     title: "My Support",
     greeting: "Hi! How can I help?",
-    primaryColor: "#0061FF"
+    primaryColor: "#8B5CF6"
   };
   </script>
   <script src="https://your-railway-url.up.railway.app/static/widget.js"></script>
@@ -86,9 +87,10 @@ import { useEffect } from 'react';
 export default function Layout({ children }) {
   useEffect(() => {
     window.LoggixWidget = {
+      tenantId: "YOUR_TENANT_ID",
       title: "My Support",
       greeting: "Hi! How can I help?",
-      primaryColor: "#0061FF"
+      primaryColor: "#8B5CF6"
     };
     const script = document.createElement('script');
     script.src = "https://your-railway-url.up.railway.app/static/widget.js";
@@ -105,9 +107,10 @@ export default function Layout({ children }) {
 
 <script>
 window.LoggixWidget = {
+  tenantId: "YOUR_TENANT_ID",
   title: "My Support",
   greeting: "Hi! How can I help?",
-  primaryColor: "#0061FF"
+  primaryColor: "#8B5CF6"
 };
 </script>
 <script src="https://your-railway-url.up.railway.app/static/widget.js"></script>`,
@@ -130,7 +133,7 @@ export default function SetupGuide() {
           fontSize: '2rem',
           fontWeight: 800,
           marginBottom: '0.75rem',
-          background: 'linear-gradient(135deg, #fff 0%, #0061FF 100%)',
+          background: 'linear-gradient(135deg, #fff 0%, #8B5CF6 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
         }}>
@@ -156,13 +159,13 @@ export default function SetupGuide() {
                 <div style={{
                   width: 48, height: 48,
                   borderRadius: 14,
-                  background: 'rgba(0,97,255,0.15)',
+                  background: 'rgba(139,92,246,0.15)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
                 }}>
-                  <Icon size={24} color="#0061FF" />
+                  <Icon size={24} color="#8B5CF6" />
                 </div>
                 <div>
                   <div style={{
@@ -190,7 +193,7 @@ export default function SetupGuide() {
               {step.link && (
                 <div style={{ marginLeft: '4rem', marginTop: '1rem' }}>
                   <Link to={step.link.to} style={{
-                    color: '#0061FF',
+                    color: '#8B5CF6',
                     fontWeight: 600,
                     fontSize: '0.9rem',
                   }}>
@@ -236,7 +239,7 @@ export default function SetupGuide() {
 
       <div>
         <h2 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <HelpCircle size={20} color="#0061FF" /> Frequently Asked Questions
+          <HelpCircle size={20} color="#8B5CF6" /> Frequently Asked Questions
         </h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {faqs.map((f, i) => (
@@ -256,3 +259,4 @@ export default function SetupGuide() {
     </div>
   );
 }
+

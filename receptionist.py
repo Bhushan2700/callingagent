@@ -127,7 +127,7 @@ RULES:
 
         query_latency = (time.time() - start_total) * 1000
 
-        self._log_query(query, final_chunks, query_latency)
+        self._log_query(query, final_chunks, query_latency, tenant_id)
 
         return {
             "chunks": final_chunks,
@@ -139,13 +139,14 @@ RULES:
         scores = [c.get("similarity", 0) for c in chunks[:3]]
         return sum(scores) / len(scores) if scores else 0
 
-    def _log_query(self, query: str, final_chunks: list, query_latency: float):
+    def _log_query(self, query: str, final_chunks: list, query_latency: float, tenant_id: str = ""):
         try:
             log_dir = Path(__file__).parent.parent / "logs"
             log_dir.mkdir(exist_ok=True)
 
             log_entry = {
                 "timestamp": datetime.utcnow().isoformat(),
+                "tenant_id": tenant_id,
                 "query": query,
                 "latency_ms": query_latency,
                 "retrieval": {
@@ -163,7 +164,7 @@ RULES:
                 ]
             }
 
-            log_file = log_dir / f"rag_queries_{datetime.utcnow().strftime('%Y%m%d')}.jsonl"
+            log_file = log_dir / f"rag_queries_{tenant_id}_{datetime.utcnow().strftime('%Y%m%d')}.jsonl"
             with open(log_file, "a") as f:
                 f.write(json.dumps(log_entry) + "\n")
 

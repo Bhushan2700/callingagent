@@ -55,13 +55,13 @@ export default function DocumentsPage() {
 
   function onDragOver(e) {
     e.preventDefault();
-    e.currentTarget.style.borderColor = '#3b82f6';
-    e.currentTarget.style.background = '#1e3a5f';
+    e.currentTarget.style.borderColor = 'var(--brand-accent)';
+    e.currentTarget.style.background = 'rgba(139,92,246,0.08)';
   }
 
   function onDragLeave(e) {
-    e.currentTarget.style.borderColor = '#334155';
-    e.currentTarget.style.background = '#1e293b';
+    e.currentTarget.style.borderColor = 'rgba(139,92,246,0.3)';
+    e.currentTarget.style.background = 'var(--glass)';
   }
 
   async function handleDelete(docId) {
@@ -86,12 +86,12 @@ export default function DocumentsPage() {
       <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>Upload documents to the RAG knowledge base</p>
 
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div style={{ background: '#1e293b', padding: '1rem 1.5rem', borderRadius: 8, border: '1px solid #334155' }}>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#3b82f6' }}>{docs.length}</div>
+        <div style={{ background: 'var(--glass)', padding: '1rem 1.5rem', borderRadius: 12, border: '1px solid var(--glass-border)' }}>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--brand-accent)' }}>{docs.length}</div>
           <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Documents</div>
         </div>
-        <div style={{ background: '#1e293b', padding: '1rem 1.5rem', borderRadius: 8, border: '1px solid #334155' }}>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#3b82f6' }}>{totalChunks}</div>
+        <div style={{ background: 'var(--glass)', padding: '1rem 1.5rem', borderRadius: 12, border: '1px solid var(--glass-border)' }}>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--brand-accent)' }}>{totalChunks}</div>
           <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Chunks</div>
         </div>
       </div>
@@ -102,13 +102,13 @@ export default function DocumentsPage() {
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         style={{
-          border: '2px dashed #334155',
-          borderRadius: 12,
+          border: '2px dashed rgba(139,92,246,0.3)',
+          borderRadius: 16,
           padding: '3rem 2rem',
           textAlign: 'center',
           cursor: 'pointer',
           transition: 'all 0.3s',
-          background: '#1e293b',
+          background: 'var(--glass)',
           marginBottom: '1rem',
         }}
       >
@@ -121,8 +121,8 @@ export default function DocumentsPage() {
 
       {uploading && (
         <div style={{ marginBottom: '1rem' }}>
-          <div style={{ height: 6, background: '#334155', borderRadius: 3, overflow: 'hidden' }}>
-            <div style={{ height: '100%', background: '#3b82f6', transition: 'width 0.3s', width: `${progress.pct}%` }} />
+          <div style={{ height: 6, background: 'rgba(139,92,246,0.15)', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ height: '100%', background: 'var(--brand-gradient)', transition: 'width 0.3s', width: `${progress.pct}%` }} />
           </div>
           <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>{progress.text}</div>
         </div>
@@ -155,10 +155,14 @@ export default function DocumentsPage() {
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '1rem',
-              background: '#1e293b',
-              borderRadius: 8,
-              border: '1px solid #334155',
-            }}>
+              background: 'var(--glass)',
+              borderRadius: 12,
+              border: '1px solid var(--glass-border)',
+              transition: 'all 0.3s',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--brand-accent)'; e.currentTarget.style.transform = 'translateX(2px)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.transform = 'translateX(0)' }}
+            >
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 500, color: '#fff' }}>{doc.doc_id}</div>
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>

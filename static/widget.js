@@ -14,7 +14,7 @@
         textColor: '#ffffff',
         botMessageBg: 'rgba(255,255,255,0.06)',
         icon: '',
-        vapiKey: '',
+        vapiKey: 'a15e4ada-0005-4628-9ec0-d4761e080cb4',
         vapiAssistant: '',
     };
 
@@ -158,10 +158,10 @@
         .chat-input input {
             flex: 1; padding: 10px 14px; border-radius: 12px;
             border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05);
-            color: white; font-size: 13px; outline: none; font-family: inherit;
+            color: ${CONFIG.textColor}; font-size: 13px; outline: none; font-family: inherit;
         }
         .chat-input input:focus { border-color: ${CONFIG.primaryColor}; }
-        .chat-input input::placeholder { color: #64748b; }
+        .chat-input input::placeholder { color: #64748b; opacity: 0.8; }
         .send-btn {
             width: 40px; height: 40px; border-radius: 12px; border: none;
             background: ${CONFIG.primaryColor}; cursor: pointer;
@@ -274,9 +274,14 @@
                 body: JSON.stringify(payload)
             });
             const data = await res.json();
-            const response = data.response || 'Sorry, I could not process your request.';
-            addMessage(response, 'bot');
-            history.push({ role: 'assistant', content: response });
+            if (data.error) {
+                addMessage(data.error, 'bot');
+                history.push({ role: 'assistant', content: data.error });
+            } else {
+                const response = data.response || 'Sorry, I could not process your request.';
+                addMessage(response, 'bot');
+                history.push({ role: 'assistant', content: response });
+            }
         } catch (err) {
             addMessage('Sorry, something went wrong. Please try again.', 'bot');
         } finally {

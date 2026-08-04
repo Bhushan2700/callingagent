@@ -45,8 +45,8 @@ export default function RegisterPage() {
         position: 'relative',
         overflow: 'hidden',
         backgroundImage: `
-          radial-gradient(circle at 20% 30%, rgba(0,97,255,0.15) 0%, transparent 50%),
-          radial-gradient(circle at 80% 70%, rgba(139,92,246,0.12) 0%, transparent 50%)
+          radial-gradient(circle at 20% 30%, rgba(139,92,246,0.18) 0%, transparent 50%),
+          radial-gradient(circle at 80% 70%, rgba(239,68,68,0.08) 0%, transparent 50%)
         `,
       }} className="auth-brand-panel">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '3rem' }}>
@@ -62,7 +62,7 @@ export default function RegisterPage() {
         </div>
         <h2 style={{
           fontSize: '2.3rem', fontWeight: 800, lineHeight: 1.15, marginBottom: '1.5rem',
-          background: 'linear-gradient(135deg, #fff 0%, #818cf8 60%, #60a5fa 100%)',
+          background: 'linear-gradient(135deg, #fff 0%, #c084fc 60%, #8B5CF6 100%)',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
         }}>
           Get your AI receptionist up and running.
@@ -77,7 +77,7 @@ export default function RegisterPage() {
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.9rem' }}>
                 <div style={{
                   width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-                  background: 'linear-gradient(135deg, rgba(0,97,255,0.2), rgba(139,92,246,0.2))',
+                  background: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(139,92,246,0.2))',
                   border: '1px solid rgba(139,92,246,0.25)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>

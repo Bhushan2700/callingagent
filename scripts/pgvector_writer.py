@@ -101,6 +101,8 @@ class PGVectorWriter:
         self._ensure_initialized()
         if not doc_chunks or not embeddings:
             return 0
+        if not doc_chunks[0].get("tenant_id"):
+            raise ValueError("tenant_id is required on every chunk in upsert_chunks")
 
         rows = []
         for i, (chunk, embedding) in enumerate(zip(doc_chunks, embeddings)):

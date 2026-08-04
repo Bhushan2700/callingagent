@@ -10,7 +10,7 @@ import psycopg2
 from pathlib import Path
 from datetime import datetime, timezone
 from uuid import uuid4
-from fastapi import FastAPI, Request, Response, HTTPException, UploadFile, File, WebSocket
+from fastapi import FastAPI, Request, Response, HTTPException, UploadFile, File
 from fastapi.responses import PlainTextResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -64,9 +64,9 @@ if redis_url:
 DEFAULT_WIDGET_CONFIG = {
     "title": "Loggix AI Support",
     "greeting": "Hi! I'm the Loggix AI assistant. How can I help you today?",
-    "primaryColor": "#0061FF",
-    "primaryHover": "#0051d4",
-    "backgroundColor": "#0f172a",
+    "primaryColor": "#8B5CF6",
+    "primaryHover": "#A855F7",
+    "backgroundColor": "#0A0A1A",
     "headerBg": "rgba(255,255,255,0.03)",
     "textColor": "#ffffff",
     "botMessageBg": "rgba(255,255,255,0.06)",
@@ -75,16 +75,10 @@ DEFAULT_WIDGET_CONFIG = {
 }
 
 VAPI_KEY = os.getenv("VAPI_PRIVATE_KEY")
-VAPI_ASSISTANT_ID = os.getenv("VAPI_ASSISTANT_ID", "")
-VAPI_PHONE_NUMBER_ID = os.getenv("VAPI_PHONE_NUMBER_ID", "")
 VAPI_BASE = "https://api.vapi.ai"
 
-TELNYX_API_KEY = os.getenv("TELNYX_API_KEY", "")  # kept for reference
-TELNYX_PHONE_NUMBER = os.getenv("TELNYX_PHONE_NUMBER", "")
-
-TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
-TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
-TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER", "")
+SHARED_ASSISTANT_ID = "cdc4601d-364c-4d0a-a515-d4d39feb9fa6"
+SHARED_ASSISTANT_EMAIL = "nik68199@gmail.com"
 
 class ToolRequest(BaseModel):
     query: str
@@ -116,6 +110,7 @@ class RateLimiter:
 login_limiter = RateLimiter(limit=10, window_seconds=60)
 register_limiter = RateLimiter(limit=5, window_seconds=60)
 chat_limiter = RateLimiter(limit=30, window_seconds=60)
+search_limiter = RateLimiter(limit=20, window_seconds=60)
 
 
 def client_ip(request: Request) -> str:
@@ -219,19 +214,24 @@ async def register(request: Request):
     tenant_id = str(uuid4())
     assistant_id = ""
 
-    if VAPI_KEY:
-        try:
-            assistant = await create_assistant(name, tenant_id)
-            if assistant and "id" in assistant:
-                assistant_id = assistant["id"]
-        except Exception as e:
-            app_logger.warning(f"Vapi assistant creation failed for {email}: {e}")
-
     with get_db() as conn:
         cur = conn.cursor()
         cur.execute("SELECT id FROM tenants WHERE email = %s", (email,))
         if cur.fetchone():
             raise HTTPException(status_code=409, detail="Email already registered")
+
+    if email == SHARED_ASSISTANT_EMAIL:
+        assistant_id = SHARED_ASSISTANT_ID
+    elif VAPI_KEY:
+        try:
+            assistant_id = await create_assistant(name, tenant_id) or ""
+            if not assistant_id:
+                app_logger.warning(f"Vapi assistant creation failed for {email}")
+        except Exception as e:
+            app_logger.warning(f"Vapi assistant creation failed for {email}: {e}")
+
+    with get_db() as conn:
+        cur = conn.cursor()
         cur.execute(
             "INSERT INTO tenants (id, email, password_hash, name, assistant_id) VALUES (%s, %s, %s, %s, %s)",
             (tenant_id, email, hashed, name, assistant_id),
@@ -441,6 +441,13 @@ async def book_appointment(request: Request):
 
     params, tool_call_id = _parse_vapi_request(raw)
 
+    tenant_id = _resolve_tenant_from_raw(raw)
+    if not tenant_id:
+        err = "Sorry, I couldn't identify your account. Please try again."
+        if tool_call_id:
+            return {"results": [{"toolCallId": tool_call_id, "error": err}]}
+        return {"error": err}
+
     # Log extracted parameters
     print(f"BOOKING_EXTRACTED_PARAMS: {json.dumps(params, indent=2, default=str)}")
 
@@ -513,7 +520,7 @@ async def book_appointment(request: Request):
     start_iso = f"{valid_date}T{valid_time}:00Z"
 
     try:
-        result = await cal_client.create_booking(start=start_iso, attendee_name=valid_name, attendee_email=email, phone=phone, notes=f"Enquiry: {valid_enquiry}")
+        result = await cal_client.create_booking(start=start_iso, attendee_name=valid_name, attendee_email=email, phone=phone, notes=f"Enquiry: {valid_enquiry} | Tenant: {tenant_id}")
 
         if result.get("status") == "success":
             booking = result["data"]
@@ -688,9 +695,9 @@ async def reindex_document(doc_id: str, request: Request):
 @app.post("/admin/ingest/trigger")
 async def trigger_ingest(request: Request):
     tenant_id = get_current_tenant(request)
-    folder_path = Path(__file__).parent / "knowledge" / "documents" / "incoming"
+    folder_path = Path(__file__).parent / "knowledge" / "documents" / "incoming" / tenant_id
     if not folder_path.exists():
-        raise HTTPException(status_code=404, detail="Folder not found: knowledge/documents/incoming")
+        raise HTTPException(status_code=404, detail=f"Folder not found: knowledge/documents/incoming/{tenant_id}")
     results = await ingest.ingest_directory(folder_path, recursive=False, tenant_id=tenant_id)
     total_chunks = sum(results.values())
     return {"status": "completed", "files_processed": len(results), "total_chunks": total_chunks, "details": results}
@@ -718,7 +725,7 @@ async def upload_document(request: Request, file: UploadFile = File(...)):
     content = await file.read()
     storage.upload(tenant_id, filename, content)
 
-    incoming_dir = Path(__file__).parent / "knowledge" / "documents" / "incoming"
+    incoming_dir = Path(__file__).parent / "knowledge" / "documents" / "incoming" / tenant_id
     incoming_dir.mkdir(parents=True, exist_ok=True)
     local_path = incoming_dir / filename
     with open(local_path, "wb") as f:
@@ -736,13 +743,18 @@ async def upload_document(request: Request, file: UploadFile = File(...)):
 
 
 def _get_widget_db(tenant_id: str) -> dict:
+    config = dict(DEFAULT_WIDGET_CONFIG)
     with get_db() as conn:
         cur = conn.cursor()
         cur.execute("SELECT config FROM widget_configs WHERE tenant_id = %s", (tenant_id,))
         row = cur.fetchone()
         if row:
-            return json.loads(row[0])
-    return dict(DEFAULT_WIDGET_CONFIG)
+            config = {**config, **json.loads(row[0])}
+        cur.execute("SELECT assistant_id FROM tenants WHERE id = %s", (tenant_id,))
+        t = cur.fetchone()
+        if t and t[0]:
+            config["vapiAssistant"] = t[0]
+    return config
 
 
 def _save_widget_db(tenant_id: str, config: dict):
@@ -825,6 +837,8 @@ async def public_chat(request: Request):
 
 @app.post("/api/public/search")
 async def public_search(request: Request):
+    if not search_limiter.allow(client_ip(request)):
+        return {"error": "Too many requests. Please try again later."}
     raw = await request.json()
     query = raw.get("query", "").strip()
     tenant_id = raw.get("tenant_id", "").strip()
@@ -1010,56 +1024,6 @@ async def vapi_webhook(request: Request):
     return {"status": "received"}
 
 
-# ==================== TWILIO VOICE API (Media Streams) ====================
-
-from loguru import logger as log
-
-
-@app.post("/webhook/twilio")
-async def twilio_webhook(request: Request):
-    """Handle Twilio Voice webhooks — return TwiML to start Media Streams."""
-    form = await request.form()
-    call_sid = form.get("CallSid", "")
-    log.info(f"TWILIO INCOMING: CallSid={call_sid}")
-
-    # Auto-detect host for WebSocket URL
-    host = request.url.hostname
-    port = request.url.port
-    if port and port not in (443, 80):
-        ws_url = f"wss://{host}:{port}/ws/call"
-    else:
-        ws_url = f"wss://{host}/ws/call"
-
-    # TwiML: connect caller to our WebSocket Media Stream
-    twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Connect>
-        <Stream url="{ws_url}">
-            <Parameter name="call_sid" value="{call_sid}" />
-        </Stream>
-    </Connect>
-</Response>"""
-
-    return Response(content=twiml, media_type="text/xml")
-
-
-# Backward-compat alias for old Telnyx webhook config
-app.post("/webhook/telnyx")(twilio_webhook)
-
-
-@app.websocket("/ws/call")
-async def websocket_call(websocket: WebSocket):
-    """WebSocket endpoint for Twilio Media Streams — connects to Pipecat bot."""
-    from pipecat_bot import bot
-    from pipecat.runner.types import WebSocketRunnerArguments
-
-    await websocket.accept()
-    log.info("Twilio WebSocket connected")
-
-    runner_args = WebSocketRunnerArguments(websocket=websocket)
-    await bot(runner_args)
-
-
 # ==================== HEALTH CHECK ====================
 
 @app.get("/health")
@@ -1071,7 +1035,7 @@ async def health_check():
     except Exception:
         redis_status = "unavailable"
 
-    return {"status": "healthy", "redis": redis_status, "twilio_configured": bool(TWILIO_ACCOUNT_SID)}
+    return {"status": "healthy", "redis": redis_status, "vapi_configured": bool(VAPI_KEY)}
 
 
 # ==================== SPA Catch-All (must be last) ====================

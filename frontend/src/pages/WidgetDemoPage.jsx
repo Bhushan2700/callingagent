@@ -4,7 +4,7 @@ import { getTenantId } from '../api/auth.js';
 const DEFAULTS = {
   title: "Loggix AI Support",
   greeting: "Hi! I'm the Loggix AI assistant. How can I help you today?",
-  primaryColor: "#0061FF",
+  primaryColor: "#8B5CF6",
   primaryHover: "#0051d4",
   backgroundColor: "#0f172a",
   headerBg: "rgba(255,255,255,0.03)",
@@ -12,8 +12,8 @@ const DEFAULTS = {
   botMessageBg: "rgba(255,255,255,0.06)",
   icon: "",
   position: "bottom-right",
-  vapiKey: (window.LoggixWidget && window.LoggixWidget.vapiKey) || '',
-  vapiAssistant: (window.LoggixWidget && window.LoggixWidget.vapiAssistant) || '',
+  vapiKey: "a15e4ada-0005-4628-9ec0-d4761e080cb4",
+  vapiAssistant: localStorage.getItem('loggix_assistant_id') || '',
   tenantId: getTenantId() || '',
 };
 
@@ -29,7 +29,7 @@ export default function WidgetDemoPage() {
     return () => { document.body.removeChild(script); };
   }, []);
 
-  const embedCode = `<script src="${window.location.origin}/static/widget.js"><\/script>`;
+  const embedCode = `<script>\nwindow.LoggixWidget = {\n  tenantId: ${JSON.stringify(DEFAULTS.tenantId)}\n};\n<\/script>\n<script src="${window.location.origin}/static/widget.js"><\/script>`;
 
   const copyEmbed = () => {
     navigator.clipboard.writeText(embedCode);
@@ -43,16 +43,16 @@ export default function WidgetDemoPage() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundImage: 'radial-gradient(circle at 30% 40%, rgba(0,97,255,0.08) 0%, transparent 50%)',
+      backgroundImage: 'radial-gradient(circle at 30% 40%, rgba(139,92,246,0.1) 0%, transparent 50%)',
       padding: '2rem',
     }}>
       <div style={{ maxWidth: 700, textAlign: 'center' }}>
-        <div style={{ fontSize: '3rem', color: 'var(--brand-blue)', marginBottom: '1rem', opacity: 0.8 }}>↘</div>
+        <div style={{ fontSize: '3rem', color: 'var(--brand-accent)', marginBottom: '1rem', opacity: 0.8 }}>↘</div>
         <h1 style={{
           fontSize: '2.5rem',
           fontWeight: 800,
           marginBottom: '1rem',
-          background: 'linear-gradient(135deg, #fff 0%, #0061FF 100%)',
+          background: 'linear-gradient(135deg, #fff 0%, #8B5CF6 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
         }}>
@@ -120,3 +120,4 @@ export default function WidgetDemoPage() {
     </div>
   );
 }
+

@@ -57,7 +57,7 @@ export default function OnboardingPage() {
             <div key={i} style={{
               width: 10, height: 10,
               borderRadius: '50%',
-              background: i === step ? 'var(--brand-blue)' : 'var(--glass-border)',
+              background: i === step ? 'var(--brand-accent)' : 'var(--glass-border)',
               transition: 'background 0.3s',
             }} />
           ))}
@@ -66,11 +66,12 @@ export default function OnboardingPage() {
           padding: '1rem 2rem',
           borderRadius: 14,
           border: 'none',
-          background: 'var(--brand-blue)',
+          background: 'var(--brand-gradient)',
           color: '#fff',
           fontWeight: 700,
           fontSize: '1rem',
           cursor: 'pointer',
+          boxShadow: '0 4px 20px var(--brand-glow)',
         }}>
           {step < steps.length - 1 ? 'Next' : 'Go to Dashboard'}
         </button>

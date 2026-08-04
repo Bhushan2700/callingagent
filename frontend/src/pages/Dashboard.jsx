@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Mic, Ticket, FileText, Settings } from 'lucide-react';
 import { getTickets } from '../api/tickets.js';
 import { getDocuments } from '../api/documents.js';
 import StatCard from '../components/StatCard.jsx';
@@ -27,19 +28,21 @@ export default function Dashboard() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-        <StatCard value={tickets.length} label="Total Tickets" />
-        <StatCard value={tickets.filter(t => t.status === 'open').length} label="Open" />
-        <StatCard value={docs.length} label="Documents" />
-        <StatCard value={docs.reduce((s, d) => s + (d.chunk_count || 0), 0)} label="Total Chunks" />
+        <StatCard value={tickets.length} label="Total Tickets" accent="purple" />
+        <StatCard value={tickets.filter(t => t.status === 'open').length} label="Open" accent="gold" />
+        <StatCard value={docs.length} label="Documents" accent="fire" />
+        <StatCard value={docs.reduce((s, d) => s + (d.chunk_count || 0), 0)} label="Total Chunks" accent="emerald" />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
         {[
-          { to: '/voice', title: 'Voice Agent', desc: 'AI-powered voice support calls', icon: '🎙️' },
-          { to: '/tickets', title: 'Support Tickets', desc: 'Manage customer inquiries', icon: '🎫' },
-          { to: '/documents', title: 'Documents', desc: 'Upload & manage knowledge base', icon: '📄' },
-          { to: '/admin/widget', title: 'Widget Config', desc: 'Customize the chat widget', icon: '⚙️' },
-        ].map(item => (
+          { to: '/voice', title: 'Voice Agent', desc: 'AI-powered voice support calls', icon: Mic },
+          { to: '/tickets', title: 'Support Tickets', desc: 'Manage customer inquiries', icon: Ticket },
+          { to: '/documents', title: 'Documents', desc: 'Upload & manage knowledge base', icon: FileText },
+          { to: '/admin/widget', title: 'Widget Config', desc: 'Customize the chat widget', icon: Settings },
+        ].map(item => {
+          const Icon = item.icon;
+          return (
           <Link key={item.to} to={item.to} style={{ textDecoration: 'none' }}>
             <div style={{
               background: 'var(--glass)',
@@ -50,15 +53,23 @@ export default function Dashboard() {
               transition: 'all 0.3s',
               cursor: 'pointer',
             }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--brand-blue)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--brand-accent)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(139,92,246,0.2)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
             >
-              <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>{item.icon}</div>
+              <div style={{
+                width: 44, height: 44, borderRadius: 12, marginBottom: '0.75rem',
+                background: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(168,85,247,0.2))',
+                border: '1px solid rgba(139,92,246,0.25)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Icon size={22} color="#c084fc" />
+              </div>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.5rem' }}>{item.title}</h3>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{item.desc}</p>
             </div>
           </Link>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

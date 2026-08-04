@@ -1,43 +1,40 @@
-# Loggix AI Voice Receptionist
+# Loggix AI Receptionist
 
-This is an AI-powered voice receptionist for Loggix, using Grok (xAI) for intelligence and Twilio for telephony.
+Multi-tenant AI receptionist SaaS: voice agent (Vapi), chat widget, RAG knowledge base, appointment booking (Cal.com), and support tickets — all isolated per tenant.
 
 ## Features
-- **Grok-Powered:** Uses xAI's Grok-beta model for natural conversations.
-- **International Support:** Works with any Twilio number (India/Netherlands/Global).
-- **Cost Effective:** Uses free trial credits from xAI and Twilio.
-- **Context Aware:** Trained on Loggix services and website data.
+- **Multi-tenant:** Each registration gets its own tenant ID, data isolation, and (for new accounts) its own Vapi voice assistant, created automatically.
+- **Voice Agent:** Browser-based voice calls via Vapi. Tenants assigned an assistant at registration; `nik68199@gmail.com` uses the shared assistant.
+- **Chat Widget:** Embeddable, brandable chat widget for any website. Voice chat included.
+- **RAG Knowledge Base:** Upload .md/.pdf/.txt/.json — auto-chunked, embedded, and searchable per tenant (pgvector on PostgreSQL).
+- **Appointment Booking:** Voice tool call books Cal.com slots, tagged with the tenant ID.
+- **Support Tickets:** Created via voice (raise_ticket tool), chat, or the admin dashboard.
+- **Storage:** Files uploaded to Backblaze B2 (per-tenant paths).
+- **Rate limiting:** In-memory sliding window on login, register, public chat, and public search.
 
-## Setup Instructions
+## Setup
 
-1. **Install Dependencies:**
+1. **Install dependencies:**
    ```bash
    pip install -r requirements.txt
    ```
 
-2. **Configuration:**
-   - Copy `.env.example` to `.env`.
-   - Add your `GROK_API_KEY` from [console.x.ai](https://console.x.ai).
-   - Add your Twilio credentials.
+2. **Configuration:** Copy `.env.example` to `.env` and fill in:
+   - `OPENAI_API_KEY` — LLM + embeddings
+   - `VAPI_PRIVATE_KEY` — server-side Vapi key (assistant creation, webhooks)
+   - `DATABASE_URL` — PostgreSQL (Railway provides this automatically)
+   - `JWT_SECRET` — required; auth fails hard without it
+   - `B2_ENDPOINT`, `B2_ACCESS_KEY`, `B2_SECRET_KEY`, `B2_BUCKET` — Backblaze B2
+   - `CAL_API_KEY`, `CAL_EVENT_TYPE_ID` — Cal.com booking
+   - `CORS_ORIGINS` — comma-separated allowed origins
 
-3. **Run the Server:**
+3. **Run the server:**
    ```bash
    python main.py
    ```
-
-4. **Expose to Internet:**
-   Use `ngrok` to expose your local server:
-   ```bash
-   ngrok http 8000
-   ```
-
-5. **Configure Twilio:**
-   - Go to your Twilio Console -> Phone Numbers -> Active Numbers.
-   - Set the "A Call Comes In" Webhook to: `https://your-ngrok-url.ngrok-free.app/voice` (Method: POST).
+   (Or via Docker/`railway.json` — builds the React frontend, serves SPA + API on port 8000.)
 
 ## How it works
-- **Twilio** receives the call and greets the user.
-- **Gather** captures the user's speech.
-- **FastAPI** sends the speech to **Grok**.
-- **Grok** generates a response based on the Loggix knowledge base.
-- **Twilio** speaks the response back to the user.
+- **Voice:** Vapi assistant calls `/webhook/vapi`; tool calls (`search_knowledge`, `book_appointment`, `raise_ticket`) are dispatched to `/tool/*` handlers, with the tenant resolved server-side from the assistant ID.
+- **Chat widget:** `/api/public/chat` and `/api/public/search` validate the tenant, then query the per-tenant knowledge base.
+- **Frontend:** React SPA (dark Hades theme). Registration → onboarding → dashboard → widget config → embed code.

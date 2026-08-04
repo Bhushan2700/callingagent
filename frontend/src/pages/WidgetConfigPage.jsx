@@ -5,14 +5,15 @@ import { getTenantId } from '../api/auth.js';
 const DEFAULTS = {
   title: "Loggix AI Support",
   greeting: "Hi! I'm the Loggix AI assistant. How can I help you today?",
-  primaryColor: "#0061FF",
+  primaryColor: "#8B5CF6",
   primaryHover: "#0051d4",
   backgroundColor: "#0f172a",
   headerBg: "rgba(255,255,255,0.03)",
   textColor: "#ffffff",
   botMessageBg: "rgba(255,255,255,0.06)",
   icon: "",
-  position: "bottom-right"
+  position: "bottom-right",
+  vapiAssistant: localStorage.getItem('loggix_assistant_id') || '',
 };
 
 export default function WidgetConfigPage() {
@@ -87,8 +88,8 @@ export default function WidgetConfigPage() {
               fontSize: 13,
               fontWeight: 500,
               textDecoration: 'none',
-              color: item.active ? '#0061FF' : '#94a3b8',
-              background: item.active ? 'rgba(0,97,255,0.15)' : 'transparent',
+              color: item.active ? '#8B5CF6' : '#94a3b8',
+              background: item.active ? 'rgba(139,92,246,0.15)' : 'transparent',
               transition: 'all 0.2s',
             }}>{item.label}</a>
           ))}
@@ -132,7 +133,7 @@ export default function WidgetConfigPage() {
               <div key={key} className="form-group">
                 <label>{label}</label>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                  <input type="color" value={config[key].startsWith('#') ? config[key] : '#0061FF'}
+                  <input type="color" value={config[key].startsWith('#') ? config[key] : '#8B5CF6'}
                     onChange={e => update(key, e.target.value)}
                     style={{ width: 42, height: 42, borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', cursor: 'pointer', padding: 2, flexShrink: 0 }} />
                   <input type="text" value={config[key]}
@@ -147,6 +148,13 @@ export default function WidgetConfigPage() {
               <label>Custom SVG Icon (leave empty for default)</label>
               <textarea value={config.icon} onChange={e => update('icon', e.target.value)}
                 placeholder="<svg viewBox=...>...</svg>" style={{ fontFamily: "'Courier New', monospace" }} />
+            </div>
+
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: 'white', margin: '24px 0 16px' }}>Voice</h3>
+            <div className="form-group">
+              <label>Vapi Assistant ID (auto-filled from your account)</label>
+              <input type="text" value={config.vapiAssistant || ''} onChange={e => update('vapiAssistant', e.target.value)}
+                placeholder="Assigned automatically at registration" />
             </div>
 
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 20 }}>
@@ -257,3 +265,4 @@ export default function WidgetConfigPage() {
     </div>
   );
 }
+

@@ -124,7 +124,7 @@ export default function LandingPage() {
         position: 'relative',
         overflow: 'hidden',
         backgroundImage: `
-          radial-gradient(circle at 20% 30%, rgba(0,97,255,0.12) 0%, transparent 50%),
+          radial-gradient(circle at 20% 30%, rgba(139,92,246,0.14) 0%, transparent 50%),
           radial-gradient(circle at 80% 70%, rgba(139,92,246,0.08) 0%, transparent 50%)
         `,
       }}
@@ -149,7 +149,7 @@ export default function LandingPage() {
             fontWeight: 800,
             lineHeight: 1.1,
             marginBottom: '1.5rem',
-            background: 'linear-gradient(135deg, #fff 0%, #818cf8 50%, #60a5fa 100%)',
+            background: 'linear-gradient(135deg, #fff 0%, #c084fc 50%, #8B5CF6 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
           }}>
@@ -210,7 +210,7 @@ export default function LandingPage() {
           </div>
           <p style={{ marginTop: '1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
             Already have an account?{' '}
-            <Link to="/login" style={{ color: '#818cf8', fontWeight: 600 }}>Sign in</Link>
+            <Link to="/login" style={{ color: 'var(--brand-accent)', fontWeight: 600 }}>Sign in</Link>
           </p>
         </div>
         <div style={{ position: 'absolute', bottom: '2rem', left: 0, right: 0, textAlign: 'center' }}>
@@ -245,7 +245,7 @@ export default function LandingPage() {
                 transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
                 transitionDelay: `${i * 0.1}s`,
               }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#818cf8'; e.currentTarget.style.transform = 'translateY(-6px) scale(1.02)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(139,92,246,0.2)' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--brand-accent)'; e.currentTarget.style.transform = 'translateY(-6px) scale(1.02)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(139,92,246,0.2)' }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.transform = 'translateY(0) scale(1)'; e.currentTarget.style.boxShadow = 'none' }}
               >
                 <div style={{
@@ -290,20 +290,20 @@ export default function LandingPage() {
                     transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
                     transitionDelay: `${i * 0.05}s`,
                   }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#818cf8'; e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(139,92,246,0.2)' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--brand-accent)'; e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(139,92,246,0.2)' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.transform = 'translateY(0) scale(1)'; e.currentTarget.style.boxShadow = 'none' }}
                   >
                     <div style={{
                       width: 44, height: 44,
                       borderRadius: 12,
-                      background: 'linear-gradient(135deg, rgba(0,97,255,0.2), rgba(139,92,246,0.2))',
+                      background: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(139,92,246,0.2))',
                       border: '1px solid rgba(139,92,246,0.2)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       marginBottom: '1rem',
                     }}>
-                      <Icon size={22} color="#818cf8" />
+                      <Icon size={22} color="#c084fc" />
                     </div>
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.5rem' }}>{feat.title}</h3>
                     <p style={{ color: '#94a3b8', fontSize: '0.9rem', lineHeight: 1.6 }}>{feat.desc}</p>
@@ -342,20 +342,20 @@ export default function LandingPage() {
                   transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
                   transitionDelay: `${i * 0.05}s`,
                 }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#818cf8'; e.currentTarget.style.transform = 'translateX(4px)'; e.currentTarget.style.boxShadow = '0 0 20px rgba(139,92,246,0.15)' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--brand-accent)'; e.currentTarget.style.transform = 'translateX(4px)'; e.currentTarget.style.boxShadow = '0 0 20px rgba(139,92,246,0.15)' }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.boxShadow = 'none' }}
                 >
                   <div style={{
                     width: 44, height: 44,
                     borderRadius: 12,
-                    background: 'linear-gradient(135deg, rgba(0,97,255,0.2), rgba(139,92,246,0.2))',
+                    background: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(139,92,246,0.2))',
                     border: '1px solid rgba(139,92,246,0.2)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
                   }}>
-                    <Icon size={22} color="#818cf8" />
+                    <Icon size={22} color="#c084fc" />
                   </div>
                   <div>
                     <h3 style={{ fontSize: '1.05rem', fontWeight: 600, marginBottom: '0.3rem' }}>{uc.title}</h3>
@@ -433,3 +433,4 @@ export default function LandingPage() {
     </div>
   );
 }
+

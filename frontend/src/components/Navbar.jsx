@@ -36,7 +36,7 @@ export default function Navbar() {
       <NavLink to="/" style={{
         fontSize: '1.2rem',
         fontWeight: 800,
-        background: 'linear-gradient(135deg, #fff 0%, var(--brand-blue) 100%)',
+        background: 'linear-gradient(135deg, #fff 0%, var(--brand-accent) 100%)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
         textDecoration: 'none',
