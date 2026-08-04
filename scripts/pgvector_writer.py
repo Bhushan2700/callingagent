@@ -167,12 +167,10 @@ class PGVectorWriter:
 
     def delete_document(self, doc_id: str, tenant_id: str = "") -> int:
         self._ensure_initialized()
-        if not tenant_id:
-            raise ValueError("tenant_id is required for delete_document")
         conn = self._get_conn()
         try:
             cur = conn.cursor()
-            cur.execute(f"DELETE FROM {self.collection_name} WHERE doc_id = %s AND tenant_id = %s", (doc_id, tenant_id))
+            cur.execute(f"DELETE FROM {self.collection_name} WHERE doc_id = %s", (doc_id,))
             count = cur.rowcount
             conn.commit()
             return count
@@ -181,17 +179,15 @@ class PGVectorWriter:
 
     def get_document_info(self, doc_id: str, tenant_id: str = "") -> Optional[Dict]:
         self._ensure_initialized()
-        if not tenant_id:
-            raise ValueError("tenant_id is required for get_document_info")
         conn = self._get_conn()
         try:
             cur = conn.cursor()
             cur.execute(f"""
                 SELECT doc_type, source_path, section, tags, COUNT(*) as chunk_count
                 FROM {self.collection_name}
-                WHERE doc_id = %s AND tenant_id = %s
+                WHERE doc_id = %s
                 GROUP BY doc_type, source_path, section, tags
-            """, (doc_id, tenant_id))
+            """, (doc_id,))
             rows = cur.fetchall()
 
             if not rows:
@@ -219,18 +215,15 @@ class PGVectorWriter:
 
     def list_documents(self, tenant_id: str = "") -> List[Dict]:
         self._ensure_initialized()
-        if not tenant_id:
-            raise ValueError("tenant_id is required for list_documents")
         conn = self._get_conn()
         try:
             cur = conn.cursor()
             cur.execute(f"""
                 SELECT doc_id, doc_type, source_path, section, tags, COUNT(*) as chunk_count
                 FROM {self.collection_name}
-                WHERE tenant_id = %s
                 GROUP BY doc_id, doc_type, source_path, section, tags
                 ORDER BY doc_id
-            """, (tenant_id,))
+            """)
             rows = cur.fetchall()
 
             doc_map = {}
@@ -262,16 +255,13 @@ class PGVectorWriter:
 
     def get_all_texts(self, tenant_id: str = "") -> List[Dict]:
         self._ensure_initialized()
-        if not tenant_id:
-            raise ValueError("tenant_id is required for get_all_texts")
         conn = self._get_conn()
         try:
             cur = conn.cursor()
             cur.execute(f"""
                 SELECT text, chunk_id, doc_id, section, subsection
                 FROM {self.collection_name}
-                WHERE tenant_id = %s
-            """, (tenant_id,))
+            """)
             rows = cur.fetchall()
             return [
                 {
@@ -289,26 +279,23 @@ class PGVectorWriter:
 
     def query(self, query_embedding: List[float], n_results: int = 10, where: Dict = None) -> Dict:
         self._ensure_initialized()
-        if not where or not where.get("tenant_id"):
-            raise ValueError("tenant_id is required in where dict for query")
         conn = self._get_conn()
         try:
             cur = conn.cursor()
 
-            conditions = []
-            params = []
-            if "doc_id" in where:
-                conditions.append("doc_id = %s")
-                params.append(where["doc_id"])
-            conditions.append("tenant_id = %s")
-            params.append(where["tenant_id"])
-
-            cur.execute(f"""
-                SELECT chunk_id, text, doc_id, doc_type, section, subsection,
-                       heading_level, page, tags, keywords, summary, embedding
-                FROM {self.collection_name}
-                WHERE {" AND ".join(conditions)}
-            """, tuple(params))
+            if where and "doc_id" in where:
+                cur.execute(f"""
+                    SELECT chunk_id, text, doc_id, doc_type, section, subsection,
+                           heading_level, page, tags, keywords, summary, embedding
+                    FROM {self.collection_name}
+                    WHERE doc_id = %s
+                """, (where["doc_id"],))
+            else:
+                cur.execute(f"""
+                    SELECT chunk_id, text, doc_id, doc_type, section, subsection,
+                           heading_level, page, tags, keywords, summary, embedding
+                    FROM {self.collection_name}
+                """)
 
             rows = cur.fetchall()
 

@@ -150,50 +150,20 @@ def tenant_exists(tenant_id: str) -> bool:
         return False
 
 
-def tenant_id_by_assistant(assistant_id: str) -> str:
-    """Map a Vapi assistant_id back to its owning tenant."""
-    if not assistant_id:
-        return ""
+def shared_tenant_id() -> str:
+    """Resolve the shared admin tenant id (used for tool-created tickets)."""
     try:
         with get_db() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT id FROM tenants WHERE assistant_id = %s", (assistant_id,))
+            cur.execute("SELECT id FROM tenants WHERE email = %s LIMIT 1", (SHARED_ASSISTANT_EMAIL,))
             row = cur.fetchone()
-            app_logger.info(f"ASSISTANT LOOKUP: assistant_id='{assistant_id}' -> tenant_id='{row[0] if row else 'NOT FOUND'}'")
+            if row:
+                return row[0]
+            cur.execute("SELECT id FROM tenants ORDER BY created_at LIMIT 1")
+            row = cur.fetchone()
             return row[0] if row else ""
     except Exception:
         return ""
-
-
-def _resolve_tenant_from_raw(raw: dict) -> str:
-    """Resolve tenant server-side from the payload (assistant id or validated tenant_id).
-
-    Handles both flat Vapi tool args and the nested message.toolCalls format.
-    """
-    merged = dict(raw)
-    tc = (raw.get("message") or {}).get("toolCalls") or []
-    if tc and isinstance(tc, list):
-        fn = tc[0].get("function", {})
-        args = fn.get("arguments", "{}")
-        if isinstance(args, str):
-            try:
-                args = json.loads(args)
-            except (json.JSONDecodeError, TypeError):
-                args = {}
-        if isinstance(args, dict):
-            merged.update(args)
-
-    assistant_id = merged.get("assistant_id", "") or (merged.get("assistant") or {}).get("id", "")
-    if assistant_id:
-        tenant_id = tenant_id_by_assistant(assistant_id)
-        if tenant_id:
-            return tenant_id
-
-    ten_id = str(merged.get("tenant_id", "")).strip()
-    if ten_id and tenant_exists(ten_id):
-        return ten_id
-    app_logger.info(f"TOOL RESOLVE FAILED: raw_keys={list(raw.keys())} merged_keys={list(merged.keys())} assistant_id='{assistant_id}' ten_id='{ten_id}'")
-    return ""
 
 
 # ==================== AUTH ENDPOINTS ====================
@@ -319,33 +289,24 @@ async def _parse_body(request: Request) -> dict:
 @app.post("/tool/search_knowledge")
 async def search_knowledge(request: Request):
     """Tool endpoint for Vapi voice agent to search the knowledge base."""
-    try:
-        raw = await _parse_body(request)
-        query = raw.get("query", "")
-        tenant_id = _resolve_tenant_from_raw(raw)
-        app_logger.info(f"SEARCH: raw={json.dumps(raw)[:500]} query='{query}' tenant_id='{tenant_id}'")
-        if not tenant_id:
-            return {"result": "Sorry, I couldn't identify your account. Please try again."}
+    raw = await _parse_body(request)
+    query = raw.get("query", "")
 
-        result = await receptionist.search(query, tenant_id=tenant_id)
-        chunks = result.get("chunks", [])
-        app_logger.info(f"SEARCH RESULT: tenant_id='{tenant_id}' chunks_found={len(chunks)} confidence={result.get('confidence')}")
+    result = await receptionist.search(query)
+    chunks = result.get("chunks", [])
 
-        formatted = []
-        for i, c in enumerate(chunks):
-            section = c.get("section", "General")
-            if c.get("subsection"):
-                section = f"{section} > {c.get('subsection')}"
-            doc_id = c.get("doc_id", "unknown")
-            formatted.append(f"[Source {i+1}: {doc_id} - {section}] {c['text']}")
+    formatted = []
+    for i, c in enumerate(chunks):
+        section = c.get("section", "General")
+        if c.get("subsection"):
+            section = f"{section} > {c.get('subsection')}"
+        doc_id = c.get("doc_id", "unknown")
+        formatted.append(f"[Source {i+1}: {doc_id} - {section}] {c['text']}")
 
-        text = "; ".join(formatted) if formatted else "No relevant information found in knowledge base."
-        text = text.replace("\n", " ").replace("\r", " ")
+    text = "; ".join(formatted) if formatted else "No relevant information found in knowledge base."
+    text = text.replace("\n", " ").replace("\r", " ")
 
-        return {"result": text}
-    except Exception as e:
-        app_logger.error(f"SEARCH UNHANDLED ERROR: {e}", exc_info=True)
-        return {"result": "Search temporarily unavailable. Please try again."}
+    return {"result": text}
 
 
 # ==================== BOOKING TOOL ====================
@@ -482,13 +443,6 @@ async def book_appointment(request: Request):
 
     params, tool_call_id = _parse_vapi_request(raw)
 
-    tenant_id = _resolve_tenant_from_raw(raw)
-    if not tenant_id:
-        err = "Sorry, I couldn't identify your account. Please try again."
-        if tool_call_id:
-            return {"results": [{"toolCallId": tool_call_id, "error": err}]}
-        return {"error": err}
-
     # Log extracted parameters
     print(f"BOOKING_EXTRACTED_PARAMS: {json.dumps(params, indent=2, default=str)}")
 
@@ -561,7 +515,7 @@ async def book_appointment(request: Request):
     start_iso = f"{valid_date}T{valid_time}:00Z"
 
     try:
-        result = await cal_client.create_booking(start=start_iso, attendee_name=valid_name, attendee_email=email, phone=phone, notes=f"Enquiry: {valid_enquiry} | Tenant: {tenant_id}")
+        result = await cal_client.create_booking(start=start_iso, attendee_name=valid_name, attendee_email=email, phone=phone, notes=f"Enquiry: {valid_enquiry}")
 
         if result.get("status") == "success":
             booking = result["data"]
@@ -590,17 +544,11 @@ async def book_appointment(request: Request):
 async def raise_ticket(request: Request):
     raw = await _parse_body(request)
     params, tool_call_id = _parse_vapi_request(raw)
-    tenant_id = _resolve_tenant_from_raw(raw)
+    tenant_id = shared_tenant_id()
     name = params.get("name", "").strip()
     phone = params.get("phone", "").strip()
     email = params.get("email", "").strip()
     issue = params.get("issue", "").strip()
-
-    if not tenant_id:
-        err = "Sorry, I couldn't identify your account. Please try again."
-        if tool_call_id:
-            return {"results": [{"toolCallId": tool_call_id, "error": err}]}
-        return {"error": err}
 
     if not name:
         err = "Please provide your name."
@@ -889,7 +837,7 @@ async def public_chat(request: Request):
         return {"error": "Invalid tenant_id"}
 
     try:
-        response = await receptionist.get_response(message, history, tenant_id=tenant_id)
+        response = await receptionist.get_response(message, history)
         return {"response": response}
     except Exception as e:
         app_logger.error(f"Chat error for tenant {tenant_id}: {e}")
@@ -910,7 +858,7 @@ async def public_search(request: Request):
         return {"error": "Invalid tenant_id"}
 
     try:
-        result = await receptionist.search(query, tenant_id=tenant_id)
+        result = await receptionist.search(query)
         chunks = result.get("chunks", [])
         formatted = []
         for i, c in enumerate(chunks):
@@ -985,7 +933,7 @@ async def api_chat(request: Request):
         return {"error": "Message is required"}
 
     try:
-        response = await receptionist.get_response(message, history, tenant_id=tenant_id)
+        response = await receptionist.get_response(message, history)
         return {"response": response}
     except Exception as e:
         app_logger.error(f"Chat error for tenant {tenant_id}: {e}")
@@ -1003,7 +951,7 @@ async def api_search(request: Request):
         return {"error": "Query is required"}
 
     try:
-        result = await receptionist.search(query, tenant_id=tenant_id)
+        result = await receptionist.search(query)
         chunks = result.get("chunks", [])
         formatted = []
         for i, c in enumerate(chunks):

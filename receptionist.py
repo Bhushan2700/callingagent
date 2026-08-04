@@ -80,18 +80,14 @@ RULES:
 - Never guess missing information
 - English only unless caller speaks Dutch"""
 
-    async def search(self, query: str, tenant_id: str = "") -> dict:
+    async def search(self, query: str) -> dict:
         start_total = time.time()
-
-        if not tenant_id:
-            raise ValueError("tenant_id is required for search")
 
         # 1. Embed query
         query_embedding = await self.embedding_client.embed_query(query)
 
         # 2. Vector search (top-10)
-        where = {"tenant_id": tenant_id}
-        results = self._writer.query(query_embedding, n_results=10, where=where)
+        results = self._writer.query(query_embedding, n_results=10)
 
         if not results or not results.get("documents") or not results["documents"][0]:
             return {"chunks": [], "query_latency_ms": (time.time() - start_total) * 1000, "confidence": 0}
@@ -127,7 +123,7 @@ RULES:
 
         query_latency = (time.time() - start_total) * 1000
 
-        self._log_query(query, final_chunks, query_latency, tenant_id)
+        self._log_query(query, final_chunks, query_latency)
 
         return {
             "chunks": final_chunks,
@@ -164,21 +160,18 @@ RULES:
                 ]
             }
 
-            log_file = log_dir / f"rag_queries_{tenant_id}_{datetime.utcnow().strftime('%Y%m%d')}.jsonl"
+            log_file = log_dir / f"rag_queries_{datetime.utcnow().strftime('%Y%m%d')}.jsonl"
             with open(log_file, "a") as f:
                 f.write(json.dumps(log_entry) + "\n")
 
         except Exception as e:
             print(f"Logging error: {e}")
 
-    async def get_response(self, user_input: str, history: list = None, tenant_id: str = "") -> str:
+    async def get_response(self, user_input: str, history: list = None) -> str:
         if history is None:
             history = []
 
-        if not tenant_id:
-            return "I'm sorry, I couldn't identify your account. Please try again."
-
-        search_result = await self.search(user_input, tenant_id=tenant_id)
+        search_result = await self.search(user_input)
         chunks = search_result["chunks"]
 
         if not chunks or search_result["confidence"] < self.confidence_threshold:
