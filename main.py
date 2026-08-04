@@ -159,6 +159,7 @@ def tenant_id_by_assistant(assistant_id: str) -> str:
             cur = conn.cursor()
             cur.execute("SELECT id FROM tenants WHERE assistant_id = %s", (assistant_id,))
             row = cur.fetchone()
+            app_logger.info(f"ASSISTANT LOOKUP: assistant_id='{assistant_id}' -> tenant_id='{row[0] if row else 'NOT FOUND'}'")
             return row[0] if row else ""
     except Exception:
         return ""
@@ -191,6 +192,7 @@ def _resolve_tenant_from_raw(raw: dict) -> str:
     ten_id = str(merged.get("tenant_id", "")).strip()
     if ten_id and tenant_exists(ten_id):
         return ten_id
+    app_logger.info(f"TOOL RESOLVE FAILED: raw_keys={list(raw.keys())} merged_keys={list(merged.keys())} assistant_id='{assistant_id}' ten_id='{ten_id}'")
     return ""
 
 
@@ -303,11 +305,13 @@ async def search_knowledge(request: Request):
     raw = await request.json()
     query = raw.get("query", "")
     tenant_id = _resolve_tenant_from_raw(raw)
+    app_logger.info(f"SEARCH: raw={json.dumps(raw)[:500]} query='{query}' tenant_id='{tenant_id}'")
     if not tenant_id:
         return {"result": "Sorry, I couldn't identify your account. Please try again."}
 
     result = await receptionist.search(query, tenant_id=tenant_id)
     chunks = result.get("chunks", [])
+    app_logger.info(f"SEARCH RESULT: tenant_id='{tenant_id}' chunks_found={len(chunks)} confidence={result.get('confidence')}")
 
     formatted = []
     for i, c in enumerate(chunks):
