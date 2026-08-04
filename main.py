@@ -242,6 +242,20 @@ async def register(request: Request):
     return {"token": token, "tenant_id": tenant_id, "name": name, "email": email, "assistant_id": assistant_id}
 
 
+def _ensure_assistant(tenant_id: str, email: str, assistant_id: str) -> str:
+    """Backfill the shared assistant for the admin account if missing."""
+    if assistant_id or email != SHARED_ASSISTANT_EMAIL:
+        return assistant_id
+    try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute("UPDATE tenants SET assistant_id = %s WHERE id = %s AND (assistant_id = '' OR assistant_id IS NULL)", (SHARED_ASSISTANT_ID, tenant_id))
+            conn.commit()
+    except Exception as e:
+        app_logger.warning(f"Failed to backfill assistant for {email}: {e}")
+    return SHARED_ASSISTANT_ID
+
+
 @app.post("/api/auth/login")
 async def login(request: Request):
     if not login_limiter.allow(client_ip(request)):
@@ -263,8 +277,9 @@ async def login(request: Request):
     if not verify_password(password, password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
+    assistant_id = _ensure_assistant(tenant_id, email, assistant_id or "")
     token = create_token(tenant_id)
-    return {"token": token, "tenant_id": tenant_id, "name": name, "email": email, "assistant_id": assistant_id or ""}
+    return {"token": token, "tenant_id": tenant_id, "name": name, "email": email, "assistant_id": assistant_id}
 
 
 @app.get("/api/auth/me")
@@ -276,7 +291,8 @@ async def me(request: Request):
         row = cur.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Tenant not found")
-        return {"tenant_id": row[0], "email": row[1], "name": row[2], "assistant_id": row[3], "created_at": row[4].isoformat()}
+        assistant_id = _ensure_assistant(row[0], row[1], row[3] or "")
+        return {"tenant_id": row[0], "email": row[1], "name": row[2], "assistant_id": assistant_id, "created_at": row[4].isoformat()}
 
 
 # ==================== RAG SEARCH TOOL ====================
