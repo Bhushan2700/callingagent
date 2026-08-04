@@ -61,10 +61,6 @@ class Config:
         return self._config.get("redis", {})
 
     @property
-    def chromadb(self):
-        return self._config.get("chromadb", {})
-
-    @property
     def postgresql(self):
         return self._config.get("postgresql", {})
 

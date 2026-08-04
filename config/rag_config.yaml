@@ -25,11 +25,6 @@ redis:
   queue_name: "document_ingestion"
   job_ttl: 86400
 
-chromadb:
-  path: "./chroma_db"
-  collection: "loggix_knowledge"
-  distance: "cosine"
-
 postgresql:
   url: "${DATABASE_URL}"
   collection: "loggix_knowledge"

@@ -680,6 +680,23 @@ async def list_documents(request: Request):
     return {"documents": docs, "total": len(docs)}
 
 
+@app.get("/admin/diagnostic")
+async def diagnostic(request: Request):
+    tenant_id = get_current_tenant(request)
+    docs = writer.list_documents(tenant_id=tenant_id)
+    total_chunks = 0
+    for d in docs:
+        total_chunks += d.get("chunk_count", 0)
+    return {
+        "tenant_id": tenant_id,
+        "openai_configured": bool(os.getenv("OPENAI_API_KEY")),
+        "database_url_configured": bool(os.getenv("DATABASE_URL")),
+        "document_count": len(docs),
+        "total_chunks": total_chunks,
+        "documents": [{"doc_id": d["doc_id"], "chunks": d["chunk_count"], "doc_type": d["doc_type"]} for d in docs],
+    }
+
+
 @app.get("/admin/docs/{doc_id}")
 async def get_document(doc_id: str, request: Request):
     tenant_id = get_current_tenant(request)

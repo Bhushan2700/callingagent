@@ -5,9 +5,6 @@ __pycache__/
 .git/
 .mimocode/
 logs/
-chroma_db/
-test_chroma/
-test_chroma2/
 *.exe
 *.zip
 *.rdb
