@@ -302,33 +302,33 @@ async def me(request: Request):
 @app.post("/tool/search_knowledge")
 async def search_knowledge(request: Request):
     """Tool endpoint for Vapi voice agent to search the knowledge base."""
-    raw = await request.json()
-    query = raw.get("query", "")
-    tenant_id = _resolve_tenant_from_raw(raw)
-    app_logger.info(f"SEARCH: raw={json.dumps(raw)[:500]} query='{query}' tenant_id='{tenant_id}'")
-    if not tenant_id:
-        return {"result": "Sorry, I couldn't identify your account. Please try again."}
-
     try:
+        raw = await request.json()
+        query = raw.get("query", "")
+        tenant_id = _resolve_tenant_from_raw(raw)
+        app_logger.info(f"SEARCH: raw={json.dumps(raw)[:500]} query='{query}' tenant_id='{tenant_id}'")
+        if not tenant_id:
+            return {"result": "Sorry, I couldn't identify your account. Please try again."}
+
         result = await receptionist.search(query, tenant_id=tenant_id)
+        chunks = result.get("chunks", [])
+        app_logger.info(f"SEARCH RESULT: tenant_id='{tenant_id}' chunks_found={len(chunks)} confidence={result.get('confidence')}")
+
+        formatted = []
+        for i, c in enumerate(chunks):
+            section = c.get("section", "General")
+            if c.get("subsection"):
+                section = f"{section} > {c.get('subsection')}"
+            doc_id = c.get("doc_id", "unknown")
+            formatted.append(f"[Source {i+1}: {doc_id} - {section}] {c['text']}")
+
+        text = "; ".join(formatted) if formatted else "No relevant information found in knowledge base."
+        text = text.replace("\n", " ").replace("\r", " ")
+
+        return {"result": text}
     except Exception as e:
-        app_logger.error(f"SEARCH ERROR: tenant_id='{tenant_id}' query='{query}' error={e}")
+        app_logger.error(f"SEARCH UNHANDLED ERROR: {e}", exc_info=True)
         return {"result": "Search temporarily unavailable. Please try again."}
-    chunks = result.get("chunks", [])
-    app_logger.info(f"SEARCH RESULT: tenant_id='{tenant_id}' chunks_found={len(chunks)} confidence={result.get('confidence')}")
-
-    formatted = []
-    for i, c in enumerate(chunks):
-        section = c.get("section", "General")
-        if c.get("subsection"):
-            section = f"{section} > {c.get('subsection')}"
-        doc_id = c.get("doc_id", "unknown")
-        formatted.append(f"[Source {i+1}: {doc_id} - {section}] {c['text']}")
-
-    text = "; ".join(formatted) if formatted else "No relevant information found in knowledge base."
-    text = text.replace("\n", " ").replace("\r", " ")
-
-    return {"result": text}
 
 
 # ==================== BOOKING TOOL ====================
