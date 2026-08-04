@@ -739,7 +739,10 @@ async def upload_document(request: Request, file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail=f"File type {ext} not supported. Use: {', '.join(allowed_ext)}")
 
     content = await file.read()
-    storage.upload(tenant_id, filename, content)
+    try:
+        storage.upload(tenant_id, filename, content)
+    except Exception as e:
+        app_logger.warning(f"B2 upload failed, file saved locally only: {e}")
 
     incoming_dir = Path(__file__).parent / "knowledge" / "documents" / "incoming" / tenant_id
     incoming_dir.mkdir(parents=True, exist_ok=True)
