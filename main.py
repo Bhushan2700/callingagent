@@ -299,11 +299,28 @@ async def me(request: Request):
 
 # ==================== RAG SEARCH TOOL ====================
 
+async def _parse_body(request: Request) -> dict:
+    """Parse request body as JSON, falling back to form-encoded (Vapi sends both)."""
+    content_type = request.headers.get("content-type", "")
+    if "json" in content_type:
+        return await request.json()
+    try:
+        form = await request.form()
+        body_str = form.get("body", "")
+        if body_str:
+            try:
+                return json.loads(body_str)
+            except (json.JSONDecodeError, TypeError):
+                pass
+        return dict(form)
+    except Exception:
+        return {}
+
 @app.post("/tool/search_knowledge")
 async def search_knowledge(request: Request):
     """Tool endpoint for Vapi voice agent to search the knowledge base."""
     try:
-        raw = await request.json()
+        raw = await _parse_body(request)
         query = raw.get("query", "")
         tenant_id = _resolve_tenant_from_raw(raw)
         app_logger.info(f"SEARCH: raw={json.dumps(raw)[:500]} query='{query}' tenant_id='{tenant_id}'")
@@ -458,7 +475,7 @@ def _validate_time(time_str: str) -> str | None:
 @app.post("/tool/book_appointment")
 async def book_appointment(request: Request):
     """Book appointment using Cal.com API."""
-    raw = await request.json()
+    raw = await _parse_body(request)
 
     # Log the raw Vapi request for debugging
     print(f"BOOKING_RAW_REQUEST: {json.dumps(raw, indent=2, default=str)}")
@@ -571,7 +588,7 @@ async def book_appointment(request: Request):
 
 @app.post("/tool/raise_ticket")
 async def raise_ticket(request: Request):
-    raw = await request.json()
+    raw = await _parse_body(request)
     params, tool_call_id = _parse_vapi_request(raw)
     tenant_id = _resolve_tenant_from_raw(raw)
     name = params.get("name", "").strip()
@@ -1020,7 +1037,7 @@ class _VapiRequest:
 async def vapi_webhook(request: Request):
     """Receive Vapi assistant messages. Acknowledges status events and
     dispatches function-call messages to the existing /tool/* handlers."""
-    raw = await request.json()
+    raw = await _parse_body(request)
     message = raw.get("message", {})
     msg_type = message.get("type", "")
 
