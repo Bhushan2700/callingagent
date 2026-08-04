@@ -309,7 +309,11 @@ async def search_knowledge(request: Request):
     if not tenant_id:
         return {"result": "Sorry, I couldn't identify your account. Please try again."}
 
-    result = await receptionist.search(query, tenant_id=tenant_id)
+    try:
+        result = await receptionist.search(query, tenant_id=tenant_id)
+    except Exception as e:
+        app_logger.error(f"SEARCH ERROR: tenant_id='{tenant_id}' query='{query}' error={e}")
+        return {"result": "Search temporarily unavailable. Please try again."}
     chunks = result.get("chunks", [])
     app_logger.info(f"SEARCH RESULT: tenant_id='{tenant_id}' chunks_found={len(chunks)} confidence={result.get('confidence')}")
 
@@ -1075,7 +1079,7 @@ async def health_check():
     except Exception:
         redis_status = "unavailable"
 
-    return {"status": "healthy", "redis": redis_status, "vapi_configured": bool(VAPI_KEY)}
+    return {"status": "healthy", "redis": redis_status, "vapi_configured": bool(VAPI_KEY), "openai_configured": bool(os.getenv("OPENAI_API_KEY"))}
 
 
 # ==================== SPA Catch-All (must be last) ====================
