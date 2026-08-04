@@ -1,16 +1,17 @@
 :root {
-  --brand-blue: #8B5CF6;
-  --brand-indigo: #A855F7;
-  --brand-accent: #A855F7;
-  --brand-cyan: #22D3EE;
-  --brand-glow: rgba(139, 92, 246, 0.45);
-  --brand-gradient: linear-gradient(135deg, #8B5CF6 0%, #A855F7 100%);
+  --brand-blue: #2563EB;
+  --brand-indigo: #3B82F6;
+  --brand-accent: #14B8A6;
+  --brand-cyan: #06B6D4;
+  --brand-glow: rgba(20, 184, 166, 0.45);
+  --brand-gradient: linear-gradient(135deg, #2563EB 0%, #14B8A6 100%);
+  --brand-gradient-bright: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
   --fire-gradient: linear-gradient(135deg, #EF4444 0%, #F97316 100%);
   --gold-gradient: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%);
-  --bg-dark: #0A0A1A;
-  --bg-deep: #12102A;
+  --bg-dark: #0A0F1A;
+  --bg-deep: #0E1730;
   --glass: rgba(255, 255, 255, 0.04);
-  --glass-border: rgba(139, 92, 246, 0.25);
+  --glass-border: rgba(20, 184, 166, 0.25);
   --glass-hover: rgba(255, 255, 255, 0.08);
   --text-primary: #F1F5F9;
   --text-secondary: #94A3B8;
@@ -22,7 +23,7 @@
   --warning-bg: rgba(245, 158, 11, 0.15);
   --error-bg: rgba(239, 68, 68, 0.15);
   --sidebar-bg: rgba(255,255,255,0.03);
-  --sidebar-border: rgba(139,92,246,0.15);
+  --sidebar-border: rgba(20,184,166,0.15);
   --sidebar-hover: rgba(255,255,255,0.05);
 }
 
@@ -36,8 +37,8 @@ body {
   font-family: 'Plus Jakarta Sans', sans-serif;
   background: var(--bg-dark);
   background-image:
-    radial-gradient(ellipse at 20% 0%, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 100%, rgba(239, 68, 68, 0.06) 0%, transparent 50%);
+    radial-gradient(ellipse at 20% 0%, rgba(37, 99, 235, 0.14) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(6, 182, 212, 0.10) 0%, transparent 50%);
   background-attachment: fixed;
   color: var(--text-primary);
   min-height: 100vh;

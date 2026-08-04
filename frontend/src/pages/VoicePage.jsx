@@ -104,7 +104,7 @@ export default function VoicePage() {
       position: 'relative',
       overflow: 'hidden',
       backgroundImage: `
-        radial-gradient(circle at 20% 30%, rgba(139,92,246,0.12) 0%, transparent 50%),
+        radial-gradient(circle at 20% 30%, rgba(37,99,235,0.14) 0%, transparent 50%),
         radial-gradient(circle at 80% 70%, rgba(239,68,68,0.07) 0%, transparent 50%)
       `,
     }}>
@@ -127,7 +127,7 @@ export default function VoicePage() {
           alignItems: 'center',
           justifyContent: 'center',
           padding: '3rem',
-          boxShadow: '-20px 20px 50px rgba(0,0,0,0.5), inset 0 0 20px rgba(139,92,246,0.05)',
+          boxShadow: '-20px 20px 50px rgba(0,0,0,0.5), inset 0 0 20px rgba(20,184,166,0.07)',
         }}>
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
             <h1 style={{
@@ -164,13 +164,13 @@ export default function VoicePage() {
               width: 120, height: 120,
               background: active
                 ? 'radial-gradient(circle at 30% 30%, #10b981, #065f46)'
-                : 'radial-gradient(circle at 30% 30%, #8B5CF6, #4C1D95)',
+                : 'radial-gradient(circle at 30% 30%, #14B8A6, #0E1730)',
               borderRadius: '50%',
               position: 'relative',
               zIndex: 5,
               boxShadow: active
                 ? '0 0 80px rgba(16,185,129,0.5)'
-                : '0 0 60px rgba(139,92,246,0.4)',
+                : '0 0 60px rgba(20,184,166,0.4)',
               animation: 'float 4s infinite ease-in-out',
             }} />
           </div>
@@ -192,7 +192,7 @@ export default function VoicePage() {
               transition: 'all 0.3s',
               boxShadow: active
                 ? '0 10px 20px rgba(239,68,68,0.3)'
-                : '0 10px 20px rgba(139,92,246,0.35)',
+                : '0 10px 20px rgba(20,184,166,0.35)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

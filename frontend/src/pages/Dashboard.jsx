@@ -53,16 +53,16 @@ export default function Dashboard() {
               transition: 'all 0.3s',
               cursor: 'pointer',
             }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--brand-accent)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(139,92,246,0.2)' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--brand-accent)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(37,99,235,0.18)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
             >
               <div style={{
                 width: 44, height: 44, borderRadius: 12, marginBottom: '0.75rem',
-                background: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(168,85,247,0.2))',
-                border: '1px solid rgba(139,92,246,0.25)',
+                background: 'linear-gradient(135deg, rgba(37,99,235,0.18), rgba(20,184,166,0.18))',
+                border: '1px solid rgba(20,184,166,0.25)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <Icon size={22} color="#c084fc" />
+                <Icon size={22} color="#5eead4" />
               </div>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.5rem' }}>{item.title}</h3>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{item.desc}</p>

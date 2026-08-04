@@ -26,7 +26,7 @@ export default function Modal({ open, onClose, title, children }) {
           maxWidth: 500,
           maxHeight: '90vh',
           overflowY: 'auto',
-          boxShadow: '0 30px 80px rgba(0,0,0,0.6), 0 0 40px rgba(139,92,246,0.06)',
+          boxShadow: '0 30px 80px rgba(0,0,0,0.6), 0 0 40px rgba(6,182,212,0.08)',
         }}
       >
         <h2 style={{ fontSize: '1.3rem', marginBottom: '1.5rem' }}>{title}</h2>

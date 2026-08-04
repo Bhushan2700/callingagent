@@ -90,11 +90,11 @@ export default function TicketsPage() {
                 cursor: 'pointer',
                 transition: 'all 0.3s',
               }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--brand-accent)'; e.currentTarget.style.background = 'var(--glass-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(139,92,246,0.15)' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--brand-accent)'; e.currentTarget.style.background = 'var(--glass-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(20,184,166,0.15)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.background = 'var(--glass)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--brand-accent)', background: 'rgba(168,85,247,0.12)', padding: '0.25rem 0.75rem', borderRadius: 20 }}>{ticket.id}</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--brand-accent)', background: 'rgba(20,184,166,0.12)', padding: '0.25rem 0.75rem', borderRadius: 20 }}>{ticket.id}</span>
                 <StatusBadge status={ticket.status} />
               </div>
               <div style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.5rem' }}>{ticket.name || 'Unknown'}</div>

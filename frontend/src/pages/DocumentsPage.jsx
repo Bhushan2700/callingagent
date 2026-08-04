@@ -56,11 +56,11 @@ export default function DocumentsPage() {
   function onDragOver(e) {
     e.preventDefault();
     e.currentTarget.style.borderColor = 'var(--brand-accent)';
-    e.currentTarget.style.background = 'rgba(139,92,246,0.08)';
+    e.currentTarget.style.background = 'rgba(37,99,235,0.1)';
   }
 
   function onDragLeave(e) {
-    e.currentTarget.style.borderColor = 'rgba(139,92,246,0.3)';
+    e.currentTarget.style.borderColor = 'rgba(20,184,166,0.3)';
     e.currentTarget.style.background = 'var(--glass)';
   }
 
@@ -102,7 +102,7 @@ export default function DocumentsPage() {
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         style={{
-          border: '2px dashed rgba(139,92,246,0.3)',
+          border: '2px dashed rgba(20,184,166,0.3)',
           borderRadius: 16,
           padding: '3rem 2rem',
           textAlign: 'center',
@@ -121,7 +121,7 @@ export default function DocumentsPage() {
 
       {uploading && (
         <div style={{ marginBottom: '1rem' }}>
-          <div style={{ height: 6, background: 'rgba(139,92,246,0.15)', borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{ height: 6, background: 'rgba(20,184,166,0.15)', borderRadius: 3, overflow: 'hidden' }}>
             <div style={{ height: '100%', background: 'var(--brand-gradient)', transition: 'width 0.3s', width: `${progress.pct}%` }} />
           </div>
           <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>{progress.text}</div>

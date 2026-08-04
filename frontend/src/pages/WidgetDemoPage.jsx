@@ -4,7 +4,7 @@ import { getTenantId } from '../api/auth.js';
 const DEFAULTS = {
   title: "Loggix AI Support",
   greeting: "Hi! I'm the Loggix AI assistant. How can I help you today?",
-  primaryColor: "#8B5CF6",
+  primaryColor: "#14B8A6",
   primaryHover: "#0051d4",
   backgroundColor: "#0f172a",
   headerBg: "rgba(255,255,255,0.03)",
@@ -43,7 +43,7 @@ export default function WidgetDemoPage() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundImage: 'radial-gradient(circle at 30% 40%, rgba(139,92,246,0.1) 0%, transparent 50%)',
+      backgroundImage: 'radial-gradient(circle at 30% 40%, rgba(6,182,212,0.12) 0%, transparent 50%)',
       padding: '2rem',
     }}>
       <div style={{ maxWidth: 700, textAlign: 'center' }}>
@@ -52,7 +52,7 @@ export default function WidgetDemoPage() {
           fontSize: '2.5rem',
           fontWeight: 800,
           marginBottom: '1rem',
-          background: 'linear-gradient(135deg, #fff 0%, #8B5CF6 100%)',
+          background: 'linear-gradient(135deg, #fff 0%, #14B8A6 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
         }}>

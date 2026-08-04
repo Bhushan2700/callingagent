@@ -45,8 +45,8 @@ export default function RegisterPage() {
         position: 'relative',
         overflow: 'hidden',
         backgroundImage: `
-          radial-gradient(circle at 20% 30%, rgba(139,92,246,0.18) 0%, transparent 50%),
-          radial-gradient(circle at 80% 70%, rgba(239,68,68,0.08) 0%, transparent 50%)
+radial-gradient(circle at 20% 30%, rgba(37,99,235,0.18) 0%, transparent 50%),
+          radial-gradient(circle at 80% 70%, rgba(6,182,212,0.10) 0%, transparent 50%)
         `,
       }} className="auth-brand-panel">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '3rem' }}>
@@ -62,7 +62,7 @@ export default function RegisterPage() {
         </div>
         <h2 style={{
           fontSize: '2.3rem', fontWeight: 800, lineHeight: 1.15, marginBottom: '1.5rem',
-          background: 'linear-gradient(135deg, #fff 0%, #c084fc 60%, #8B5CF6 100%)',
+          background: 'linear-gradient(135deg, #fff 0%, #7dd3fc 60%, #14B8A6 100%)',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
         }}>
           Get your AI receptionist up and running.
@@ -77,11 +77,11 @@ export default function RegisterPage() {
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.9rem' }}>
                 <div style={{
                   width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-                  background: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(139,92,246,0.2))',
-                  border: '1px solid rgba(139,92,246,0.25)',
+background: 'linear-gradient(135deg, rgba(37,99,235,0.18), rgba(20,184,166,0.18))',
+                  border: '1px solid rgba(20,184,166,0.25)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <Icon size={18} color="#818cf8" />
+                  <Icon size={18} color="#2DD4BF" />
                 </div>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>{h.text}</span>
               </div>
@@ -119,21 +119,21 @@ export default function RegisterPage() {
             <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.4rem', fontWeight: 600 }}>Company Name</label>
             <input type="text" placeholder="Acme Inc." value={name} onChange={e => setName(e.target.value)} required
               style={{ width: '100%', padding: '0.9rem 1.1rem', borderRadius: 12, border: '1px solid var(--glass-border)', background: 'var(--glass)', color: '#fff', fontSize: '0.95rem', outline: 'none', transition: 'border-color 0.3s, box-shadow 0.3s' }}
-              onFocus={e => { e.currentTarget.style.borderColor = '#818cf8'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.15)' }}
+              onFocus={e => { e.currentTarget.style.borderColor = '#2DD4BF'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(20,184,166,0.15)' }}
               onBlur={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.boxShadow = 'none' }} />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.4rem', fontWeight: 600 }}>Work Email</label>
             <input type="email" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} required
               style={{ width: '100%', padding: '0.9rem 1.1rem', borderRadius: 12, border: '1px solid var(--glass-border)', background: 'var(--glass)', color: '#fff', fontSize: '0.95rem', outline: 'none', transition: 'border-color 0.3s, box-shadow 0.3s' }}
-              onFocus={e => { e.currentTarget.style.borderColor = '#818cf8'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.15)' }}
+              onFocus={e => { e.currentTarget.style.borderColor = '#2DD4BF'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(20,184,166,0.15)' }}
               onBlur={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.boxShadow = 'none' }} />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.4rem', fontWeight: 600 }}>Password</label>
             <input type="password" placeholder="At least 6 characters" value={password} onChange={e => setPassword(e.target.value)} required minLength={6}
               style={{ width: '100%', padding: '0.9rem 1.1rem', borderRadius: 12, border: '1px solid var(--glass-border)', background: 'var(--glass)', color: '#fff', fontSize: '0.95rem', outline: 'none', transition: 'border-color 0.3s, box-shadow 0.3s' }}
-              onFocus={e => { e.currentTarget.style.borderColor = '#818cf8'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(139,92,246,0.15)' }}
+              onFocus={e => { e.currentTarget.style.borderColor = '#2DD4BF'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(20,184,166,0.15)' }}
               onBlur={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.boxShadow = 'none' }} />
           </div>
           <button type="submit" disabled={busy} style={{
@@ -156,7 +156,7 @@ export default function RegisterPage() {
             {busy ? 'Creating your account...' : 'Create Account'} <Zap size={16} />
           </button>
           <p style={{ textAlign: 'center', fontSize: '0.88rem', color: 'var(--text-muted)' }}>
-            Already have an account? <Link to="/login" style={{ color: '#818cf8', fontWeight: 600 }}>Sign In</Link>
+            Already have an account? <Link to="/login" style={{ color: '#2DD4BF', fontWeight: 600 }}>Sign In</Link>
           </p>
         </form>
       </div>

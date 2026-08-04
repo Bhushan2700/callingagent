@@ -5,7 +5,7 @@ import { getTenantId } from '../api/auth.js';
 const DEFAULTS = {
   title: "Loggix AI Support",
   greeting: "Hi! I'm the Loggix AI assistant. How can I help you today?",
-  primaryColor: "#8B5CF6",
+  primaryColor: "#14B8A6",
   primaryHover: "#0051d4",
   backgroundColor: "#0f172a",
   headerBg: "rgba(255,255,255,0.03)",
@@ -88,8 +88,8 @@ export default function WidgetConfigPage() {
               fontSize: 13,
               fontWeight: 500,
               textDecoration: 'none',
-              color: item.active ? '#8B5CF6' : '#94a3b8',
-              background: item.active ? 'rgba(139,92,246,0.15)' : 'transparent',
+              color: item.active ? '#14B8A6' : '#94a3b8',
+              background: item.active ? 'rgba(20,184,166,0.15)' : 'transparent',
               transition: 'all 0.2s',
             }}>{item.label}</a>
           ))}
@@ -133,7 +133,7 @@ export default function WidgetConfigPage() {
               <div key={key} className="form-group">
                 <label>{label}</label>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                  <input type="color" value={config[key].startsWith('#') ? config[key] : '#8B5CF6'}
+                  <input type="color" value={config[key].startsWith('#') ? config[key] : '#14B8A6'}
                     onChange={e => update(key, e.target.value)}
                     style={{ width: 42, height: 42, borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', cursor: 'pointer', padding: 2, flexShrink: 0 }} />
                   <input type="text" value={config[key]}
