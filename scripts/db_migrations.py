@@ -73,6 +73,22 @@ def run_migrations():
     except Exception as e:
         print(f"  - loggix_knowledge: {e}")
 
+    for col, ddl in {
+        "phone_number_id": "VARCHAR(255) DEFAULT ''",
+        "phone_number": "VARCHAR(32) DEFAULT ''",
+        "company_name": "VARCHAR(255) DEFAULT ''",
+        "industry": "VARCHAR(120) DEFAULT ''",
+        "description": "TEXT DEFAULT ''",
+        "languages": "JSONB DEFAULT '[\"English\"]'",
+        "timezone": "VARCHAR(64) DEFAULT 'UTC'",
+        "business_hours": "VARCHAR(255) DEFAULT ''",
+        "voice_id": "VARCHAR(255) DEFAULT ''",
+        "greeting": "VARCHAR(500) DEFAULT ''",
+        "tools_enabled": "JSONB DEFAULT '[\"search_knowledge\",\"raise_ticket\"]'",
+    }.items():
+        cur.execute(f"ALTER TABLE tenants ADD COLUMN IF NOT EXISTS {col} {ddl}")
+    print("  ✓ tenants onboarding columns")
+
     conn.commit()
     cur.close()
     conn.close()

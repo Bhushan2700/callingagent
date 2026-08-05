@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getTenantName } from '../api/auth.js';
+import { getVapiConfig } from '../api/onboarding.js';
 
 export default function VoicePage() {
   const vapiRef = useRef(null);
@@ -11,8 +12,10 @@ export default function VoicePage() {
   const [error, setError] = useState('');
   const streamRef = useRef(null);
   const tenantName = getTenantName() || 'Loggix';
+  const vapiConfigRef = useRef(null);
 
   useEffect(() => {
+    getVapiConfig().then(cfg => { vapiConfigRef.current = cfg; }).catch(() => {});
     const script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js';
     script.defer = true;
@@ -45,7 +48,13 @@ export default function VoicePage() {
       return;
     }
 
-    const publicKey = "a15e4ada-0005-4628-9ec0-d4761e080cb4";
+    const config = vapiConfigRef.current || {};
+    const publicKey = config.vapiKey || '';
+    if (!publicKey) {
+      setConnecting(false);
+      setError('Voice isn\'t configured for this account yet. Complete onboarding first.');
+      return;
+    }
     try {
       const instance = window.vapiSDK.run({
         apiKey: publicKey,

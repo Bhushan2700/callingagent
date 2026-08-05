@@ -1,6 +1,7 @@
 import os
 import time
 import json
+import psycopg2
 from pathlib import Path
 from datetime import datetime
 from openai import OpenAI
@@ -171,6 +172,36 @@ RULES:
         except Exception as e:
             print(f"Logging error: {e}")
 
+    def _tenant_settings(self, tenant_id: str) -> dict | None:
+        """Load per-tenant assistant settings from the tenants table."""
+        url = os.getenv("DATABASE_URL", "")
+        if not url or not tenant_id:
+            return None
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql://", 1)
+        try:
+            with psycopg2.connect(url) as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    "SELECT company_name, industry, description, languages, timezone, business_hours, tools_enabled "
+                    "FROM tenants WHERE id = %s",
+                    (tenant_id,),
+                )
+                row = cur.fetchone()
+            if not row or not row[0]:
+                return None
+            return {
+                "company_name": row[0],
+                "industry": row[1] or "",
+                "description": row[2] or "",
+                "languages": row[3] or ["English"],
+                "timezone": row[4] or "UTC",
+                "business_hours": row[5] or "",
+                "tools_enabled": row[6] or [],
+            }
+        except Exception:
+            return None
+
     async def get_response(self, user_input: str, history: list = None, tenant_id: str = "") -> str:
         if history is None:
             history = []
@@ -181,8 +212,14 @@ RULES:
         search_result = await self.search(user_input, tenant_id=tenant_id)
         chunks = search_result["chunks"]
 
+        from scripts.vapi_client import build_system_prompt
+        settings = self._tenant_settings(tenant_id)
         if not chunks or search_result["confidence"] < self.confidence_threshold:
-            return "I don't have that specific detail, but I can schedule a free 30-minute consultation for you. Would you like that?"
+            if settings and "book_appointment" in settings.get("tools_enabled", []):
+                return "I don't have that specific detail, but I can schedule a consultation appointment for you. Would you like that?"
+            return "I don't have that information yet. I can raise a support ticket with our team so they can help you. Would you like that?"
+
+        system_prompt = build_system_prompt(settings) if settings else self.base_prompt
 
         context_parts = []
         for i, chunk in enumerate(chunks):
@@ -190,7 +227,7 @@ RULES:
             context_parts.append(f"[Source {i+1}: {chunk.get('doc_id', 'Unknown')} - {section}]\n{chunk['text']}")
 
         context_str = "\n\n".join(context_parts)
-        system_prompt = f"{self.base_prompt}\n\n--- CONTEXT ---\n{context_str}\n--- END CONTEXT ---"
+        system_prompt = f"{system_prompt}\n\n--- CONTEXT ---\n{context_str}\n--- END CONTEXT ---"
 
         messages = [{"role": "system", "content": system_prompt}]
         messages.extend(history)

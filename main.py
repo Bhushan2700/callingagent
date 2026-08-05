@@ -32,7 +32,11 @@ from scripts.pgvector_writer import PGVectorWriter
 from scripts.unified_ingest import UnifiedIngest
 from scripts.cal_client import CalClient
 from scripts.auth import hash_password, verify_password, create_token, decode_token
-from scripts.vapi_client import create_assistant
+from scripts.vapi_client import (
+    create_assistant, update_assistant, delete_assistant, create_credential,
+    buy_phone_number, import_phone_number, assign_phone_number, delete_phone_number,
+    build_system_prompt, TOOL_SCHEMAS,
+)
 from scripts.storage import storage
 
 app = FastAPI()
@@ -222,13 +226,7 @@ async def register(request: Request):
 
     if email == SHARED_ASSISTANT_EMAIL:
         assistant_id = SHARED_ASSISTANT_ID
-    elif VAPI_KEY:
-        try:
-            assistant_id = await create_assistant(name, tenant_id) or ""
-            if not assistant_id:
-                app_logger.warning(f"Vapi assistant creation failed for {email}")
-        except Exception as e:
-            app_logger.warning(f"Vapi assistant creation failed for {email}: {e}")
+    # All other tenants get their Vapi assistant provisioned during onboarding.
 
     with get_db() as conn:
         cur = conn.cursor()
@@ -799,6 +797,7 @@ def _get_widget_db(tenant_id: str) -> dict:
         t = cur.fetchone()
         if t and t[0]:
             config["vapiAssistant"] = t[0]
+    config["vapiKey"] = os.getenv("VAPI_PUBLIC_KEY", "")
     return config
 
 
@@ -845,6 +844,163 @@ async def admin_widget_page():
     if admin_html.exists():
         return HTMLResponse(content=admin_html.read_text(encoding="utf-8"))
     return HTMLResponse(content="<h1>Admin Widget page not found</h1>", status_code=404)
+
+
+# ==================== ONBOARDING ====================
+
+
+def _onboarding_cfg(raw: dict) -> dict:
+    tools = [t for t in raw.get("tools_enabled", []) if t in TOOL_SCHEMAS]
+    if not tools:
+        tools = ["search_knowledge", "raise_ticket"]
+    return {
+        "company_name": raw.get("company_name", "").strip(),
+        "industry": raw.get("industry", "").strip(),
+        "description": raw.get("description", "").strip(),
+        "languages": raw.get("languages") or ["English"],
+        "timezone": raw.get("timezone", "UTC").strip(),
+        "business_hours": raw.get("business_hours", "").strip(),
+        "voice_id": raw.get("voice_id", "").strip(),
+        "greeting": raw.get("greeting", "").strip(),
+        "tools_enabled": tools,
+    }
+
+
+@app.get("/api/admin/onboarding/status")
+async def onboarding_status(request: Request):
+    tenant_id = get_current_tenant(request)
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT assistant_id, phone_number, onboarding_complete, company_name, voice_id, languages, tools_enabled "
+            "FROM tenants WHERE id = %s",
+            (tenant_id,),
+        )
+        row = cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    return {
+        "assistant_id": row[0] or "",
+        "phone_number": row[1] or "",
+        "onboarding_complete": bool(row[2]),
+        "company_name": row[3] or "",
+        "voice_id": row[4] or "",
+        "languages": row[5] or ["English"],
+        "tools_enabled": row[6] or [],
+    }
+
+
+@app.post("/api/admin/onboarding")
+async def save_onboarding(request: Request):
+    tenant_id = get_current_tenant(request)
+    raw = await request.json()
+    if not isinstance(raw, dict):
+        raise HTTPException(status_code=400, detail="Invalid payload")
+
+    cfg = _onboarding_cfg(raw)
+    if not cfg["company_name"]:
+        raise HTTPException(status_code=400, detail="company_name is required")
+
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT assistant_id, phone_number_id, phone_number FROM tenants WHERE id = %s",
+            (tenant_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Tenant not found")
+        assistant_id, phone_number_id, phone_number = row
+
+    # 1. Create or update the Vapi assistant
+    if assistant_id:
+        if not await update_assistant(assistant_id, cfg):
+            return {"status": "error", "step": "assistant", "message": "Failed to update your voice assistant. Please try again."}
+    else:
+        assistant_id = await create_assistant(cfg)
+        if not assistant_id:
+            return {"status": "error", "step": "assistant", "message": "Failed to create your voice assistant. Please try again."}
+
+    # 2. Phone number (buy new / import own / none)
+    phone_cfg = raw.get("phone", {}) or {}
+    mode = phone_cfg.get("mode", "none")
+    new_phone_id, new_phone_number = phone_number_id, phone_number
+
+    if mode == "buy":
+        if not phone_number_id:
+            bought = await buy_phone_number(
+                f"{cfg['company_name']} AI Receptionist",
+                str(phone_cfg.get("area_code", "") or "").strip(),
+                assistant_id,
+            )
+            if not bought:
+                return {"status": "error", "step": "phone", "message": "Couldn't buy a number with that area code. Try another one."}
+            new_phone_id, new_phone_number = bought["id"], bought["number"]
+        else:
+            await assign_phone_number(phone_number_id, assistant_id)
+
+    elif mode == "import":
+        provider = str(phone_cfg.get("provider", "")).strip()
+        number = str(phone_cfg.get("number", "")).strip()
+        if provider not in ("twilio", "vonage", "telnyx", "byo-phone-number"):
+            raise HTTPException(status_code=400, detail="phone.provider must be twilio, vonage, telnyx, or byo-phone-number")
+        if not number:
+            raise HTTPException(status_code=400, detail="phone.number is required")
+        credential_id = await create_credential(provider, phone_cfg.get("credentials", {}) or {})
+        if not credential_id:
+            return {"status": "error", "step": "phone", "message": "Couldn't save your provider credentials in Vapi. Check them and try again."}
+        imported = await import_phone_number(
+            f"{cfg['company_name']} AI Receptionist", provider, credential_id, number, assistant_id
+        )
+        if not imported:
+            return {"status": "error", "step": "phone", "message": "Couldn't import that phone number. Check the number and credentials."}
+        if phone_number_id and phone_number_id != imported["id"]:
+            await delete_phone_number(phone_number_id)
+        new_phone_id, new_phone_number = imported["id"], imported["number"]
+
+    # 3. Persist settings
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE tenants SET assistant_id=%s, phone_number_id=%s, phone_number=%s, company_name=%s, "
+            "industry=%s, description=%s, languages=%s, timezone=%s, business_hours=%s, voice_id=%s, "
+            "greeting=%s, tools_enabled=%s, onboarding_complete=TRUE WHERE id=%s",
+            (
+                assistant_id, new_phone_id, new_phone_number, cfg["company_name"], cfg["industry"],
+                cfg["description"], json.dumps(cfg["languages"]), cfg["timezone"], cfg["business_hours"],
+                cfg["voice_id"], cfg["greeting"], json.dumps(cfg["tools_enabled"]), tenant_id,
+            ),
+        )
+        conn.commit()
+
+    # 4. Seed widget branding
+    widget = raw.get("widget", {}) or {}
+    if any(widget.get(k) for k in ("title", "greeting", "primaryColor", "primaryHover", "backgroundColor", "textColor", "position", "icon")):
+        existing = _get_widget_db(tenant_id)
+        for k in ("title", "greeting", "primaryColor", "primaryHover", "backgroundColor", "textColor", "position", "icon"):
+            if widget.get(k):
+                existing[k] = widget[k]
+        existing.pop("vapiAssistant", None)
+        existing.pop("vapiKey", None)
+        _save_widget_db(tenant_id, existing)
+
+    return {"status": "ok", "assistant_id": assistant_id, "phone_number_id": new_phone_id, "phone_number": new_phone_number}
+
+
+# ==================== VAPI CLIENT CONFIG ====================
+
+
+@app.get("/api/config/vapi")
+async def config_vapi(request: Request):
+    tenant_id = get_current_tenant(request)
+    assistant_id = ""
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT assistant_id FROM tenants WHERE id = %s", (tenant_id,))
+        row = cur.fetchone()
+        if row and row[0]:
+            assistant_id = row[0]
+    return {"vapiKey": os.getenv("VAPI_PUBLIC_KEY", ""), "assistantId": assistant_id}
 
 
 # ==================== PUBLIC WIDGET API ====================

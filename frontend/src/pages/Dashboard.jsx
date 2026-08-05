@@ -1,19 +1,22 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Mic, Ticket, FileText, Settings } from 'lucide-react';
+import { Mic, Ticket, FileText, Settings, Phone } from 'lucide-react';
 import { getTickets } from '../api/tickets.js';
 import { getDocuments } from '../api/documents.js';
+import { getOnboardingStatus } from '../api/onboarding.js';
 import StatCard from '../components/StatCard.jsx';
 import { getTenantName } from '../api/auth.js';
 
 export default function Dashboard() {
   const [tickets, setTickets] = useState([]);
   const [docs, setDocs] = useState([]);
+  const [agent, setAgent] = useState(null);
   const tenantName = getTenantName();
 
   useEffect(() => {
     getTickets().then(setTickets).catch(() => {});
     getDocuments().then(setDocs).catch(() => {});
+    getOnboardingStatus().then(setAgent).catch(() => {});
   }, []);
 
   return (
@@ -25,6 +28,28 @@ export default function Dashboard() {
         <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
           Loggix AI Receptionist Console
         </p>
+        {agent && (
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+            {agent.phone_number ? (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.4rem 0.9rem', borderRadius: 20, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: '#6ee7b7', fontSize: '0.8rem', fontWeight: 600 }}>
+                <Phone size={13} /> {agent.phone_number}
+              </span>
+            ) : (
+              <Link to="/onboarding" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.4rem 0.9rem', borderRadius: 20, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}>
+                <Phone size={13} /> No phone number — finish setup
+              </Link>
+            )}
+            {agent.assistant_id ? (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.4rem 0.9rem', borderRadius: 20, background: 'rgba(20,184,166,0.12)', border: '1px solid rgba(20,184,166,0.3)', color: '#5eead4', fontSize: '0.8rem', fontWeight: 600 }}>
+                <Mic size={13} /> Voice assistant active
+              </span>
+            ) : (
+              <Link to="/onboarding" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.4rem 0.9rem', borderRadius: 20, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}>
+                <Mic size={13} /> Assistant not set up
+              </Link>
+            )}
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>

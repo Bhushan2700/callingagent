@@ -14,7 +14,7 @@
         textColor: '#ffffff',
         botMessageBg: 'rgba(255,255,255,0.06)',
         icon: '',
-        vapiKey: 'a15e4ada-0005-4628-9ec0-d4761e080cb4',
+        vapiKey: '',
         vapiAssistant: '',
     };
 
