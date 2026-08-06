@@ -44,6 +44,45 @@ export async function register(email, password, name) {
   return res.json();
 }
 
+export async function requestOtp(email, password, name) {
+  const res = await fetch(`${BASE}/api/auth/request-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, name }),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.detail || 'Failed to send code');
+  }
+  return res.json();
+}
+
+export async function verifyOtp(email, otp) {
+  const res = await fetch(`${BASE}/api/auth/verify-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, otp }),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.detail || 'Verification failed');
+  }
+  return res.json();
+}
+
+export async function resendOtp(email) {
+  const res = await fetch(`${BASE}/api/auth/resend-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.detail || 'Failed to resend code');
+  }
+  return res.json();
+}
+
 export async function login(email, password) {
   const res = await fetch(`${BASE}/api/auth/login`, {
     method: 'POST',

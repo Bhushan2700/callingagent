@@ -23,7 +23,7 @@ export function AuthProvider({ children }) {
 
   const loginUser = useCallback((token, tenantId, name, email, assistantId) => {
     setAuth(token, tenantId, name, assistantId);
-    setUser({ tenant_id: tenantId, name, email, assistant_id: assistantId || '' });
+    setUser({ tenant_id: tenantId, name, email, assistant_id: assistantId || '', onboarding_complete: false });
   }, []);
 
   const logoutUser = useCallback(() => {

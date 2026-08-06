@@ -89,6 +89,23 @@ def run_migrations():
         cur.execute(f"ALTER TABLE tenants ADD COLUMN IF NOT EXISTS {col} {ddl}")
     print("  ✓ tenants onboarding columns")
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS pending_verifications (
+            email VARCHAR(255) PRIMARY KEY,
+            otp_hash VARCHAR(64) NOT NULL,
+            name VARCHAR(255) NOT NULL,
+            password_hash VARCHAR(255) NOT NULL,
+            attempts INT DEFAULT 0,
+            created_at TIMESTAMP DEFAULT NOW(),
+            expires_at TIMESTAMP NOT NULL
+        )
+    """)
+    print("  ✓ pending_verifications table")
+
+    cur.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE")
+    cur.execute("UPDATE tenants SET email_verified = TRUE WHERE assistant_id IS NOT NULL AND assistant_id != ''")
+    print("  ✓ tenants.email_verified column")
+
     conn.commit()
     cur.close()
     conn.close()

@@ -2,14 +2,17 @@ import os
 import re
 import sys
 import json
+import hmac
+import hashlib
 import asyncio
 import logging
 import httpx
 import redis as redis_module
 import psycopg2
 from pathlib import Path
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from uuid import uuid4
+from random import randint
 from fastapi import FastAPI, Request, Response, HTTPException, UploadFile, File
 from fastapi.responses import PlainTextResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -38,6 +41,7 @@ from scripts.vapi_client import (
     build_system_prompt, TOOL_SCHEMAS,
 )
 from scripts.storage import storage
+from scripts.email_service import send_otp_email, send_welcome_email, send_admin_notification
 
 app = FastAPI()
 cors_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "*").split(",") if o.strip()]
@@ -113,6 +117,7 @@ class RateLimiter:
 
 login_limiter = RateLimiter(limit=10, window_seconds=60)
 register_limiter = RateLimiter(limit=5, window_seconds=60)
+otp_limiter = RateLimiter(limit=3, window_seconds=900)
 chat_limiter = RateLimiter(limit=30, window_seconds=60)
 search_limiter = RateLimiter(limit=20, window_seconds=60)
 
@@ -240,6 +245,148 @@ async def register(request: Request):
     return {"token": token, "tenant_id": tenant_id, "name": name, "email": email, "assistant_id": assistant_id}
 
 
+OTP_TTL_MINUTES = 15
+MAX_OTP_ATTEMPTS = 5
+
+
+def _hash_otp(otp: str) -> str:
+    return hashlib.sha256(otp.encode()).hexdigest()
+
+
+@app.post("/api/auth/request-otp")
+async def request_otp(request: Request):
+    if not otp_limiter.allow("otp:" + client_ip(request)):
+        raise HTTPException(status_code=429, detail="Too many OTP requests. Wait a few minutes.")
+    raw = await request.json()
+    email = raw.get("email", "").strip().lower()
+    password = raw.get("password", "")
+    name = raw.get("name", "").strip()
+    if not email or not password or not name:
+        raise HTTPException(status_code=400, detail="email, password, and name are required")
+    if len(password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM tenants WHERE email = %s", (email,))
+        if cur.fetchone():
+            raise HTTPException(status_code=409, detail="Email already registered")
+
+    otp = str(randint(100000, 999999))
+    otp_hash = _hash_otp(otp)
+    hashed_pw = hash_password(password)
+    expires = datetime.now(timezone.utc) + timedelta(minutes=OTP_TTL_MINUTES)
+
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO pending_verifications (email, otp_hash, name, password_hash, expires_at) "
+            "VALUES (%s, %s, %s, %s, %s) "
+            "ON CONFLICT (email) DO UPDATE SET otp_hash=%s, name=%s, password_hash=%s, expires_at=%s, attempts=0",
+            (email, otp_hash, name, hashed_pw, expires, otp_hash, name, hashed_pw, expires),
+        )
+        conn.commit()
+
+    send_otp_email(name, email, otp)
+    return {"status": "sent", "email": email}
+
+
+@app.post("/api/auth/verify-otp")
+async def verify_otp(request: Request):
+    raw = await request.json()
+    email = raw.get("email", "").strip().lower()
+    otp = raw.get("otp", "").strip()
+    if not email or not otp:
+        raise HTTPException(status_code=400, detail="email and otp are required")
+
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT otp_hash, name, password_hash, attempts, expires_at FROM pending_verifications WHERE email = %s",
+            (email,),
+        )
+        row = cur.fetchone()
+
+    if not row:
+        raise HTTPException(status_code=400, detail="No verification pending for this email. Request a new code.")
+
+    otp_hash, name, password_hash, attempts, expires_at = row
+
+    if attempts >= MAX_OTP_ATTEMPTS:
+        raise HTTPException(status_code=400, detail="Too many failed attempts. Request a new code.")
+
+    if datetime.now(timezone.utc) > expires_at:
+        raise HTTPException(status_code=400, detail="Code expired. Request a new one.")
+
+    if not hmac.compare_digest(otp_hash, _hash_otp(otp)):
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute("UPDATE pending_verifications SET attempts = attempts + 1 WHERE email = %s", (email,))
+            conn.commit()
+        remaining = MAX_OTP_ATTEMPTS - attempts - 1
+        raise HTTPException(status_code=400, detail=f"Invalid code. {remaining} attempts remaining.")
+
+    tenant_id = str(uuid4())
+    assistant_id = SHARED_ASSISTANT_ID if email == SHARED_ASSISTANT_EMAIL else ""
+
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO tenants (id, email, password_hash, name, assistant_id, email_verified) "
+            "VALUES (%s, %s, %s, %s, %s, TRUE)",
+            (tenant_id, email, password_hash, name, assistant_id),
+        )
+        cur.execute("DELETE FROM pending_verifications WHERE email = %s", (email,))
+        conn.commit()
+
+    token = create_token(tenant_id)
+
+    asyncio.create_task(_post_register_emails(name, email, tenant_id))
+
+    return {"token": token, "tenant_id": tenant_id, "name": name, "email": email, "assistant_id": assistant_id}
+
+
+async def _post_register_emails(name: str, email: str, tenant_id: str):
+    try:
+        send_welcome_email(name, email)
+        send_admin_notification(name, email, tenant_id)
+    except Exception as e:
+        app_logger.warning("Post-register email failed for %s: %s", email, e)
+
+
+@app.post("/api/auth/resend-otp")
+async def resend_otp(request: Request):
+    if not otp_limiter.allow("otp:" + client_ip(request)):
+        raise HTTPException(status_code=429, detail="Too many OTP requests. Wait a few minutes.")
+    raw = await request.json()
+    email = raw.get("email", "").strip().lower()
+    if not email:
+        raise HTTPException(status_code=400, detail="email is required")
+
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT name FROM pending_verifications WHERE email = %s", (email,))
+        row = cur.fetchone()
+
+    if not row:
+        raise HTTPException(status_code=400, detail="No verification pending. Please register first.")
+
+    otp = str(randint(100000, 999999))
+    otp_hash = _hash_otp(otp)
+    expires = datetime.now(timezone.utc) + timedelta(minutes=OTP_TTL_MINUTES)
+
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE pending_verifications SET otp_hash=%s, expires_at=%s, attempts=0 WHERE email=%s",
+            (otp_hash, expires, email),
+        )
+        conn.commit()
+
+    send_otp_email(row[0], email, otp)
+    return {"status": "sent", "email": email}
+
+
 def _ensure_assistant(tenant_id: str, email: str, assistant_id: str) -> str:
     """Backfill the shared assistant for the admin account if missing."""
     if assistant_id or email != SHARED_ASSISTANT_EMAIL:
@@ -285,12 +432,12 @@ async def me(request: Request):
     tenant_id = get_current_tenant(request)
     with get_db() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT id, email, name, assistant_id, created_at FROM tenants WHERE id = %s", (tenant_id,))
+        cur.execute("SELECT id, email, name, assistant_id, onboarding_complete, email_verified, created_at FROM tenants WHERE id = %s", (tenant_id,))
         row = cur.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Tenant not found")
         assistant_id = _ensure_assistant(row[0], row[1], row[3] or "")
-        return {"tenant_id": row[0], "email": row[1], "name": row[2], "assistant_id": assistant_id, "created_at": row[4].isoformat()}
+        return {"tenant_id": row[0], "email": row[1], "name": row[2], "assistant_id": assistant_id, "onboarding_complete": bool(row[4]), "email_verified": bool(row[5]), "created_at": row[6].isoformat()}
 
 
 # ==================== RAG SEARCH TOOL ====================
