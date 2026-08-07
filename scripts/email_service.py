@@ -1,36 +1,28 @@
 import os
-import smtplib
 import logging
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import httpx
 from datetime import datetime, timezone
 
 app_logger = logging.getLogger("loggix.email")
 
-SMTP_HOST = os.getenv("SMTP_HOST", "")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("SMTP_USER", "")
-SMTP_PASS = os.getenv("SMTP_PASS", "")
-MAIL_FROM = os.getenv("MAIL_FROM", "Loggix AI <noreply@loggix.ai>")
+RESEND_KEY = os.getenv("RESEND_API_KEY", "")
+MAIL_FROM = os.getenv("MAIL_FROM", "onboarding@resend.dev")
 ADMIN_EMAIL = os.getenv("ADMIN_NOTIFY_EMAIL", "")
 PUBLIC_DOMAIN = os.getenv("RAILWAY_PUBLIC_DOMAIN", "")
 
 
 def _send(to: str, subject: str, html: str) -> bool:
-    if not SMTP_HOST or not SMTP_USER:
-        app_logger.warning("SMTP not configured — skipping email to %s", to)
+    if not RESEND_KEY:
+        app_logger.warning("RESEND_API_KEY not set — skipping email to %s", to)
         return False
     try:
-        msg = MIMEMultipart("alternative")
-        msg["From"] = MAIL_FROM
-        msg["To"] = to
-        msg["Subject"] = subject
-        msg.attach(MIMEText(html, "html"))
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as s:
-            s.starttls()
-            s.login(SMTP_USER, SMTP_PASS)
-            s.sendmail(MAIL_FROM, [to], msg.as_string())
-        return True
+        r = httpx.post(
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {RESEND_KEY}"},
+            json={"from": MAIL_FROM, "to": [to], "subject": subject, "html": html},
+            timeout=15,
+        )
+        return r.status_code == 200
     except Exception as e:
         app_logger.warning("Email send failed to %s: %s", to, e)
         return False
