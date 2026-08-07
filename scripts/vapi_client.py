@@ -316,3 +316,50 @@ async def delete_phone_number(phone_number_id: str) -> bool:
         except Exception as e:
             logger.error(f"Failed to delete phone number {phone_number_id}: {e}")
             return False
+
+
+async def list_calls(assistant_id: str, limit: int = 50) -> list:
+    """List calls for an assistant from Vapi. Returns list of call objects (or [])."""
+    if not VAPI_KEY or not assistant_id:
+        return []
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.get(
+                f"{VAPI_BASE}/call",
+                params={"assistantId": assistant_id, "limit": limit},
+                headers=_headers(),
+                timeout=30,
+            )
+            resp.raise_for_status()
+            return resp.json()
+        except Exception as e:
+            logger.error(f"Failed to list Vapi calls for {assistant_id}: {e}")
+            return []
+
+
+async def get_call(call_id: str) -> dict | None:
+    """Fetch a single Vapi call including transcript + cost breakdown."""
+    if not VAPI_KEY or not call_id:
+        return None
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.get(f"{VAPI_BASE}/call/{call_id}", headers=_headers(), timeout=30)
+            resp.raise_for_status()
+            return resp.json()
+        except Exception as e:
+            logger.error(f"Failed to get Vapi call {call_id}: {e}")
+            return None
+
+
+async def get_phone_number_detail(phone_number_id: str) -> dict | None:
+    """Fetch a phone number's live status from Vapi."""
+    if not VAPI_KEY or not phone_number_id:
+        return None
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.get(f"{VAPI_BASE}/phone-number/{phone_number_id}", headers=_headers(), timeout=30)
+            resp.raise_for_status()
+            return resp.json()
+        except Exception as e:
+            logger.error(f"Failed to get Vapi phone number {phone_number_id}: {e}")
+            return None

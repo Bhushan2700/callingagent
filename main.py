@@ -38,7 +38,7 @@ from scripts.auth import hash_password, verify_password, create_token, decode_to
 from scripts.vapi_client import (
     create_assistant, update_assistant, delete_assistant, create_credential,
     buy_phone_number, import_phone_number, assign_phone_number, delete_phone_number,
-    build_system_prompt, TOOL_SCHEMAS,
+    build_system_prompt, TOOL_SCHEMAS, list_calls, get_call, get_phone_number_detail,
 )
 from scripts.storage import storage
 from scripts.email_service import send_otp_email, send_welcome_email, send_admin_notification
@@ -1148,6 +1148,50 @@ async def config_vapi(request: Request):
         if row and row[0]:
             assistant_id = row[0]
     return {"vapiKey": os.getenv("VAPI_PUBLIC_KEY", ""), "assistantId": assistant_id}
+
+
+# ==================== VAPI CALL LOGS & PHONE DETAIL ====================
+
+
+def _tenant_vapi_ids(request: Request) -> tuple:
+    tenant_id = get_current_tenant(request)
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT assistant_id, phone_number_id FROM tenants WHERE id = %s", (tenant_id,))
+        row = cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    return row[0] or "", row[1] or ""
+
+
+@app.get("/api/admin/calls")
+async def admin_calls(request: Request):
+    assistant_id, _ = _tenant_vapi_ids(request)
+    calls = await list_calls(assistant_id, limit=50)
+    return {"calls": calls}
+
+
+@app.get("/api/admin/calls/{call_id}")
+async def admin_call_detail(call_id: str, request: Request):
+    assistant_id, _ = _tenant_vapi_ids(request)
+    if not assistant_id:
+        raise HTTPException(status_code=400, detail="No assistant configured")
+    detail = await get_call(call_id)
+    if not detail:
+        raise HTTPException(status_code=404, detail="Call not found")
+    info = detail.get("call", detail)
+    if info.get("assistantId") and info.get("assistantId") != assistant_id:
+        raise HTTPException(status_code=403, detail="Not authorised to view this call")
+    return {"call": detail}
+
+
+@app.get("/api/admin/phone-detail")
+async def admin_phone_detail(request: Request):
+    _, phone_number_id = _tenant_vapi_ids(request)
+    if not phone_number_id:
+        return {"detail": None}
+    detail = await get_phone_number_detail(phone_number_id)
+    return {"detail": detail}
 
 
 # ==================== PUBLIC WIDGET API ====================
