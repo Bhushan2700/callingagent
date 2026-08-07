@@ -104,6 +104,7 @@ def run_migrations():
 
     cur.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE")
     cur.execute("UPDATE tenants SET email_verified = TRUE WHERE assistant_id IS NOT NULL AND assistant_id != ''")
+    cur.execute("UPDATE tenants SET onboarding_complete = TRUE WHERE assistant_id IS NOT NULL AND assistant_id != ''")
     print("  ✓ tenants.email_verified column")
 
     conn.commit()
