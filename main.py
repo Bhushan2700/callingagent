@@ -315,6 +315,8 @@ async def verify_otp(request: Request):
     if attempts >= MAX_OTP_ATTEMPTS:
         raise HTTPException(status_code=400, detail="Too many failed attempts. Request a new code.")
 
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
     if datetime.now(timezone.utc) > expires_at:
         raise HTTPException(status_code=400, detail="Code expired. Request a new one.")
 
@@ -450,6 +452,8 @@ async def reset_password(request: Request):
     if attempts >= MAX_OTP_ATTEMPTS:
         raise HTTPException(status_code=400, detail="Too many failed attempts. Request a new code.")
 
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
     if datetime.now(timezone.utc) > expires_at:
         raise HTTPException(status_code=400, detail="Code expired. Request a new one.")
 
