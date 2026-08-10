@@ -373,12 +373,12 @@ async def list_phone_numbers(assistant_id: str) -> list:
         try:
             resp = await client.get(
                 f"{VAPI_BASE}/phone-number",
-                params={"assistantId": assistant_id},
                 headers=_headers(),
                 timeout=30,
             )
             resp.raise_for_status()
-            return resp.json()
+            phones = resp.json()
+            return [p for p in phones if p.get("assistantId") == assistant_id]
         except Exception as e:
             logger.error(f"Failed to list Vapi phone numbers for {assistant_id}: {e}")
             return []
