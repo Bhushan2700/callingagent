@@ -128,6 +128,9 @@ background: 'linear-gradient(135deg, rgba(37,99,235,0.18), rgba(20,184,166,0.18)
               onFocus={e => { e.currentTarget.style.borderColor = '#2DD4BF'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(20,184,166,0.15)' }}
               onBlur={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.boxShadow = 'none' }} />
           </div>
+          <p style={{ margin: '0', textAlign: 'right', fontSize: '0.85rem' }}>
+            <Link to="/forgot-password" style={{ color: 'var(--text-muted)' }}>Forgot password?</Link>
+          </p>
           <button type="submit" disabled={busy} style={{
             padding: '1rem',
             borderRadius: 12,

@@ -83,6 +83,32 @@ export async function resendOtp(email) {
   return res.json();
 }
 
+export async function forgotPassword(email) {
+  const res = await fetch(`${BASE}/api/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.detail || 'Failed to send code');
+  }
+  return res.json();
+}
+
+export async function resetPassword(email, otp, newPassword) {
+  const res = await fetch(`${BASE}/api/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, otp, new_password: newPassword }),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.detail || 'Password reset failed');
+  }
+  return res.json();
+}
+
 export async function login(email, password) {
   const res = await fetch(`${BASE}/api/auth/login`, {
     method: 'POST',

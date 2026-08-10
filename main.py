@@ -387,6 +387,93 @@ async def resend_otp(request: Request):
     return {"status": "sent", "email": email}
 
 
+@app.post("/api/auth/forgot-password")
+async def forgot_password(request: Request):
+    if not otp_limiter.allow("otp:" + client_ip(request)):
+        raise HTTPException(status_code=429, detail="Too many requests. Wait a few minutes.")
+    raw = await request.json()
+    email = raw.get("email", "").strip().lower()
+    if not email:
+        raise HTTPException(status_code=400, detail="email is required")
+
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT name FROM tenants WHERE email = %s", (email,))
+        row = cur.fetchone()
+
+    if not row:
+        return {"status": "sent"}
+
+    name = row[0]
+    otp = str(randint(100000, 999999))
+    otp_hash = _hash_otp(otp)
+    expires = datetime.now(timezone.utc) + timedelta(minutes=OTP_TTL_MINUTES)
+
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO pending_verifications (email, otp_hash, name, password_hash, purpose, expires_at) "
+            "VALUES (%s, %s, %s, %s, 'password_reset', %s) "
+            "ON CONFLICT (email) DO UPDATE SET otp_hash=%s, name=%s, password_hash=%s, purpose='password_reset', expires_at=%s, attempts=0",
+            (email, otp_hash, name, "", expires, otp_hash, name, "", expires),
+        )
+        conn.commit()
+
+    send_otp_email(name, email, otp)
+    return {"status": "sent", "email": email}
+
+
+@app.post("/api/auth/reset-password")
+async def reset_password(request: Request):
+    raw = await request.json()
+    email = raw.get("email", "").strip().lower()
+    otp = raw.get("otp", "").strip()
+    new_password = raw.get("new_password", "")
+    if not email or not otp or not new_password:
+        raise HTTPException(status_code=400, detail="email, otp, and new_password are required")
+    if len(new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT otp_hash, attempts, expires_at FROM pending_verifications WHERE email = %s AND purpose = 'password_reset'",
+            (email,),
+        )
+        row = cur.fetchone()
+
+    if not row:
+        raise HTTPException(status_code=400, detail="No reset requested for this email. Request a new code.")
+
+    otp_hash, attempts, expires_at = row
+
+    if attempts >= MAX_OTP_ATTEMPTS:
+        raise HTTPException(status_code=400, detail="Too many failed attempts. Request a new code.")
+
+    if datetime.now(timezone.utc) > expires_at:
+        raise HTTPException(status_code=400, detail="Code expired. Request a new one.")
+
+    if not hmac.compare_digest(otp_hash, _hash_otp(otp)):
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE pending_verifications SET attempts = attempts + 1 WHERE email = %s AND purpose = 'password_reset'",
+                (email,),
+            )
+            conn.commit()
+        remaining = MAX_OTP_ATTEMPTS - attempts - 1
+        raise HTTPException(status_code=400, detail=f"Invalid code. {remaining} attempts remaining.")
+
+    new_hash = hash_password(new_password)
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("UPDATE tenants SET password_hash = %s WHERE email = %s", (new_hash, email))
+        cur.execute("DELETE FROM pending_verifications WHERE email = %s AND purpose = 'password_reset'", (email,))
+        conn.commit()
+
+    return {"status": "reset"}
+
+
 def _ensure_assistant(tenant_id: str, email: str, assistant_id: str) -> str:
     """Backfill the shared assistant for the admin account if missing."""
     if assistant_id or email != SHARED_ASSISTANT_EMAIL:

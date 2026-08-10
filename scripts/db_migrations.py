@@ -102,6 +102,9 @@ def run_migrations():
     """)
     print("  ✓ pending_verifications table")
 
+    cur.execute("ALTER TABLE pending_verifications ADD COLUMN IF NOT EXISTS purpose VARCHAR(20) DEFAULT 'registration'")
+    print("  ✓ pending_verifications.purpose column")
+
     cur.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE")
     cur.execute("UPDATE tenants SET email_verified = TRUE WHERE assistant_id IS NOT NULL AND assistant_id != ''")
     cur.execute("UPDATE tenants SET onboarding_complete = TRUE WHERE assistant_id IS NOT NULL AND assistant_id != ''")

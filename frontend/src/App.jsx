@@ -12,12 +12,14 @@ import DocumentsPage from './pages/DocumentsPage.jsx';
 import WidgetConfigPage from './pages/WidgetConfigPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
+import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
+import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
 import OnboardingPage from './pages/OnboardingPage.jsx';
 import './App.css';
 
 function AppContent() {
   const location = useLocation();
-  const noNav = ['/', '/login', '/register'];
+  const noNav = ['/', '/login', '/register', '/forgot-password', '/reset-password'];
   const showNav = !noNav.includes(location.pathname);
 
   return (
@@ -28,6 +30,8 @@ function AppContent() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/widget" element={<WidgetDemoPage />} />
           <Route path="/setup" element={<SetupGuide />} />
