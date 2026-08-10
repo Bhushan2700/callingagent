@@ -4,7 +4,7 @@ import { Mic, Ticket, FileText, Settings, Phone, PhoneIncoming, PhoneOutgoing, G
 import { getTickets } from '../api/tickets.js';
 import { getDocuments } from '../api/documents.js';
 import { getOnboardingStatus } from '../api/onboarding.js';
-import { getCalls, getCallDetail, getPhoneDetail } from '../api/vapi.js';
+import { getCalls, getCallDetail, getPhoneNumbers } from '../api/vapi.js';
 import StatCard from '../components/StatCard.jsx';
 import { getTenantName } from '../api/auth.js';
 
@@ -46,7 +46,7 @@ export default function Dashboard() {
   const [docs, setDocs] = useState([]);
   const [agent, setAgent] = useState(null);
   const [calls, setCalls] = useState([]);
-  const [phoneDetail, setPhoneDetail] = useState(null);
+  const [phones, setPhones] = useState([]);
   const [expanded, setExpanded] = useState(null);
   const [transcript, setTranscript] = useState(null);
   const [loadingCall, setLoadingCall] = useState(false);
@@ -57,7 +57,7 @@ export default function Dashboard() {
     getDocuments().then(setDocs).catch(() => {});
     getOnboardingStatus().then(setAgent).catch(() => {});
     getCalls().then(d => setCalls(d.calls || [])).catch(() => {});
-    getPhoneDetail().then(d => setPhoneDetail(d.detail)).catch(() => {});
+    getPhoneNumbers().then(d => setPhones(d.phones || [])).catch(() => {});
   }, []);
 
   const totalCost = calls.reduce((s, c) => {
@@ -83,8 +83,7 @@ export default function Dashboard() {
     }
   };
 
-  const phoneProvider = phoneDetail?.provider || (agent?.phone_number ? 'vapi' : null);
-  const phoneStatus = phoneDetail?.status || (phoneDetail ? 'active' : null);
+  const displayPhones = phones.length > 0 ? phones : (agent?.phone_number ? [{ number: agent.phone_number, provider: 'vapi', status: null }] : []);
 
   return (
     <div style={{ padding: '2rem', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
@@ -99,17 +98,17 @@ export default function Dashboard() {
 
       {agent && (
         <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-          {agent.phone_number ? (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.4rem 0.9rem', borderRadius: 20, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: '#6ee7b7', fontSize: '0.8rem', fontWeight: 600 }}>
-              <Phone size={13} /> {agent.phone_number}
-              {phoneStatus && (
-                <span style={{ marginLeft: 4, padding: '0.1rem 0.5rem', borderRadius: 10, fontSize: '0.7rem', background: phoneStatus === 'active' ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)', color: phoneStatus === 'active' ? '#6ee7b7' : '#fbbf24' }}>
-                  {phoneStatus}
+          {displayPhones.length > 0 ? displayPhones.map(p => (
+            <span key={p.id || p.number} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.4rem 0.9rem', borderRadius: 20, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: '#6ee7b7', fontSize: '0.8rem', fontWeight: 600 }}>
+              <Phone size={13} /> {p.number}
+              {p.status && (
+                <span style={{ marginLeft: 4, padding: '0.1rem 0.5rem', borderRadius: 10, fontSize: '0.7rem', background: p.status === 'active' ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)', color: p.status === 'active' ? '#6ee7b7' : '#fbbf24' }}>
+                  {p.status}
                 </span>
               )}
-              {phoneProvider && <span style={{ color: '#94a3b8', fontSize: '0.7rem', fontWeight: 500, textTransform: 'capitalize' }}>{phoneProvider}</span>}
+              {p.provider && <span style={{ color: '#94a3b8', fontSize: '0.7rem', fontWeight: 500, textTransform: 'capitalize' }}>{p.provider}</span>}
             </span>
-          ) : (
+          )) : (
             <Link to="/onboarding" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.4rem 0.9rem', borderRadius: 20, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}>
               <Phone size={13} /> No phone number — finish setup
             </Link>

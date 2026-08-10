@@ -14,8 +14,8 @@ export async function getCallDetail(callId) {
   return res.json();
 }
 
-export async function getPhoneDetail() {
-  const res = await fetch(`${BASE}/api/admin/phone-detail`, { headers: { ...authHeaders() } });
-  if (!res.ok) return { detail: null };
+export async function getPhoneNumbers() {
+  const res = await fetch(`${BASE}/api/admin/phone-numbers`, { headers: { ...authHeaders() } });
+  if (!res.ok) return { phones: [] };
   return res.json();
 }

@@ -363,3 +363,22 @@ async def get_phone_number_detail(phone_number_id: str) -> dict | None:
         except Exception as e:
             logger.error(f"Failed to get Vapi phone number {phone_number_id}: {e}")
             return None
+
+
+async def list_phone_numbers(assistant_id: str) -> list:
+    """List phone numbers assigned to an assistant from Vapi."""
+    if not VAPI_KEY or not assistant_id:
+        return []
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.get(
+                f"{VAPI_BASE}/phone-number",
+                params={"assistantId": assistant_id},
+                headers=_headers(),
+                timeout=30,
+            )
+            resp.raise_for_status()
+            return resp.json()
+        except Exception as e:
+            logger.error(f"Failed to list Vapi phone numbers for {assistant_id}: {e}")
+            return []

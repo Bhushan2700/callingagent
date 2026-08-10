@@ -38,7 +38,7 @@ from scripts.auth import hash_password, verify_password, create_token, decode_to
 from scripts.vapi_client import (
     create_assistant, update_assistant, delete_assistant, create_credential,
     buy_phone_number, import_phone_number, assign_phone_number, delete_phone_number,
-    build_system_prompt, TOOL_SCHEMAS, list_calls, get_call, get_phone_number_detail,
+    build_system_prompt, TOOL_SCHEMAS, list_calls, get_call, list_phone_numbers,
 )
 from scripts.storage import storage
 from scripts.email_service import send_otp_email, send_welcome_email, send_admin_notification
@@ -1185,13 +1185,13 @@ async def admin_call_detail(call_id: str, request: Request):
     return {"call": detail}
 
 
-@app.get("/api/admin/phone-detail")
-async def admin_phone_detail(request: Request):
-    _, phone_number_id = _tenant_vapi_ids(request)
-    if not phone_number_id:
-        return {"detail": None}
-    detail = await get_phone_number_detail(phone_number_id)
-    return {"detail": detail}
+@app.get("/api/admin/phone-numbers")
+async def admin_phone_numbers(request: Request):
+    assistant_id, _ = _tenant_vapi_ids(request)
+    if not assistant_id:
+        return {"phones": []}
+    phones = await list_phone_numbers(assistant_id)
+    return {"phones": phones}
 
 
 # ==================== PUBLIC WIDGET API ====================
