@@ -19,6 +19,13 @@ reranking:
   enabled: true
   model: "cross-encoder/ms-marco-MiniLM-L-12-v2"
   top_k: 5
+  # provider options: "none" | "cohere"
+  # "cohere" requires COHERE_API_KEY env var. "none" = fused vector+keyword score order.
+  provider: "none"
+
+confidence:
+  high: 0.6
+  medium: 0.35
 
 redis:
   url: "${REDIS_URL}"

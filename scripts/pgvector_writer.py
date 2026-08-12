@@ -369,6 +369,51 @@ class PGVectorWriter:
         finally:
             conn.close()
 
+    def keyword_search(self, terms: List[str], n_results: int = 10, tenant_id: str = "") -> list:
+        """Full-text-ish keyword search over chunk text/keywords. Returns list of result dicts."""
+        self._ensure_initialized()
+        if not tenant_id:
+            raise ValueError("tenant_id is required for keyword_search")
+        terms = [t.strip() for t in terms if t and len(t.strip()) > 2]
+        if not terms:
+            return []
+        conn = self._get_conn()
+        try:
+            cur = conn.cursor()
+            patterns = [f"%{t}%" for t in terms]
+            cur.execute(f"""
+                SELECT chunk_id, text, doc_id, doc_type, section, subsection,
+                       heading_level, page, tags, keywords, summary
+                FROM {self.collection_name}
+                WHERE tenant_id = %s
+                  AND (text ILIKE ANY(%s) OR keywords ILIKE ANY(%s) OR section ILIKE ANY(%s))
+                ORDER BY length(text)
+                LIMIT %s
+            """, (tenant_id, patterns, patterns, patterns, n_results * 3))
+            rows = cur.fetchall()
+            scored = []
+            for row in rows:
+                text = row[1] or ""
+                match_count = sum(1 for t in terms if t.lower() in text.lower() or t.lower() in (row[9] or "").lower())
+                scored.append({
+                    "chunk_id": row[0],
+                    "text": text,
+                    "doc_id": row[2],
+                    "doc_type": row[3] or "",
+                    "section": row[4] or "",
+                    "subsection": row[5] or "",
+                    "heading_level": row[6] or 0,
+                    "page": row[7] or "",
+                    "tags": row[8] or "",
+                    "keywords": row[9] or "",
+                    "summary": row[10] or "",
+                    "keyword_score": min(1.0, match_count / len(terms)) if terms else 0.0,
+                })
+            scored.sort(key=lambda x: x["keyword_score"], reverse=True)
+            return scored[:n_results]
+        finally:
+            conn.close()
+
     def clear_all(self, tenant_id: str = "") -> int:
         self._ensure_initialized()
         if not tenant_id:

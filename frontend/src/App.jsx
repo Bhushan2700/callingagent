@@ -10,6 +10,13 @@ import VoicePage from './pages/VoicePage.jsx';
 import TicketsPage from './pages/TicketsPage.jsx';
 import DocumentsPage from './pages/DocumentsPage.jsx';
 import WidgetConfigPage from './pages/WidgetConfigPage.jsx';
+import CallsPage from './pages/CallsPage.jsx';
+import CallDetailPage from './pages/CallDetailPage.jsx';
+import ConversationsPage from './pages/ConversationsPage.jsx';
+import AppointmentsPage from './pages/AppointmentsPage.jsx';
+import KnowledgeGapsPage from './pages/KnowledgeGapsPage.jsx';
+import AnalyticsPage from './pages/AnalyticsPage.jsx';
+import VoiceControlCenterPage from './pages/VoiceControlCenterPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
@@ -33,9 +40,17 @@ function AppContent() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/calls" element={<ProtectedRoute><CallsPage /></ProtectedRoute>} />
+          <Route path="/calls/:callId" element={<ProtectedRoute><CallDetailPage /></ProtectedRoute>} />
+          <Route path="/conversations" element={<ProtectedRoute><ConversationsPage /></ProtectedRoute>} />
+          <Route path="/conversations/:convId" element={<ProtectedRoute><ConversationsPage /></ProtectedRoute>} />
+          <Route path="/appointments" element={<ProtectedRoute><AppointmentsPage /></ProtectedRoute>} />
+          <Route path="/knowledge-gaps" element={<ProtectedRoute><KnowledgeGapsPage /></ProtectedRoute>} />
+          <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+          <Route path="/voice" element={<ProtectedRoute><VoicePage /></ProtectedRoute>} />
+          <Route path="/voice-center" element={<ProtectedRoute><VoiceControlCenterPage /></ProtectedRoute>} />
           <Route path="/widget" element={<WidgetDemoPage />} />
           <Route path="/setup" element={<SetupGuide />} />
-          <Route path="/voice" element={<ProtectedRoute><VoicePage /></ProtectedRoute>} />
           <Route path="/tickets" element={<ProtectedRoute><TicketsPage /></ProtectedRoute>} />
           <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
           <Route path="/admin/widget" element={<ProtectedRoute><WidgetConfigPage /></ProtectedRoute>} />

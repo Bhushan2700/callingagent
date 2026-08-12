@@ -10,7 +10,7 @@ import httpx
 import redis as redis_module
 import psycopg2
 from pathlib import Path
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, date, timezone, timedelta
 from uuid import uuid4
 from random import randint
 from fastapi import FastAPI, Request, Response, HTTPException, UploadFile, File
@@ -39,6 +39,7 @@ from scripts.vapi_client import (
     create_assistant, update_assistant, delete_assistant, create_credential,
     buy_phone_number, import_phone_number, assign_phone_number, delete_phone_number,
     build_system_prompt, TOOL_SCHEMAS, list_calls, get_call, list_phone_numbers,
+    get_assistant,
 )
 from scripts.storage import storage
 from scripts.email_service import send_otp_email, send_welcome_email, send_admin_notification
@@ -1311,8 +1312,18 @@ async def public_chat(request: Request):
         return {"error": "Invalid tenant_id"}
 
     try:
-        response = await receptionist.get_response(message, history, tenant_id=tenant_id)
-        return {"response": response}
+        result = await receptionist.get_response(message, history, tenant_id=tenant_id)
+        if result.get("confidence_level") == "low" and result.get("intent") != "appointment_booking":
+            _record_knowledge_gap(tenant_id, message, result.get("confidence", 0))
+        return {
+            "response": result["answer"],
+            "confidence": result.get("confidence", 0),
+            "confidence_level": result.get("confidence_level", "low"),
+            "resolved": result.get("resolved", False),
+            "intent": result.get("intent", "general"),
+            "sources": result.get("sources", []),
+            "resolved_by": result.get("resolved_by", ""),
+        }
     except Exception as e:
         app_logger.error(f"Chat error for tenant {tenant_id}: {e}")
         return {"response": "Sorry, I encountered an error. Please try again."}
@@ -1407,8 +1418,18 @@ async def api_chat(request: Request):
         return {"error": "Message is required"}
 
     try:
-        response = await receptionist.get_response(message, history, tenant_id=tenant_id)
-        return {"response": response}
+        result = await receptionist.get_response(message, history, tenant_id=tenant_id)
+        if result.get("confidence_level") == "low" and result.get("intent") != "appointment_booking":
+            _record_knowledge_gap(tenant_id, message, result.get("confidence", 0))
+        return {
+            "response": result["answer"],
+            "confidence": result.get("confidence", 0),
+            "confidence_level": result.get("confidence_level", "low"),
+            "resolved": result.get("resolved", False),
+            "intent": result.get("intent", "general"),
+            "sources": result.get("sources", []),
+            "resolved_by": result.get("resolved_by", ""),
+        }
     except Exception as e:
         app_logger.error(f"Chat error for tenant {tenant_id}: {e}")
         return {"response": "Sorry, I encountered an error. Please try again."}
@@ -1462,15 +1483,226 @@ class _VapiRequest:
         return self._data
 
 
+# ---- Local storage helpers for calls/conversations/messages/appointments ----
+
+RESOLUTION_ORDER = {
+    "appointment_completed": 1,
+    "ticket_created": 2,
+    "ai_resolved": 3,
+    "human_resolved": 4,
+    "escalated": 5,
+    "abandoned": 6,
+    "unresolved": 7,
+}
+
+
+def _transcript_tool_calls(transcript: list) -> list:
+    """Extract tool calls from Vapi transcript function messages."""
+    tools = []
+    for m in transcript or []:
+        if not isinstance(m, dict) or m.get("role") != "function":
+            continue
+        content = m.get("content") or []
+        if isinstance(content, list):
+            for item in content:
+                if isinstance(item, dict) and item.get("function"):
+                    if (item["function"].get("name") or "").startswith("."):
+                        item["function"]["name"] = item["function"]["name"][1:]
+                    tools.append(item)
+    return tools
+
+
+def classify_call_resolution(call_data: dict, tool_calls: list) -> tuple:
+    """Deterministic resolution classification for a Vapi call.
+    Priority: appointment_completed > ticket_created > ai_resolved (Vapi analysis.resolved)
+    > human_resolved/escalated > abandoned > unresolved."""
+    tools = [t.get("function", {}).get("name", "") for t in tool_calls if isinstance(t, dict)]
+    analysis = call_data.get("analysis") or {}
+    status = str(call_data.get("status", ""))
+
+    if "book_appointment" in tools:
+        return "appointment_completed", "Booked via book_appointment tool", "ai"
+    if "raise_ticket" in tools:
+        return "ticket_created", "Created support ticket via raise_ticket tool", "ai"
+    if analysis.get("resolved") is True:
+        return "ai_resolved", str(analysis.get("successEvaluation") or "Resolved by AI")[:500], "ai"
+    if any(k in tools for k in ("escalate", "human_escalation")):
+        return "escalated", "Escalated to human", "human"
+    if status in ("ended", "completed") and not call_data.get("transcript"):
+        return "abandoned", "Call ended without conversation", ""
+    return "unresolved", "No resolution signal detected", ""
+
+
+def _upsert_call(tenant_id: str, call: dict, tool_calls: list, resolution: tuple, channel: str = "phone") -> str:
+    call_id = str(call.get("id", ""))
+    if not call_id:
+        return ""
+    transcript = call.get("transcript") or []
+    analysis = call.get("analysis") or {}
+    summary = str(analysis.get("summary") or call.get("summary") or "")[:2000]
+    started = call.get("startedAt") or call.get("createdAt")
+    ended = call.get("endedAt") or call.get("updatedAt")
+    phone = call.get("customer") or {}
+    duration = call.get("durationSeconds") or 0
+    if not duration and started and ended:
+        try:
+            from datetime import datetime as dt
+            s = dt.fromisoformat(str(started).replace("Z", "+00:00"))
+            e = dt.fromisoformat(str(ended).replace("Z", "+00:00"))
+            duration = max(0, int((e - s).total_seconds()))
+        except Exception:
+            pass
+    status, reason, resolved_by = resolution
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO calls (id, tenant_id, assistant_id, caller, phone, channel, started_at, ended_at,
+                               duration_seconds, status, transcript, summary, intent, outcome,
+                               resolution_status, resolution_reason, resolved_by, recording_url, costs, raw)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO UPDATE SET
+                duration_seconds = EXCLUDED.duration_seconds,
+                status = EXCLUDED.status,
+                transcript = EXCLUDED.transcript,
+                summary = EXCLUDED.summary,
+                resolution_status = EXCLUDED.resolution_status,
+                resolution_reason = EXCLUDED.resolution_reason,
+                resolved_by = EXCLUDED.resolved_by,
+                recording_url = EXCLUDED.recording_url,
+                costs = EXCLUDED.costs,
+                ended_at = EXCLUDED.ended_at
+        """, (
+            call_id, tenant_id, str(call.get("assistantId", "")), str(phone.get("number", "") or ""),
+            str(phone.get("number", "") or ""), channel, started, ended, duration,
+            str(call.get("status", "")), json.dumps(transcript), summary, "", "", status, reason, resolved_by,
+            str(call.get("recordingUrl", "") or ""), json.dumps(call.get("costs") or {}), json.dumps(call)[:100000],
+        ))
+        conn.commit()
+    return call_id
+
+
+def _record_call_messages(tenant_id: str, call_id: str, transcript: list, tool_calls: list):
+    """Persist transcript + tool calls as messages tied to the call's conversation."""
+    conv_id = f"call_{call_id}"
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO conversations (id, tenant_id, channel, call_id, summary, resolution_status, created_at, updated_at)
+            VALUES (%s, %s, 'phone', %s, '', 'unresolved', NOW(), NOW())
+            ON CONFLICT (id) DO UPDATE SET updated_at = NOW()
+        """, (conv_id, tenant_id, call_id))
+        conn.commit()
+
+    message_rows = []
+    for i, m in enumerate(transcript or []):
+        if not isinstance(m, dict):
+            continue
+        role = "assistant" if m.get("role") == "assistant" else "user"
+        content = str(m.get("content", ""))[:4000]
+        if not content.strip():
+            continue
+        message_rows.append((f"{conv_id}_m{i:05d}", tenant_id, conv_id, role, content, 0, False, "[]", "[]"))
+
+    for i, tc in enumerate(tool_calls or []):
+        fn = (tc.get("function") or {}) if isinstance(tc, dict) else {}
+        name = fn.get("name", "")
+        args = fn.get("arguments", "{}")
+        if isinstance(args, str):
+            try:
+                args = json.loads(args)
+            except (json.JSONDecodeError, TypeError):
+                args = {}
+        message_rows.append((f"{conv_id}_tool{i:05d}", tenant_id, conv_id, "tool",
+                             json.dumps({"tool": name, "arguments": args})[:4000], 0, False, "[]",
+                             json.dumps([name])))
+
+    if message_rows:
+        with get_db() as conn:
+            cur = conn.cursor()
+            from psycopg2.extras import execute_values
+            execute_values(cur, """
+                INSERT INTO messages (id, tenant_id, conversation_id, role, content, confidence, resolved, sources, tools_used)
+                VALUES %s
+                ON CONFLICT (id) DO NOTHING
+            """, message_rows)
+            conn.commit()
+
+    return conv_id
+
+
+def _update_conversation_resolution(conv_id: str, status: str):
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("UPDATE conversations SET resolution_status = %s, updated_at = NOW() WHERE id = %s", (status, conv_id))
+        conn.commit()
+
+
+def _store_appointment(tenant_id: str, cal_booking_id: str, customer: dict, start: str, end: str,
+                       event_type: str, source: str = "ai", conversation_id: str = "", call_id: str = "",
+                       timezone: str = "UTC", status: str = "confirmed") -> str:
+    import hashlib
+    appt_id = hashlib.sha256(f"{tenant_id}{cal_booking_id or start}{customer.get('email', '')}".encode()).hexdigest()[:20]
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO appointments (id, tenant_id, cal_booking_id, customer_name, customer_email, customer_phone,
+                                      start_time, end_time, timezone, event_type, status, source, conversation_id, call_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, cal_booking_id = EXCLUDED.cal_booking_id
+        """, (appt_id, tenant_id, cal_booking_id, str(customer.get("name", "") or ""),
+              str(customer.get("email", "") or ""), str(customer.get("phone", "") or ""),
+              start, end, timezone, event_type, status, source, conversation_id, call_id))
+        conn.commit()
+    return appt_id
+
+
+def _record_knowledge_gap(tenant_id: str, question: str, confidence: float, conversation_id: str = "", call_id: str = ""):
+    """Upsert a knowledge-gap event. Duplicates for identical questions are merged."""
+    import hashlib
+    norm = re.sub(r"[^a-z0-9\s]", "", question.lower())
+    norm = re.sub(r"\s+", " ", norm).strip()[:200]
+    if not norm:
+        return
+    gap_id = hashlib.sha256(f"{tenant_id}{norm}".encode()).hexdigest()[:20]
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO knowledge_gaps (id, tenant_id, question, normalized_question, occurrence_count,
+                                        confidence, conversation_ids, call_id, first_seen_at, last_seen_at)
+            VALUES (%s, %s, %s, %s, 1, %s, %s, %s, NOW(), NOW())
+            ON CONFLICT (id) DO UPDATE SET
+                occurrence_count = knowledge_gaps.occurrence_count + 1,
+                confidence = EXCLUDED.confidence,
+                last_seen_at = NOW()
+        """, (gap_id, tenant_id, question[:500], norm, max(0.0, confidence),
+              json.dumps([conversation_id] if conversation_id else []), call_id))
+        conn.commit()
+
+
 @app.post("/webhook/vapi")
 async def vapi_webhook(request: Request):
     """Receive Vapi assistant messages. Acknowledges status events and
-    dispatches function-call messages to the existing /tool/* handlers."""
+    dispatches function-call messages to the existing /tool/* handlers.
+    Persists end-of-call reports locally for analytics."""
     raw = await _parse_body(request)
     message = raw.get("message", {})
     msg_type = message.get("type", "")
+    call = message.get("call") or {}
 
-    if msg_type in ("status-update", "end-of-call-report", "transcript", "transcript-transcript-update"):
+    if msg_type == "end-of-call-report":
+        tenant_id = tenant_id_by_assistant(str(call.get("assistantId", "")))
+        if not tenant_id:
+            return {"status": "received", "type": msg_type}
+        transcript = call.get("transcript") or []
+        tool_calls = _transcript_tool_calls(transcript)
+        resolution = classify_call_resolution(call, tool_calls)
+        call_id = _upsert_call(tenant_id, call, tool_calls, resolution)
+        if call_id:
+            conv_id = _record_call_messages(tenant_id, call_id, transcript, tool_calls)
+            _update_conversation_resolution(conv_id, resolution[0])
+        return {"status": "received", "type": msg_type}
+
+    if msg_type in ("status-update", "transcript", "transcript-transcript-update"):
         return {"status": "received", "type": msg_type}
 
     tool_calls = message.get("toolCalls") or []
@@ -1507,11 +1739,479 @@ async def vapi_webhook(request: Request):
         if isinstance(resp, dict) and "results" in resp:
             results.extend(resp["results"])
         else:
-            results.append({"toolCallId": tc.get("id"), "result": (resp or {}).get("result", "")})
+            result_str = (resp or {}).get("result", "")
+            results.append({"toolCallId": tc.get("id"), "result": result_str})
+            if name == "book_appointment" and result_str and not result_str.startswith("Sorry"):
+                assistant_id = str((message.get("assistant") or {}).get("id", ""))
+                tenant_id = tenant_id_by_assistant(assistant_id)
+                call_id = str((message.get("call") or {}).get("id", ""))
+                if tenant_id:
+                    _store_appointment(
+                        tenant_id,
+                        cal_booking_id="",
+                        customer={"name": args.get("name", ""), "email": args.get("email", ""), "phone": args.get("phone", "")},
+                        start=f"{args.get('appointment_date', args.get('date', ''))}T{args.get('appointment_time', args.get('time', ''))}:00Z",
+                        end="",
+                        event_type=args.get("enquiry_topic", args.get("notes", "")),
+                        source="ai",
+                        conversation_id=f"call_{call_id}" if call_id else "",
+                        call_id=call_id,
+                    )
 
     if results:
         return {"results": results}
     return {"status": "received"}
+
+
+# ==================== PHASE 2: ADMIN ANALYTICS / CALLS / APPTS / GAPS / ASSISTANT ====================
+
+def _parse_date_range(from_str: str, to_str: str, default_days: int = 30):
+    from datetime import date, timedelta
+    end = date.today()
+    start = end - timedelta(days=default_days)
+    if from_str:
+        try:
+            start = date.fromisoformat(from_str)
+        except ValueError:
+            pass
+    if to_str:
+        try:
+            end = date.fromisoformat(to_str)
+        except ValueError:
+            pass
+    return start, end
+
+
+def _kpi_set(tenant_id: str, start: date, end: date) -> dict:
+    """Call/booking/ticket/gap KPIs for a date range (inclusive)."""
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT COUNT(*), COALESCE(AVG(duration_seconds), 0),
+                   COUNT(*) FILTER (WHERE resolution_status IN ('ai_resolved','appointment_completed','ticket_created','human_resolved'))
+            FROM calls WHERE tenant_id = %s AND started_at::date BETWEEN %s AND %s
+        """, (tenant_id, start, end))
+        total_calls, avg_duration, resolved = cur.fetchone()
+        cur.execute("SELECT COUNT(*) FROM appointments WHERE tenant_id = %s AND created_at::date BETWEEN %s AND %s", (tenant_id, start, end))
+        appointments = cur.fetchone()[0]
+        tickets = 0
+        if _table_exists("tickets"):
+            cur.execute("SELECT COUNT(*) FROM tickets WHERE tenant_id = %s AND created_at::date BETWEEN %s AND %s", (tenant_id, start, end))
+            tickets = cur.fetchone()[0]
+    return {
+        "total_calls": int(total_calls or 0),
+        "avg_duration_seconds": round(float(avg_duration or 0)),
+        "ai_resolution_rate": round(float(resolved or 0) / max(1, int(total_calls or 0)), 3),
+        "appointments_booked": int(appointments or 0),
+        "tickets_created": int(tickets or 0),
+    }
+
+
+def _table_exists(name: str) -> bool:
+    try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT to_regclass(%s)", (name,))
+            return cur.fetchone()[0] is not None
+    except Exception:
+        return False
+
+
+@app.get("/api/admin/dashboard")
+async def admin_dashboard(request: Request, from_: str = "", to: str = "", days: int = 30):
+    """Command-center dashboard: KPIs + trends + recent activity + needs attention."""
+    tenant_id = get_current_tenant(request)
+    start, end = _parse_date_range(from_, to, days if days > 0 else 30)
+    prev_start = start - (end - start)
+    prev_end = start
+
+    current = _kpi_set(tenant_id, start, end)
+    previous = _kpi_set(tenant_id, prev_start, prev_end)
+
+    def delta(cur: float, prev: float):
+        if prev == 0:
+            return None
+        return round((cur - prev) / prev, 3)
+
+    trends = {}
+    for k in ("total_calls",):
+        trends[k] = delta(current[k], previous[k])
+    trends["ai_resolution_rate"] = delta(current["ai_resolution_rate"], previous["ai_resolution_rate"])
+    trends["appointments_booked"] = delta(current["appointments_booked"], previous["appointments_booked"])
+
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT started_at::date, COUNT(*), COUNT(*) FILTER (WHERE resolution_status IN ('ai_resolved','appointment_completed','ticket_created'))
+            FROM calls WHERE tenant_id = %s AND started_at::date BETWEEN %s AND %s
+            GROUP BY started_at::date ORDER BY started_at::date
+        """, (tenant_id, start, end))
+        daily = [{"date": str(r[0]), "calls": int(r[1]), "ai_resolved": int(r[2])} for r in cur.fetchall()]
+
+        cur.execute("""
+            SELECT id, channel, summary, resolution_status, created_at FROM conversations
+            WHERE tenant_id = %s ORDER BY created_at DESC LIMIT 8
+        """, (tenant_id,))
+        recent = [{"id": r[0], "channel": r[1], "summary": r[2], "resolution_status": r[3], "created_at": str(r[4])} for r in cur.fetchall()]
+
+        cur.execute("""
+            SELECT start_time, customer_name, customer_email, event_type, status, source FROM appointments
+            WHERE tenant_id = %s AND start_time >= NOW() AND status != 'cancelled'
+            ORDER BY start_time ASC LIMIT 5
+        """, (tenant_id,))
+        upcoming = [{"start_time": str(r[0]), "customer_name": r[1], "customer_email": r[2], "event_type": r[3], "status": r[4], "source": r[5]} for r in cur.fetchall()]
+
+        attention = []
+        if _table_exists("knowledge_gaps"):
+            cur.execute("""
+                SELECT question, occurrence_count, confidence, status, last_seen_at FROM knowledge_gaps
+                WHERE tenant_id = %s AND status = 'new' ORDER BY occurrence_count DESC, last_seen_at DESC LIMIT 5
+            """, (tenant_id,))
+            for r in cur.fetchall():
+                attention.append({"type": "knowledge_gap", "title": r[0], "meta": f"{int(r[1])} occurrences · {float(r[2]):.2f} confidence", "status": r[3], "at": str(r[4])})
+        if _table_exists("calls"):
+            cur.execute("""
+                SELECT caller, phone, started_at FROM calls
+                WHERE tenant_id = %s AND resolution_status IN ('unresolved','abandoned') AND started_at >= NOW() - INTERVAL '3 days'
+                ORDER BY started_at DESC LIMIT 5
+            """, (tenant_id,))
+            for r in cur.fetchall():
+                attention.append({"type": "unresolved_call", "title": r[0] or r[1] or "Unknown caller", "meta": str(r[2]), "status": "needs_review", "at": str(r[2])})
+
+        knowledge_gaps = 0
+        if _table_exists("knowledge_gaps"):
+            cur.execute("SELECT COUNT(*) FROM knowledge_gaps WHERE tenant_id = %s AND status = 'new'", (tenant_id,))
+            knowledge_gaps = cur.fetchone()[0]
+
+    return {
+        "range": {"from": str(start), "to": str(end), "days": (end - start).days + 1},
+        "kpis": current,
+        "trends": trends,
+        "previous_period": previous,
+        "daily_calls": daily,
+        "recent_conversations": recent,
+        "upcoming_appointments": upcoming,
+        "needs_attention": attention[:8],
+        "knowledge_gaps_new": int(knowledge_gaps or 0),
+    }
+
+
+@app.get("/api/admin/calls")
+async def admin_calls(request: Request, page: int = 1, per_page: int = 20, status: str = "", search: str = "", from_: str = "", to: str = ""):
+    tenant_id = get_current_tenant(request)
+    page = max(1, page)
+    per_page = min(100, max(1, per_page))
+    where = ["tenant_id = %s"]
+    params = [tenant_id]
+    if status:
+        where.append("resolution_status = %s")
+        params.append(status)
+    if search:
+        where.append("(caller ILIKE %s OR phone ILIKE %s OR COALESCE(summary, '') ILIKE %s)")
+        params.extend([f"%{search}%"] * 3)
+    start, end = _parse_date_range(from_, to)
+    if from_ or to:
+        where.append("started_at::date BETWEEN %s AND %s")
+        params.extend([start, end])
+    where_sql = " AND ".join(where)
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(f"SELECT COUNT(*) FROM calls WHERE {where_sql}", tuple(params))
+        total = cur.fetchone()[0]
+        cur.execute(f"""
+            SELECT id, caller, phone, started_at, duration_seconds, resolution_status, resolved_by, summary,
+                   (SELECT COUNT(*) FROM messages WHERE conversation_id = 'call_' || calls.id)
+            FROM calls WHERE {where_sql}
+            ORDER BY started_at DESC LIMIT %s OFFSET %s
+        """, tuple(params) + (per_page, (page - 1) * per_page))
+        rows = [{
+            "id": r[0], "caller": r[1], "phone": r[2], "started_at": str(r[3]), "duration_seconds": r[4],
+            "resolution_status": r[5], "resolved_by": r[6], "summary": r[7], "message_count": int(r[8] or 0),
+        } for r in cur.fetchall()]
+    return {"calls": rows, "total": int(total), "page": page, "per_page": per_page}
+
+
+@app.get("/api/admin/calls/{call_id}")
+async def admin_call_detail(request: Request, call_id: str):
+    tenant_id = get_current_tenant(request)
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM calls WHERE id = %s AND tenant_id = %s", (call_id, tenant_id))
+        col_names = [d[0] for d in cur.description]
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Call not found")
+        call = dict(zip(col_names, row))
+        for k in ("transcript", "costs", "raw"):
+            if k in call and call[k] is not None:
+                try:
+                    call[k] = json.loads(call[k])
+                except (json.JSONDecodeError, TypeError):
+                    pass
+        cur.execute("""
+            SELECT role, content, confidence, resolved, sources, tools_used, created_at FROM messages
+            WHERE tenant_id = %s AND conversation_id = %s ORDER BY created_at ASC
+        """, (tenant_id, f"call_{call_id}"))
+        msgs = []
+        for r in cur.fetchall():
+            msg = {"role": r[0], "content": r[1], "confidence": r[2], "resolved": r[3],
+                   "created_at": str(r[6])}
+            for k, v in (("sources", r[4]), ("tools_used", r[5])):
+                try:
+                    msg[k] = json.loads(v) if v else []
+                except (json.JSONDecodeError, TypeError):
+                    msg[k] = []
+            msgs.append(msg)
+    call["messages"] = msgs
+    return call
+
+
+@app.get("/api/admin/conversations")
+async def admin_conversations(request: Request, page: int = 1, per_page: int = 20, channel: str = "", status: str = ""):
+    tenant_id = get_current_tenant(request)
+    page = max(1, page)
+    per_page = min(100, max(1, per_page))
+    where = ["tenant_id = %s"]
+    params = [tenant_id]
+    if channel:
+        where.append("channel = %s")
+        params.append(channel)
+    if status:
+        where.append("resolution_status = %s")
+        params.append(status)
+    where_sql = " AND ".join(where)
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(f"SELECT COUNT(*) FROM conversations WHERE {where_sql}", tuple(params))
+        total = cur.fetchone()[0]
+        cur.execute(f"""
+            SELECT id, channel, call_id, summary, resolution_status, intent, created_at, updated_at,
+                   (SELECT COUNT(*) FROM messages WHERE conversation_id = conversations.id)
+            FROM conversations WHERE {where_sql}
+            ORDER BY updated_at DESC LIMIT %s OFFSET %s
+        """, tuple(params) + (per_page, (page - 1) * per_page))
+        rows = [{
+            "id": r[0], "channel": r[1], "call_id": r[2], "summary": r[3], "resolution_status": r[4],
+            "intent": r[5], "created_at": str(r[6]), "updated_at": str(r[7]), "message_count": int(r[8] or 0),
+        } for r in cur.fetchall()]
+    return {"conversations": rows, "total": int(total), "page": page, "per_page": per_page}
+
+
+@app.get("/api/admin/conversations/{conv_id}")
+async def admin_conversation_detail(request: Request, conv_id: str):
+    tenant_id = get_current_tenant(request)
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM conversations WHERE id = %s AND tenant_id = %s", (conv_id, tenant_id))
+        if not cur.fetchone():
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        cur.execute("""
+            SELECT role, content, confidence, resolved, sources, tools_used, created_at FROM messages
+            WHERE tenant_id = %s AND conversation_id = %s ORDER BY created_at ASC
+        """, (tenant_id, conv_id))
+        msgs = []
+        for r in cur.fetchall():
+            msg = {"role": r[0], "content": r[1], "confidence": r[2], "resolved": r[3], "created_at": str(r[6])}
+            for k, v in (("sources", r[4]), ("tools_used", r[5])):
+                try:
+                    msg[k] = json.loads(v) if v else []
+                except (json.JSONDecodeError, TypeError):
+                    msg[k] = []
+            msgs.append(msg)
+    return {"conversation_id": conv_id, "messages": msgs}
+
+
+@app.get("/api/admin/appointments")
+async def admin_appointments(request: Request, page: int = 1, per_page: int = 50, status: str = "", source: str = "", from_: str = "", to: str = ""):
+    tenant_id = get_current_tenant(request)
+    page = max(1, page)
+    per_page = min(200, max(1, per_page))
+    where = ["tenant_id = %s"]
+    params = [tenant_id]
+    if status:
+        where.append("status = %s")
+        params.append(status)
+    if source:
+        where.append("source = %s")
+        params.append(source)
+    start, end = _parse_date_range(from_, to)
+    if from_ or to:
+        where.append("start_time::date BETWEEN %s AND %s")
+        params.extend([start, end])
+    where_sql = " AND ".join(where)
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(f"SELECT COUNT(*) FROM appointments WHERE {where_sql}", tuple(params))
+        total = cur.fetchone()[0]
+        cur.execute(f"""
+            SELECT id, cal_booking_id, customer_name, customer_email, customer_phone, start_time, end_time,
+                   event_type, status, source, call_id, created_at
+            FROM appointments WHERE {where_sql} ORDER BY start_time DESC LIMIT %s OFFSET %s
+        """, tuple(params) + (per_page, (page - 1) * per_page))
+        rows = [{
+            "id": r[0], "cal_booking_id": r[1], "customer_name": r[2], "customer_email": r[3],
+            "customer_phone": r[4], "start_time": str(r[5]), "end_time": str(r[6]), "event_type": r[7],
+            "status": r[8], "source": r[9], "call_id": r[10], "created_at": str(r[11]),
+        } for r in cur.fetchall()]
+    return {"appointments": rows, "total": int(total), "page": page, "per_page": per_page}
+
+
+@app.get("/api/admin/knowledge-gaps")
+async def admin_knowledge_gaps(request: Request, page: int = 1, per_page: int = 20, status: str = ""):
+    tenant_id = get_current_tenant(request)
+    page = max(1, page)
+    per_page = min(100, max(1, per_page))
+    where, params = ["tenant_id = %s"], [tenant_id]
+    if status:
+        where.append("status = %s")
+        params.append(status)
+    where_sql = " AND ".join(where)
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(f"SELECT COUNT(*) FROM knowledge_gaps WHERE {where_sql}", tuple(params))
+        total = cur.fetchone()[0]
+        cur.execute(f"""
+            SELECT id, question, normalized_question, occurrence_count, confidence, status, conversation_ids, call_id, first_seen_at, last_seen_at
+            FROM knowledge_gaps WHERE {where_sql}
+            ORDER BY occurrence_count DESC, last_seen_at DESC LIMIT %s OFFSET %s
+        """, tuple(params) + (per_page, (page - 1) * per_page))
+        rows = [{
+            "id": r[0], "question": r[1], "occurrence_count": int(r[3]), "confidence": float(r[4] or 0),
+            "status": r[5], "call_id": r[7], "first_seen_at": str(r[8]), "last_seen_at": str(r[9]),
+        } for r in cur.fetchall()]
+    return {"gaps": rows, "total": int(total), "page": page, "per_page": per_page}
+
+
+@app.patch("/api/admin/knowledge-gaps/{gap_id}")
+async def admin_knowledge_gap_update(request: Request, gap_id: str):
+    tenant_id = get_current_tenant(request)
+    raw = await request.json()
+    new_status = raw.get("status", "")
+    if new_status not in ("new", "reviewing", "resolved", "ignored"):
+        raise HTTPException(status_code=400, detail="Invalid status")
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("UPDATE knowledge_gaps SET status = %s WHERE id = %s AND tenant_id = %s", (new_status, gap_id, tenant_id))
+        conn.commit()
+    return {"status": "ok"}
+
+
+@app.get("/api/admin/analytics/ai-performance")
+async def admin_ai_performance(request: Request, from_: str = "", to: str = "", days: int = 30):
+    """AI performance: resolution breakdown, tool usage, avg confidence, daily series."""
+    tenant_id = get_current_tenant(request)
+    start, end = _parse_date_range(from_, to, days if days > 0 else 30)
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT COUNT(*),
+                   COUNT(*) FILTER (WHERE resolution_status IN ('ai_resolved','appointment_completed','ticket_created')),
+                   COUNT(*) FILTER (WHERE resolved_by = 'ai')
+            FROM calls WHERE tenant_id = %s AND started_at::date BETWEEN %s AND %s
+        """, (tenant_id, start, end))
+        total, ai_resolved, resolved_by_ai = cur.fetchone()
+        cur.execute("""
+            SELECT resolution_status, COUNT(*) FROM calls
+            WHERE tenant_id = %s AND started_at::date BETWEEN %s AND %s
+            GROUP BY resolution_status ORDER BY COUNT(*) DESC
+        """, (tenant_id, start, end))
+        breakdown = {r[0]: int(r[1]) for r in cur.fetchall()}
+        cur.execute("""
+            SELECT tool, COUNT(*) FROM (
+                SELECT UNNEST(tools_used) AS tool FROM messages
+                WHERE tenant_id = %s AND tools_used IS NOT NULL AND tools_used != '[]'
+            ) t GROUP BY tool ORDER BY COUNT(*) DESC
+        """, (tenant_id,))
+        tool_usage = [{"tool": r[0], "count": int(r[1])} for r in cur.fetchall()]
+        cur.execute("""
+            SELECT created_at::date, AVG(confidence), COUNT(*) FROM messages
+            WHERE tenant_id = %s AND confidence > 0 AND created_at::date BETWEEN %s AND %s
+            GROUP BY created_at::date ORDER BY created_at::date
+        """, (tenant_id, start, end))
+        confidence_series = [{"date": str(r[0]), "avg_confidence": round(float(r[1] or 0), 3), "count": int(r[2])} for r in cur.fetchall()]
+    return {
+        "range": {"from": str(start), "to": str(end)},
+        "total_calls": int(total or 0),
+        "ai_resolved": int(ai_resolved or 0),
+        "resolution_rate": round(float(ai_resolved or 0) / max(1, int(total or 0)), 3),
+        "resolution_breakdown": breakdown,
+        "tool_usage": tool_usage,
+        "confidence_series": confidence_series,
+    }
+
+
+@app.get("/api/admin/assistant/config")
+async def admin_assistant_config(request: Request):
+    """Return live (Vapi) + draft (local) assistant configuration."""
+    tenant_id = get_current_tenant(request)
+    assistant_id = ""
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT assistant_id FROM tenants WHERE id = %s", (tenant_id,))
+        row = cur.fetchone()
+        if row:
+            assistant_id = row[0] or ""
+    live = await get_assistant(assistant_id) if assistant_id else None
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT id, status, config, created_at, published_at FROM assistant_versions
+            WHERE tenant_id = %s AND status = 'draft' ORDER BY created_at DESC LIMIT 1
+        """, (tenant_id,))
+        r = cur.fetchone()
+        draft = {"id": r[0], "status": r[1], "config": r[2] if isinstance(r[2], dict) else (json.loads(r[2]) if r[2] else {}), "created_at": str(r[3]), "published_at": str(r[4])} if r else None
+    return {"assistant_id": assistant_id, "live": live, "draft": draft}
+
+
+@app.patch("/api/admin/assistant/config")
+async def admin_assistant_config_update(request: Request):
+    """Save a draft assistant config (not applied to Vapi until published)."""
+    tenant_id = get_current_tenant(request)
+    raw = await request.json()
+    config = raw.get("config", {})
+    if not config:
+        raise HTTPException(status_code=400, detail="config is required")
+    config_id = f"draft_{tenant_id[:8]}_{int(datetime.now(timezone.utc).timestamp())}"
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO assistant_versions (id, tenant_id, status, config, created_at)
+            VALUES (%s, %s, 'draft', %s, NOW())
+        """, (config_id, tenant_id, json.dumps(config)))
+        conn.commit()
+    return {"status": "ok", "draft_id": config_id}
+
+
+@app.post("/api/admin/assistant/publish")
+async def admin_assistant_publish(request: Request):
+    """Publish draft config to Vapi and mark live."""
+    tenant_id = get_current_tenant(request)
+    draft_id = ""
+    try:
+        raw = await request.json()
+        draft_id = raw.get("draft_id", "")
+    except Exception:
+        pass
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT config, status FROM assistant_versions WHERE id = %s AND tenant_id = %s", (draft_id, tenant_id))
+        row = cur.fetchone()
+        if not row or row[1] != "draft":
+            raise HTTPException(status_code=404, detail="Draft not found")
+        config = row[0] if isinstance(row[0], dict) else json.loads(row[0])
+        cur.execute("SELECT assistant_id FROM tenants WHERE id = %s", (tenant_id,))
+        assistant_id = (cur.fetchone() or [None])[0] or ""
+    if not assistant_id:
+        raise HTTPException(status_code=400, detail="No assistant configured for this tenant")
+    from scripts.vapi_client import update_assistant
+    ok = await update_assistant(assistant_id, config)
+    if not ok:
+        raise HTTPException(status_code=502, detail="Vapi assistant update failed")
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("UPDATE assistant_versions SET status = 'live', published_at = NOW() WHERE id = %s", (draft_id,))
+        conn.commit()
+    return {"status": "ok", "published": draft_id}
 
 
 # ==================== HEALTH CHECK ====================

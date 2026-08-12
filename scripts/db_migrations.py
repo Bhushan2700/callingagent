@@ -110,6 +110,123 @@ def run_migrations():
     cur.execute("UPDATE tenants SET onboarding_complete = TRUE WHERE assistant_id IS NOT NULL AND assistant_id != ''")
     print("  ✓ tenants.email_verified column")
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS calls (
+            id VARCHAR(50) PRIMARY KEY,
+            tenant_id VARCHAR(36) NOT NULL,
+            assistant_id VARCHAR(255) DEFAULT '',
+            caller VARCHAR(255) DEFAULT '',
+            phone VARCHAR(50) DEFAULT '',
+            channel VARCHAR(20) DEFAULT 'phone',
+            started_at TIMESTAMP,
+            ended_at TIMESTAMP,
+            duration_seconds INT DEFAULT 0,
+            status VARCHAR(30) DEFAULT '',
+            transcript JSONB DEFAULT '[]',
+            summary TEXT DEFAULT '',
+            intent VARCHAR(100) DEFAULT '',
+            outcome VARCHAR(100) DEFAULT '',
+            resolution_status VARCHAR(30) DEFAULT 'unresolved',
+            resolution_reason TEXT DEFAULT '',
+            resolved_by VARCHAR(30) DEFAULT '',
+            recording_url TEXT DEFAULT '',
+            costs JSONB DEFAULT '{}',
+            raw JSONB DEFAULT '{}',
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_calls_tenant_started ON calls(tenant_id, started_at)")
+    print("  ✓ calls table")
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS conversations (
+            id VARCHAR(50) PRIMARY KEY,
+            tenant_id VARCHAR(36) NOT NULL,
+            channel VARCHAR(20) DEFAULT 'chat',
+            call_id VARCHAR(50) DEFAULT '',
+            customer VARCHAR(255) DEFAULT '',
+            summary TEXT DEFAULT '',
+            intent VARCHAR(100) DEFAULT '',
+            resolution_status VARCHAR(30) DEFAULT 'unresolved',
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_conversations_tenant_created ON conversations(tenant_id, created_at)")
+    print("  ✓ conversations table")
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS messages (
+            id VARCHAR(50) PRIMARY KEY,
+            tenant_id VARCHAR(36) NOT NULL,
+            conversation_id VARCHAR(50) NOT NULL,
+            role VARCHAR(20) NOT NULL,
+            content TEXT DEFAULT '',
+            confidence FLOAT DEFAULT 0,
+            resolved BOOLEAN DEFAULT FALSE,
+            sources JSONB DEFAULT '[]',
+            tools_used JSONB DEFAULT '[]',
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_messages_conv ON messages(conversation_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_messages_tenant ON messages(tenant_id)")
+    print("  ✓ messages table")
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS knowledge_gaps (
+            id VARCHAR(50) PRIMARY KEY,
+            tenant_id VARCHAR(36) NOT NULL,
+            question TEXT NOT NULL,
+            normalized_question TEXT NOT NULL,
+            occurrence_count INT DEFAULT 1,
+            confidence FLOAT DEFAULT 0,
+            status VARCHAR(20) DEFAULT 'new',
+            conversation_ids JSONB DEFAULT '[]',
+            call_id VARCHAR(50) DEFAULT '',
+            first_seen_at TIMESTAMP DEFAULT NOW(),
+            last_seen_at TIMESTAMP DEFAULT NOW()
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_gaps_tenant ON knowledge_gaps(tenant_id)")
+    print("  ✓ knowledge_gaps table")
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS appointments (
+            id VARCHAR(50) PRIMARY KEY,
+            tenant_id VARCHAR(36) NOT NULL,
+            cal_booking_id VARCHAR(100) DEFAULT '',
+            customer_name VARCHAR(255) DEFAULT '',
+            customer_email VARCHAR(255) DEFAULT '',
+            customer_phone VARCHAR(50) DEFAULT '',
+            start_time TIMESTAMP,
+            end_time TIMESTAMP,
+            timezone VARCHAR(64) DEFAULT 'UTC',
+            event_type VARCHAR(100) DEFAULT '',
+            status VARCHAR(30) DEFAULT 'confirmed',
+            source VARCHAR(20) DEFAULT 'external',
+            conversation_id VARCHAR(50) DEFAULT '',
+            call_id VARCHAR(50) DEFAULT '',
+            raw JSONB DEFAULT '{}',
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_appointments_tenant_start ON appointments(tenant_id, start_time)")
+    print("  ✓ appointments table")
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS assistant_versions (
+            id VARCHAR(50) PRIMARY KEY,
+            tenant_id VARCHAR(36) NOT NULL,
+            status VARCHAR(20) DEFAULT 'draft',
+            config JSONB DEFAULT '{}',
+            created_at TIMESTAMP DEFAULT NOW(),
+            published_at TIMESTAMP
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_assistant_versions_tenant ON assistant_versions(tenant_id)")
+    print("  ✓ assistant_versions table")
+
     conn.commit()
     cur.close()
     conn.close()

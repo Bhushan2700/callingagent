@@ -171,6 +171,20 @@ async def create_assistant(cfg: dict) -> str | None:
             return None
 
 
+async def get_assistant(assistant_id: str) -> dict | None:
+    """Fetch an assistant from Vapi. Returns raw payload or None."""
+    if not VAPI_KEY or not assistant_id:
+        return None
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.get(f"{VAPI_BASE}/assistant/{assistant_id}", headers=_headers(), timeout=30)
+            resp.raise_for_status()
+            return resp.json()
+        except Exception as e:
+            logger.error(f"Failed to fetch Vapi assistant {assistant_id}: {e}")
+            return None
+
+
 async def update_assistant(assistant_id: str, cfg: dict) -> bool:
     """Update an existing Vapi assistant with new onboarding settings."""
     if not VAPI_KEY or not assistant_id:

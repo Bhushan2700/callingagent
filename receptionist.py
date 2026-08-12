@@ -1,4 +1,5 @@
 import os
+import re
 import time
 import json
 import psycopg2
@@ -8,6 +9,45 @@ from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
+
+STOPWORDS = {
+    "a", "an", "the", "and", "or", "but", "if", "then", "so", "for", "to", "of", "in",
+    "on", "at", "by", "with", "from", "as", "is", "are", "was", "were", "be", "been",
+    "being", "do", "does", "did", "have", "has", "had", "will", "would", "can", "could",
+    "should", "shall", "may", "might", "must", "i", "you", "he", "she", "it", "we",
+    "they", "me", "him", "her", "us", "them", "my", "your", "our", "their", "this",
+    "that", "these", "those", "what", "which", "who", "whom", "whose", "how", "why",
+    "when", "where", "about", "please", "tell", "know", "want", "like", "need", "get",
+    "can", "going", "just", "not", "am", "no", "yes", "ok", "okay", "hi", "hello",
+}
+
+
+def _extract_keywords(query: str, limit: int = 6) -> list:
+    words = re.findall(r"[A-Za-z0-9]+", query.lower())
+    seen = []
+    for w in words:
+        if w not in STOPWORDS and len(w) > 2 and w not in seen:
+            seen.append(w)
+        if len(seen) >= limit:
+            break
+    return seen
+
+
+def _detect_intent(query: str) -> str:
+    q = query.lower()
+    if any(k in q for k in ["book", "appointment", "schedule", "meeting", "consultation", "slot", "calendar"]):
+        return "appointment_booking"
+    if any(k in q for k in ["refund", "return", "money back", "cancel my order"]):
+        return "refund_policy"
+    if any(k in q for k in ["price", "pricing", "cost", "charge", "fee", "rate", "plan", "subscription", "billing", "invoice"]):
+        return "pricing"
+    if any(k in q for k in ["ticket", "support", "help with", "problem", "broken", "issue", "complaint", "escalate", "human", "agent"]):
+        return "support"
+    if any(k in q for k in ["hour", "open", "close", "weekend", "when"]):
+        return "business_hours"
+    if any(k in q for k in ["ship", "delivery", "shipping", "international"]):
+        return "shipping"
+    return "general"
 
 
 class LoggixReceptionist:
@@ -28,7 +68,14 @@ class LoggixReceptionist:
 
         self.top_k_initial = self.config.retrieval["top_k_initial"]
         self.top_k_final = self.config.retrieval.get("top_k_final", 5)
-        self.confidence_threshold = self.config.retrieval.get("confidence_threshold", 0.3)
+        self.confidence_threshold = self.config.retrieval.get("confidence_threshold", 0.1)
+        self.vector_weight = 0.65
+        self.keyword_weight = 0.35
+        conf = self.config.retrieval.get("confidence", {})
+        self.high_confidence = conf.get("high", 0.6)
+        self.medium_confidence = conf.get("medium", 0.35)
+        self.rerank_provider = self.config.retrieval.get("rerank", {}).get("provider", "none")
+        self.rerank_top_k = self.config.retrieval.get("rerank", {}).get("top_k", self.top_k_final)
 
         self.base_prompt = """You are the AI Receptionist for Loggix, a software development firm.
 
@@ -87,44 +134,72 @@ RULES:
         if not tenant_id:
             raise ValueError("tenant_id is required for search")
 
-        # 1. Embed query
         query_embedding = await self.embedding_client.embed_query(query)
 
-        # 2. Vector search (top-10)
         where = {"tenant_id": tenant_id}
-        results = self._writer.query(query_embedding, n_results=10, where=where)
+        vector_results = self._writer.query(query_embedding, n_results=self.top_k_initial, where=where)
 
-        if not results or not results.get("documents") or not results["documents"][0]:
-            return {"chunks": [], "query_latency_ms": (time.time() - start_total) * 1000, "confidence": 0}
+        keyword_terms = _extract_keywords(query)
+        keyword_results = self._writer.keyword_search(keyword_terms, n_results=self.top_k_initial, tenant_id=tenant_id) if keyword_terms else []
 
-        # 3. Build chunks with similarity scores
-        chunks = []
-        for doc, meta in zip(results["documents"][0], results["metadatas"][0]):
-            distance = meta.get("distance", 0)
-            similarity = 1 - distance if distance else 0
-            chunks.append({
-                "text": doc,
-                "doc_id": meta.get("doc_id", ""),
-                "section": meta.get("section", ""),
-                "subsection": meta.get("subsection", ""),
-                "section_path": meta.get("section_path", ""),
-                "chunk_id": meta.get("chunk_id", ""),
-                "similarity": similarity
-            })
+        merged = {}
+        if vector_results and vector_results.get("documents") and vector_results["documents"][0]:
+            for doc, meta in zip(vector_results["documents"][0], vector_results["metadatas"][0]):
+                distance = meta.get("distance", 0)
+                similarity = 1 - distance if distance else 0
+                cid = meta.get("chunk_id", "")
+                merged[cid] = {
+                    "text": doc,
+                    "chunk_id": cid,
+                    "doc_id": meta.get("doc_id", ""),
+                    "section": meta.get("section", ""),
+                    "subsection": meta.get("subsection", ""),
+                    "section_path": meta.get("section_path", "") or meta.get("section", ""),
+                    "page": meta.get("page", ""),
+                    "similarity": similarity,
+                    "keyword_score": 0.0,
+                }
 
-        # 4. Deduplicate by doc_id (keep best chunk per document)
-        seen_docs = {}
-        for chunk in chunks:
-            doc_id = chunk["doc_id"]
-            if doc_id not in seen_docs or chunk["similarity"] > seen_docs[doc_id]["similarity"]:
-                seen_docs[doc_id] = chunk
-        
-        # 5. Take top results
-        deduped = sorted(seen_docs.values(), key=lambda x: x["similarity"], reverse=True)
-        final_chunks = deduped[:self.top_k_final]
+        for r in keyword_results:
+            cid = r["chunk_id"]
+            if cid in merged:
+                merged[cid]["keyword_score"] = r["keyword_score"]
+            else:
+                merged[cid] = {
+                    "text": r["text"],
+                    "chunk_id": cid,
+                    "doc_id": r["doc_id"],
+                    "section": r["section"],
+                    "subsection": r["subsection"],
+                    "section_path": r["section"] or r["subsection"],
+                    "page": r["page"],
+                    "similarity": 0.0,
+                    "keyword_score": r["keyword_score"],
+                }
 
-        # 6. Compute confidence
+        if not merged:
+            return {
+                "chunks": [], "query_latency_ms": (time.time() - start_total) * 1000,
+                "confidence": 0, "confidence_level": "low", "intent": _detect_intent(query), "sources": [],
+            }
+
+        for cid, chunk in merged.items():
+            chunk["fused_score"] = (
+                self.vector_weight * chunk["similarity"]
+                + self.keyword_weight * chunk["keyword_score"]
+            )
+
+        ranked = sorted(merged.values(), key=lambda x: x["fused_score"], reverse=True)
+
+        if self.rerank_provider and self.rerank_provider != "none":
+            ranked = await self._rerank(query, ranked)
+
+        final_chunks = ranked[:self.top_k_final]
+
         confidence = self._compute_confidence(final_chunks)
+        confidence_level = self._classify_confidence(confidence)
+
+        sources = self._build_sources(final_chunks, confidence)
 
         query_latency = (time.time() - start_total) * 1000
 
@@ -133,12 +208,71 @@ RULES:
         return {
             "chunks": final_chunks,
             "query_latency_ms": query_latency,
-            "confidence": confidence
+            "confidence": confidence,
+            "confidence_level": confidence_level,
+            "intent": _detect_intent(query),
+            "sources": sources,
         }
 
+    async def _rerank(self, query: str, chunks: list) -> list:
+        """Rerank chunks using the configured provider. 'none' = keep fused score order."""
+        provider = (self.rerank_provider or "none").lower()
+        if provider == "cohere":
+            try:
+                import httpx
+                key = os.getenv("COHERE_API_KEY", "")
+                if not key:
+                    return chunks
+                docs = [c["text"][:500] for c in chunks]
+                async with httpx.AsyncClient() as client:
+                    resp = await client.post(
+                        "https://api.cohere.com/v2/rerank",
+                        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                        json={"model": "rerank-multilingual-v3.0", "query": query, "documents": docs, "top_n": self.rerank_top_k},
+                        timeout=30,
+                    )
+                    resp.raise_for_status()
+                    results = resp.json().get("results", [])
+                    reranked = []
+                    for r in results:
+                        idx = r.get("index", 0)
+                        if 0 <= idx < len(chunks):
+                            chunks[idx]["rerank_score"] = r.get("relevance_score", 0)
+                            reranked.append(chunks[idx])
+                    if reranked:
+                        return reranked
+            except Exception as e:
+                print(f"Rerank error ({provider}): {e}")
+                return chunks
+        return chunks
+
     def _compute_confidence(self, chunks: list) -> float:
-        scores = [c.get("similarity", 0) for c in chunks[:3]]
-        return sum(scores) / len(scores) if scores else 0
+        if not chunks:
+            return 0
+        scores = [c.get("fused_score", c.get("similarity", 0)) for c in chunks[:3]]
+        return max(0.0, min(1.0, sum(scores) / len(scores)))
+
+    def _classify_confidence(self, confidence: float) -> str:
+        if confidence >= self.high_confidence:
+            return "high"
+        if confidence >= self.medium_confidence:
+            return "medium"
+        return "low"
+
+    def _build_sources(self, chunks: list, confidence: float) -> list:
+        sources = []
+        for c in chunks:
+            sources.append({
+                "document_id": c.get("doc_id", ""),
+                "document_name": c.get("doc_id", ""),
+                "chunk_id": c.get("chunk_id", ""),
+                "page": c.get("page", ""),
+                "section": c.get("section_path", "") or c.get("section", ""),
+                "retrieval_score": round(c.get("similarity", 0), 4),
+                "rerank_score": round(c.get("rerank_score", 0), 4) if c.get("rerank_score") is not None else None,
+                "final_relevance": round(c.get("fused_score", c.get("similarity", 0)), 4),
+            })
+        return sources
 
     def _log_query(self, query: str, final_chunks: list, query_latency: float, tenant_id: str = ""):
         try:
@@ -152,13 +286,13 @@ RULES:
                 "latency_ms": query_latency,
                 "retrieval": {
                     "final_results": len(final_chunks),
-                    "top_score": final_chunks[0].get("similarity", 0) if final_chunks else 0
+                    "top_score": final_chunks[0].get("fused_score", 0) if final_chunks else 0
                 },
                 "final_chunks": [
                     {
                         "doc_id": c.get("doc_id", ""),
                         "section": c.get("section", ""),
-                        "score": c.get("similarity", 0),
+                        "score": c.get("fused_score", 0),
                         "text_preview": c.get("text", "")[:100]
                     }
                     for c in final_chunks[:3]
@@ -211,13 +345,17 @@ RULES:
 
         search_result = await self.search(user_input, tenant_id=tenant_id)
         chunks = search_result["chunks"]
+        confidence = search_result["confidence"]
 
         from scripts.vapi_client import build_system_prompt
         settings = self._tenant_settings(tenant_id)
-        if not chunks or search_result["confidence"] < self.confidence_threshold:
+
+        if not chunks or confidence < self.confidence_threshold:
             if settings and "book_appointment" in settings.get("tools_enabled", []):
-                return "I don't have that specific detail, but I can schedule a consultation appointment for you. Would you like that?"
-            return "I don't have that information yet. I can raise a support ticket with our team so they can help you. Would you like that?"
+                answer = "I don't have that specific detail, but I can schedule a consultation appointment for you. Would you like that?"
+            else:
+                answer = "I don't have enough information in the company's knowledge base to answer that accurately."
+            return self._contract(answer, confidence, False, search_result, resolved_by="escalate")
 
         system_prompt = build_system_prompt(settings) if settings else self.base_prompt
 
@@ -239,4 +377,17 @@ RULES:
             temperature=0.1,
         )
 
-        return response.choices[0].message.content
+        answer = response.choices[0].message.content
+        return self._contract(answer, confidence, True, search_result, resolved_by="ai")
+
+    def _contract(self, answer: str, confidence: float, resolved: bool, search_result: dict, resolved_by: str = "ai") -> dict:
+        return {
+            "answer": answer,
+            "confidence": round(confidence, 2),
+            "confidence_level": search_result.get("confidence_level", "low"),
+            "resolved": resolved,
+            "intent": search_result.get("intent", "general"),
+            "sources": search_result.get("sources", []),
+            "retrieved_chunk_count": len(search_result.get("chunks", [])),
+            "resolved_by": resolved_by,
+        }
