@@ -1242,7 +1242,7 @@ async def config_vapi(request: Request):
     return {"vapiKey": os.getenv("VAPI_PUBLIC_KEY", ""), "assistantId": assistant_id}
 
 
-# ==================== VAPI CALL LOGS & PHONE DETAIL ====================
+# ==================== VAPI PHONE DETAIL ====================
 
 
 def _tenant_vapi_ids(request: Request) -> tuple:
@@ -1254,27 +1254,6 @@ def _tenant_vapi_ids(request: Request) -> tuple:
     if not row:
         raise HTTPException(status_code=404, detail="Tenant not found")
     return row[0] or "", row[1] or ""
-
-
-@app.get("/api/admin/calls")
-async def admin_calls(request: Request):
-    assistant_id, _ = _tenant_vapi_ids(request)
-    calls = await list_calls(assistant_id, limit=50)
-    return {"calls": calls}
-
-
-@app.get("/api/admin/calls/{call_id}")
-async def admin_call_detail(call_id: str, request: Request):
-    assistant_id, _ = _tenant_vapi_ids(request)
-    if not assistant_id:
-        raise HTTPException(status_code=400, detail="No assistant configured")
-    detail = await get_call(call_id)
-    if not detail:
-        raise HTTPException(status_code=404, detail="Call not found")
-    info = detail.get("call", detail)
-    if info.get("assistantId") and info.get("assistantId") != assistant_id:
-        raise HTTPException(status_code=403, detail="Not authorised to view this call")
-    return {"call": detail}
 
 
 @app.get("/api/admin/phone-numbers")
