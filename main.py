@@ -2118,7 +2118,7 @@ async def admin_ai_performance(request: Request, from_: str = "", to: str = "", 
         breakdown = {r[0]: int(r[1]) for r in cur.fetchall()}
         cur.execute("""
             SELECT tool, COUNT(*) FROM (
-                SELECT UNNEST(tools_used) AS tool FROM messages
+                SELECT jsonb_array_elements_text(tools_used) AS tool FROM messages
                 WHERE tenant_id = %s AND tools_used IS NOT NULL AND tools_used != '[]'
             ) t GROUP BY tool ORDER BY COUNT(*) DESC
         """, (tenant_id,))
