@@ -104,7 +104,7 @@ export default function RegisterPage() {
     setBusy(true);
     try {
       const data = await verifyOtp(email, code);
-      loginUser(data.token, data.tenant_id, data.name, data.email, data.assistant_id);
+      loginUser(data.token, data.tenant_id, data.name, data.email, data.assistant_id, data.onboarding_complete);
       nav('/onboarding');
     } catch (err) {
       setError(err.message);

@@ -21,9 +21,9 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const loginUser = useCallback((token, tenantId, name, email, assistantId) => {
+  const loginUser = useCallback((token, tenantId, name, email, assistantId, onboardingComplete = false) => {
     setAuth(token, tenantId, name, assistantId);
-    setUser({ tenant_id: tenantId, name, email, assistant_id: assistantId || '', onboarding_complete: false });
+    setUser({ tenant_id: tenantId, name, email, assistant_id: assistantId || '', onboarding_complete: onboardingComplete });
   }, []);
 
   const logoutUser = useCallback(() => {

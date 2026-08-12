@@ -242,7 +242,7 @@ async def register(request: Request):
         conn.commit()
 
     token = create_token(tenant_id)
-    return {"token": token, "tenant_id": tenant_id, "name": name, "email": email, "assistant_id": assistant_id}
+    return {"token": token, "tenant_id": tenant_id, "name": name, "email": email, "assistant_id": assistant_id, "onboarding_complete": False}
 
 
 OTP_TTL_MINUTES = 15
@@ -345,7 +345,7 @@ async def verify_otp(request: Request):
 
     asyncio.create_task(_post_register_emails(name, email, tenant_id))
 
-    return {"token": token, "tenant_id": tenant_id, "name": name, "email": email, "assistant_id": assistant_id}
+    return {"token": token, "tenant_id": tenant_id, "name": name, "email": email, "assistant_id": assistant_id, "onboarding_complete": False}
 
 
 async def _post_register_emails(name: str, email: str, tenant_id: str):
@@ -504,18 +504,18 @@ async def login(request: Request):
 
     with get_db() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT id, password_hash, name, assistant_id FROM tenants WHERE email = %s", (email,))
+        cur.execute("SELECT id, password_hash, name, assistant_id, onboarding_complete FROM tenants WHERE email = %s", (email,))
         row = cur.fetchone()
         if not row:
             raise HTTPException(status_code=401, detail="Invalid email or password")
-        tenant_id, password_hash, name, assistant_id = row
+        tenant_id, password_hash, name, assistant_id, onboarding_complete = row
 
     if not verify_password(password, password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     assistant_id = _ensure_assistant(tenant_id, email, assistant_id or "")
     token = create_token(tenant_id)
-    return {"token": token, "tenant_id": tenant_id, "name": name, "email": email, "assistant_id": assistant_id}
+    return {"token": token, "tenant_id": tenant_id, "name": name, "email": email, "assistant_id": assistant_id, "onboarding_complete": bool(onboarding_complete)}
 
 
 @app.get("/api/auth/me")
