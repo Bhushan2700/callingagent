@@ -1859,9 +1859,9 @@ async def admin_dashboard(request: Request, from_: str = "", to: str = "", days:
 
         # Intent breakdown for charts
         intent_breakdown = {}
-        if _table_exists("messages"):
+        if _table_exists("conversations"):
             cur.execute("""
-                SELECT intent, COUNT(*) FROM messages
+                SELECT intent, COUNT(*) FROM conversations
                 WHERE tenant_id = %s AND intent IS NOT NULL AND intent != ''
                 AND created_at::date BETWEEN %s AND %s
                 GROUP BY intent ORDER BY COUNT(*) DESC
