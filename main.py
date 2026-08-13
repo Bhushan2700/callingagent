@@ -1767,10 +1767,11 @@ def _kpi_set(tenant_id: str, start: date, end: date) -> dict:
         cur = conn.cursor()
         cur.execute("""
             SELECT COUNT(*), COALESCE(AVG(duration_seconds), 0),
-                   COUNT(*) FILTER (WHERE resolution_status IN ('ai_resolved','appointment_completed','ticket_created','human_resolved'))
+                   COUNT(*) FILTER (WHERE resolution_status IN ('ai_resolved','appointment_completed','ticket_created','human_resolved')),
+                   COUNT(*) FILTER (WHERE status IN ('failed','no-answer') OR resolution_status = 'abandoned')
             FROM calls WHERE tenant_id = %s AND started_at::date BETWEEN %s AND %s
         """, (tenant_id, start, end))
-        total_calls, avg_duration, resolved = cur.fetchone()
+        total_calls, avg_duration, resolved, missed = cur.fetchone()
         cur.execute("SELECT COUNT(*) FROM appointments WHERE tenant_id = %s AND created_at::date BETWEEN %s AND %s", (tenant_id, start, end))
         appointments = cur.fetchone()[0]
         tickets = 0
@@ -1783,6 +1784,7 @@ def _kpi_set(tenant_id: str, start: date, end: date) -> dict:
         "ai_resolution_rate": round(float(resolved or 0) / max(1, int(total_calls or 0)), 3),
         "appointments_booked": int(appointments or 0),
         "tickets_created": int(tickets or 0),
+        "missed_calls": int(missed or 0),
     }
 
 
@@ -1817,6 +1819,7 @@ async def admin_dashboard(request: Request, from_: str = "", to: str = "", days:
         trends[k] = delta(current[k], previous[k])
     trends["ai_resolution_rate"] = delta(current["ai_resolution_rate"], previous["ai_resolution_rate"])
     trends["appointments_booked"] = delta(current["appointments_booked"], previous["appointments_booked"])
+    trends["missed_calls"] = delta(current["missed_calls"], previous["missed_calls"])
 
     with get_db() as conn:
         cur = conn.cursor()

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { FileText, FileUp } from 'lucide-react';
 import EmptyState from '../components/EmptyState.jsx';
 import Loading from '../components/Loading.jsx';
 import { getDocuments, uploadDocument, deleteDocument, reindexDocument } from '../api/documents.js';
@@ -112,7 +113,7 @@ export default function DocumentsPage() {
           marginBottom: '1rem',
         }}
       >
-        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📄</div>
+        <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}><FileUp size={44} strokeWidth={1.5} color="#5eead4" /></div>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Drag & drop files here or click to browse</p>
         <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Supports .md, .pdf, .txt, .json</p>
         <input ref={fileInputRef} type="file" multiple accept=".md,.pdf,.txt,.json" style={{ display: 'none' }}
@@ -146,7 +147,7 @@ export default function DocumentsPage() {
       </h2>
 
       {loading ? <Loading text="Loading documents..." /> : docs.length === 0 ? (
-        <EmptyState message="No documents ingested yet" icon="📄" />
+        <EmptyState message="No documents ingested yet" icon={<FileText size={48} strokeWidth={1.5} />} />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           {docs.map(doc => (

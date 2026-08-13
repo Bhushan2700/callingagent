@@ -1,4 +1,6 @@
-export default function EmptyState({ message, icon = '📋' }) {
+import { Inbox } from 'lucide-react';
+
+export default function EmptyState({ message, text, icon = <Inbox size={48} strokeWidth={1.5} /> }) {
   return (
     <div style={{
       textAlign: 'center',
@@ -7,9 +9,10 @@ export default function EmptyState({ message, icon = '📋' }) {
       backdropFilter: 'blur(20px)',
       border: '1px solid var(--glass-border)',
       borderRadius: 20,
+      color: 'var(--text-muted)',
     }}>
-      <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>{icon}</div>
-      <p style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>{message}</p>
+      <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center', opacity: 0.7 }}>{icon}</div>
+      <p style={{ fontSize: '1rem' }}>{message ?? text}</p>
     </div>
   );
 }

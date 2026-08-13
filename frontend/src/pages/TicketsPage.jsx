@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { Mail, Phone, Calendar } from 'lucide-react';
 import StatCard from '../components/StatCard.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import Modal from '../components/Modal.jsx';
@@ -75,7 +76,7 @@ export default function TicketsPage() {
       </div>
 
       {loading ? <Loading text="Loading tickets..." /> : tickets.length === 0 ? (
-        <EmptyState message="No support tickets yet" icon="📋" />
+        <EmptyState message="No support tickets yet" />
       ) : (
         <div style={{ display: 'grid', gap: '1rem' }}>
           {[...tickets].reverse().map(ticket => (
@@ -100,10 +101,10 @@ export default function TicketsPage() {
               <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '1rem' }}>
                 {ticket.issue ? (ticket.issue.length > 120 ? ticket.issue.substring(0, 120) + '...' : ticket.issue) : 'No description'}
               </div>
-              <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                <span>📧 {ticket.email || 'No email'}</span>
-                <span>📱 {ticket.phone || 'No phone'}</span>
-                <span>📅 {new Date(ticket.created_at).toLocaleDateString()}</span>
+              <div style={{ display: 'flex', gap: '1.25rem', fontSize: '0.8rem', color: 'var(--text-muted)', alignItems: 'center' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Mail size={13} /> {ticket.email || 'No email'}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Phone size={13} /> {ticket.phone || 'No phone'}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Calendar size={13} /> {new Date(ticket.created_at).toLocaleDateString()}</span>
               </div>
             </div>
           ))}
