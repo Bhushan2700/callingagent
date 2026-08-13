@@ -94,7 +94,6 @@ export default function TicketsPage() {
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.background = 'var(--glass)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--brand-accent)', background: 'rgba(20,184,166,0.12)', padding: '0.25rem 0.75rem', borderRadius: 20 }}>{ticket.id}</span>
                 <StatusBadge status={ticket.status} />
               </div>
               <div style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.5rem' }}>{ticket.name || 'Unknown'}</div>
@@ -140,7 +139,7 @@ export default function TicketsPage() {
         </form>
       </Modal>
 
-      <Modal open={detailOpen} onClose={() => setDetailOpen(false)} title={currentTicket ? `Ticket ${currentTicket.id}` : ''}>
+      <Modal open={detailOpen} onClose={() => setDetailOpen(false)} title={currentTicket ? `Ticket from ${currentTicket.name || 'customer'}` : ''}>
         {currentTicket && (
           <>
             <div style={{ marginBottom: '1rem' }}>

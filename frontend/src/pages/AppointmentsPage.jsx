@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar } from 'lucide-react';
 import { getAppointments } from '../api/admin.js';
 import EmptyState from '../components/EmptyState.jsx';
+import { resolveLabel, SOURCE_LABELS, APPT_STATUS_LABELS } from '../lib/labels.js';
 
 export default function AppointmentsPage() {
   const [data, setData] = useState({ appointments: [], total: 0 });
@@ -63,11 +64,11 @@ export default function AppointmentsPage() {
                     <td style={{ padding: '0.75rem', color: 'var(--text-secondary)' }}>{a.start_time ? new Date(a.start_time).toLocaleString() : '—'}</td>
                     <td style={{ padding: '0.75rem', color: 'var(--text-muted)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.event_type || '—'}</td>
                     <td style={{ padding: '0.75rem' }}>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: a.source === 'ai' ? '#5eead4' : '#94a3b8' }}>{a.source || 'external'}</span>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: a.source === 'ai' ? '#5eead4' : '#94a3b8' }}>{resolveLabel(a.source, SOURCE_LABELS)}</span>
                     </td>
                     <td style={{ padding: '0.75rem 1.25rem' }}>
                       <span style={{ display: 'inline-flex', padding: '0.15rem 0.6rem', borderRadius: 20, fontSize: '0.72rem', fontWeight: 600, background: `${statusColor(a.status)}1f`, color: statusColor(a.status) }}>
-                        {a.status || 'unknown'}
+                        {resolveLabel(a.status, APPT_STATUS_LABELS)}
                       </span>
                     </td>
                   </tr>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Brain, Wrench, Activity } from 'lucide-react';
 import { getAiPerformance } from '../api/admin.js';
 import StatCard from '../components/StatCard.jsx';
+import { resolveLabel, RESOLUTION_LABELS, RESOLUTION_COLORS, TOOL_LABELS } from '../lib/labels.js';
 
 export default function AnalyticsPage() {
   const [days, setDays] = useState(30);
@@ -15,11 +16,6 @@ export default function AnalyticsPage() {
 
   const maxTool = Math.max(1, ...data.tool_usage.map(t => t.count));
   const totalMsg = data.confidence_series.reduce((s, c) => s + c.count, 0);
-
-  const resolutionColors = {
-    ai_resolved: '#6ee7b7', appointment_completed: '#5eead4', ticket_created: '#93c5fd',
-    human_resolved: '#fbbf24', escalated: '#fbbf24', abandoned: '#fca5a5', unresolved: '#f87171',
-  };
 
   return (
     <div style={{ padding: '2rem', maxWidth: 1000, margin: '0 auto', width: '100%' }}>
@@ -49,10 +45,10 @@ export default function AnalyticsPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
               {Object.entries(data.resolution_breakdown).map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 4, background: resolutionColors[k] || '#64748b', flexShrink: 0 }} />
-                  <span style={{ textTransform: 'capitalize', color: 'var(--text-secondary)', minWidth: 150 }}>{k.replace('_', ' ')}</span>
+                  <span style={{ width: 8, height: 8, borderRadius: 4, background: RESOLUTION_COLORS[k] || '#64748b', flexShrink: 0 }} />
+                  <span style={{ textTransform: 'capitalize', color: 'var(--text-secondary)', minWidth: 150 }}>{resolveLabel(k, RESOLUTION_LABELS)}</span>
                   <div style={{ flex: 1, height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
-                    <div style={{ width: `${(v / data.total_calls) * 100}%`, height: '100%', background: resolutionColors[k] || '#64748b', borderRadius: 4 }} />
+                    <div style={{ width: `${(v / data.total_calls) * 100}%`, height: '100%', background: RESOLUTION_COLORS[k] || '#64748b', borderRadius: 4 }} />
                   </div>
                   <span style={{ color: '#e2e8f0', fontWeight: 600, minWidth: 24, textAlign: 'right' }}>{v}</span>
                 </div>
@@ -67,7 +63,7 @@ export default function AnalyticsPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
               {data.tool_usage.map(t => (
                 <div key={t.tool} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem' }}>
-                  <span style={{ color: 'var(--text-secondary)', minWidth: 170 }}>{t.tool}</span>
+                  <span style={{ color: 'var(--text-secondary)', minWidth: 170 }}>{resolveLabel(t.tool, TOOL_LABELS)}</span>
                   <div style={{ flex: 1, height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
                     <div style={{ width: `${(t.count / maxTool) * 100}%`, height: '100%', background: 'linear-gradient(90deg, #2563eb, #14b8a6)', borderRadius: 4 }} />
                   </div>

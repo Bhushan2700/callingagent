@@ -4,16 +4,9 @@ import { useAuth } from '../contexts/AuthContext.jsx';
 const links = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/calls', label: 'Calls' },
-  { to: '/conversations', label: 'Conversations' },
-  { to: '/appointments', label: 'Appointments' },
-  { to: '/knowledge-gaps', label: 'Knowledge Gaps' },
-  { to: '/analytics', label: 'Analytics' },
-  { to: '/voice-center', label: 'Voice Center' },
-  { to: '/voice', label: 'Voice Agent' },
-  { to: '/tickets', label: 'Tickets' },
   { to: '/documents', label: 'Documents' },
-  { to: '/admin/widget', label: 'Widget' },
-  { to: '/setup', label: 'Setup Guide' },
+  { to: '/tickets', label: 'Tickets' },
+  { to: '/voice', label: 'Voice Agent' },
 ];
 
 export default function Navbar() {

@@ -1857,6 +1857,27 @@ async def admin_dashboard(request: Request, from_: str = "", to: str = "", days:
             for r in cur.fetchall():
                 attention.append({"type": "unresolved_call", "title": r[0] or r[1] or "Unknown caller", "meta": str(r[2]), "status": "needs_review", "at": str(r[2])})
 
+        # Intent breakdown for charts
+        intent_breakdown = {}
+        if _table_exists("messages"):
+            cur.execute("""
+                SELECT intent, COUNT(*) FROM messages
+                WHERE tenant_id = %s AND intent IS NOT NULL AND intent != ''
+                AND created_at::date BETWEEN %s AND %s
+                GROUP BY intent ORDER BY COUNT(*) DESC
+            """, (tenant_id, start, end))
+            intent_breakdown = {r[0]: int(r[1]) for r in cur.fetchall()}
+
+        # Resolution breakdown for funnel chart
+        resolution_breakdown = {}
+        if _table_exists("calls"):
+            cur.execute("""
+                SELECT resolution_status, COUNT(*) FROM calls
+                WHERE tenant_id = %s AND started_at::date BETWEEN %s AND %s
+                GROUP BY resolution_status ORDER BY COUNT(*) DESC
+            """, (tenant_id, start, end))
+            resolution_breakdown = {r[0]: int(r[1]) for r in cur.fetchall()}
+
         knowledge_gaps = 0
         if _table_exists("knowledge_gaps"):
             cur.execute("SELECT COUNT(*) FROM knowledge_gaps WHERE tenant_id = %s AND status = 'new'", (tenant_id,))
@@ -1872,6 +1893,8 @@ async def admin_dashboard(request: Request, from_: str = "", to: str = "", days:
         "upcoming_appointments": upcoming,
         "needs_attention": attention[:8],
         "knowledge_gaps_new": int(knowledge_gaps or 0),
+        "intent_breakdown": intent_breakdown,
+        "resolution_breakdown": resolution_breakdown,
     }
 
 

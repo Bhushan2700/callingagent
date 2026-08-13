@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ChevronLeft, Phone, FileText, Wrench, BookOpen } from 'lucide-react';
 import { getCallDetail } from '../api/admin.js';
+import { resolveLabel, RESOLUTION_LABELS, TOOL_LABELS } from '../lib/labels.js';
 
 export default function CallDetailPage() {
   const { callId } = useParams();
@@ -30,7 +31,7 @@ export default function CallDetailPage() {
       <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
         {call.started_at ? new Date(call.started_at).toLocaleString() : ''}
         {call.duration_seconds ? ` · ${Math.floor(call.duration_seconds / 60)}m ${call.duration_seconds % 60}s` : ''}
-        {call.resolution_status ? ` · ${call.resolution_status.replace('_', ' ')}` : ''}
+        {call.resolution_status ? ` · ${resolveLabel(call.resolution_status, RESOLUTION_LABELS)}` : ''}
       </p>
 
       {call.summary && (
@@ -71,7 +72,7 @@ export default function CallDetailPage() {
                     )}
                     {(m.tools_used && m.tools_used.length > 0) && (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.7rem', color: '#5eead4', marginTop: 3 }}>
-                        <Wrench size={11} /> {m.tools_used.join(', ')}
+                        <Wrench size={11} /> {m.tools_used.map(t => resolveLabel(t, TOOL_LABELS)).join(', ')}
                       </span>
                     )}
                   </div>
@@ -85,7 +86,7 @@ export default function CallDetailPage() {
       {call.resolution_status && (
         <div style={{ marginTop: '1.25rem', display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
           <FileText size={15} color="#94a3b8" />
-          Resolved: <strong style={{ color: '#e2e8f0', textTransform: 'capitalize' }}>{call.resolution_status.replace('_', ' ')}</strong>
+          Resolved: <strong style={{ color: '#e2e8f0', textTransform: 'capitalize' }}>{resolveLabel(call.resolution_status, RESOLUTION_LABELS)}</strong>
           {call.resolved_by && <span style={{ color: 'var(--text-muted)' }}>· by {call.resolved_by}</span>}
           {call.resolution_reason && <span style={{ color: 'var(--text-muted)' }}>· {call.resolution_reason}</span>}
         </div>

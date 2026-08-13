@@ -16,7 +16,6 @@ import ConversationsPage from './pages/ConversationsPage.jsx';
 import AppointmentsPage from './pages/AppointmentsPage.jsx';
 import KnowledgeGapsPage from './pages/KnowledgeGapsPage.jsx';
 import AnalyticsPage from './pages/AnalyticsPage.jsx';
-import VoiceControlCenterPage from './pages/VoiceControlCenterPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
@@ -30,7 +29,7 @@ function AppContent() {
   const showNav = !noNav.includes(location.pathname);
 
   return (
-    <>
+    <div className={showNav ? 'app-shell' : ''}>
       {showNav && <Navbar />}
       <div className="page-container">
         <Routes>
@@ -43,12 +42,10 @@ function AppContent() {
           <Route path="/calls" element={<ProtectedRoute><CallsPage /></ProtectedRoute>} />
           <Route path="/calls/:callId" element={<ProtectedRoute><CallDetailPage /></ProtectedRoute>} />
           <Route path="/conversations" element={<ProtectedRoute><ConversationsPage /></ProtectedRoute>} />
-          <Route path="/conversations/:convId" element={<ProtectedRoute><ConversationsPage /></ProtectedRoute>} />
           <Route path="/appointments" element={<ProtectedRoute><AppointmentsPage /></ProtectedRoute>} />
           <Route path="/knowledge-gaps" element={<ProtectedRoute><KnowledgeGapsPage /></ProtectedRoute>} />
           <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
           <Route path="/voice" element={<ProtectedRoute><VoicePage /></ProtectedRoute>} />
-          <Route path="/voice-center" element={<ProtectedRoute><VoiceControlCenterPage /></ProtectedRoute>} />
           <Route path="/widget" element={<WidgetDemoPage />} />
           <Route path="/setup" element={<SetupGuide />} />
           <Route path="/tickets" element={<ProtectedRoute><TicketsPage /></ProtectedRoute>} />
@@ -58,7 +55,7 @@ function AppContent() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
-    </>
+    </div>
   );
 }
 

@@ -164,7 +164,7 @@ export default function DocumentsPage() {
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.transform = 'translateX(0)' }}
             >
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 500, color: '#fff' }}>{doc.doc_id}</div>
+                <div style={{ fontWeight: 500, color: '#fff' }}>{doc.doc_id.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</div>
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
                   {doc.chunk_count} chunks • {doc.doc_type}
                 </div>
