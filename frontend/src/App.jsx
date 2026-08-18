@@ -46,7 +46,7 @@ function AppContent() {
           <Route path="/knowledge-gaps" element={<ProtectedRoute><KnowledgeGapsPage /></ProtectedRoute>} />
           <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
           <Route path="/voice" element={<ProtectedRoute><VoicePage /></ProtectedRoute>} />
-          <Route path="/widget" element={<WidgetDemoPage />} />
+          <Route path="/widget" element={<ProtectedRoute><WidgetDemoPage /></ProtectedRoute>} />
           <Route path="/setup" element={<SetupGuide />} />
           <Route path="/tickets" element={<ProtectedRoute><TicketsPage /></ProtectedRoute>} />
           <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
