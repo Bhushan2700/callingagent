@@ -4,13 +4,13 @@ import { getConversations, getConversationDetail } from '../api/admin.js';
 import EmptyState from '../components/EmptyState.jsx';
 
 const STATUS_META = {
-  ai_resolved: { color: '#6ee7b7', label: 'AI Resolved' },
-  appointment_completed: { color: '#5eead4', label: 'Appointment Booked' },
-  ticket_created: { color: '#93c5fd', label: 'Ticket Created' },
-  human_resolved: { color: '#fbbf24', label: 'Human Resolved' },
-  escalated: { color: '#fbbf24', label: 'Escalated' },
-  abandoned: { color: '#fca5a5', label: 'Abandoned' },
-  unresolved: { color: '#f87171', label: 'Unresolved' },
+  ai_resolved: { color: '#7FB800', label: 'AI Resolved' },
+  appointment_completed: { color: '#7FB800', label: 'Appointment Booked' },
+  ticket_created: { color: '#41808B', label: 'Ticket Created' },
+  human_resolved: { color: '#7FB800', label: 'Human Resolved' },
+  escalated: { color: '#7FB800', label: 'Escalated' },
+  abandoned: { color: '#F46036', label: 'Abandoned' },
+  unresolved: { color: '#F46036', label: 'Unresolved' },
 };
 
 export default function ConversationsPage() {
@@ -38,7 +38,7 @@ export default function ConversationsPage() {
   };
 
   const totalPages = Math.max(1, Math.ceil(data.total / perPage));
-  const roleColor = (r) => (r === 'assistant' ? '#5eead4' : r === 'tool' ? '#93c5fd' : '#fbbf24');
+  const roleColor = (r) => (r === 'assistant' ? '#7FB800' : r === 'tool' ? '#41808B' : '#7FB800');
   const roleLabel = (r) => (r === 'assistant' ? 'Assistant' : r === 'tool' ? 'Tool' : 'Caller');
 
   return (
@@ -47,7 +47,7 @@ export default function ConversationsPage() {
       <p style={{ color: 'var(--text-secondary)', margin: '0.25rem 0 1.25rem', fontSize: '0.9rem' }}>{data.total} conversation{data.total === 1 ? '' : 's'}</p>
 
       <div style={{ marginBottom: '1.25rem' }}>
-        <select value={status} onChange={e => { setStatus(e.target.value); setPage(1); }} style={{ padding: '0.55rem 0.8rem', borderRadius: 10, border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.03)', color: '#e2e8f0', fontSize: '0.85rem' }}>
+        <select value={status} onChange={e => { setStatus(e.target.value); setPage(1); }} style={{ padding: '0.55rem 0.8rem', borderRadius: 10, border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.65)', color: '#41808B', fontSize: '0.85rem' }}>
           <option value="">All statuses</option>
           {Object.entries(STATUS_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
         </select>
@@ -58,7 +58,7 @@ export default function ConversationsPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {data.conversations.map(c => {
-            const meta = STATUS_META[c.resolution_status] || { color: '#64748b', label: c.resolution_status || 'Unknown' };
+            const meta = STATUS_META[c.resolution_status] || { color: '#41808B', label: c.resolution_status || 'Unknown' };
             return (
               <div key={c.id} style={{ background: 'var(--glass)', backdropFilter: 'blur(20px)', border: '1px solid var(--glass-border)', borderRadius: 14, overflow: 'hidden' }}>
                 <button onClick={() => toggle(c.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.9rem 1.25rem', background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', textAlign: 'left' }}>
@@ -68,7 +68,7 @@ export default function ConversationsPage() {
                   </span>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{new Date(c.updated_at).toLocaleString()}</span>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.15rem 0.6rem', borderRadius: 20, fontSize: '0.7rem', fontWeight: 600, background: `${meta.color}1f`, color: meta.color }}>{meta.label}</span>
-                  {expanded === c.id ? <ChevronUp size={15} color="#94a3b8" /> : <ChevronDown size={15} color="#94a3b8" />}
+                  {expanded === c.id ? <ChevronUp size={15} color="#57A3AF" /> : <ChevronDown size={15} color="#57A3AF" />}
                 </button>
                 {expanded === c.id && (
                   <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: '0.7rem', maxHeight: 380, overflowY: 'auto' }}>
@@ -80,12 +80,12 @@ export default function ConversationsPage() {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <span style={{ color: 'var(--text-secondary)', fontSize: '0.84rem', lineHeight: 1.5, wordBreak: 'break-word' }}>{m.content}</span>
                           {(m.sources && m.sources.length > 0) && m.sources.map((s, j) => (
-                            <span key={j} style={{ display: 'block', fontSize: '0.68rem', color: '#93c5fd', marginTop: 2 }}>
+                            <span key={j} style={{ display: 'block', fontSize: '0.68rem', color: '#41808B', marginTop: 2 }}>
                               <BookOpen size={10} style={{ verticalAlign: -1 }} /> {s.document_name || s.document_id}{s.section ? ` · ${s.section}` : ''}
                             </span>
                           ))}
                           {(m.tools_used && m.tools_used.length > 0) && (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.68rem', color: '#5eead4', marginTop: 3 }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.68rem', color: '#7FB800', marginTop: 3 }}>
                               <Wrench size={10} /> {m.tools_used.join(', ')}
                             </span>
                           )}
@@ -113,5 +113,5 @@ export default function ConversationsPage() {
 }
 
 function pagerStyle(disabled) {
-  return { padding: '0.4rem 0.8rem', borderRadius: 8, border: '1px solid var(--glass-border)', background: 'transparent', color: disabled ? '#475569' : '#e2e8f0', cursor: disabled ? 'default' : 'pointer', fontSize: '0.8rem' };
+  return { padding: '0.4rem 0.8rem', borderRadius: 8, border: '1px solid var(--glass-border)', background: 'transparent', color: disabled ? '#57A3AF' : '#41808B', cursor: disabled ? 'default' : 'pointer', fontSize: '0.8rem' };
 }

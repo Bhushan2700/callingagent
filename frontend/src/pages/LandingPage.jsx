@@ -95,7 +95,7 @@ export default function LandingPage() {
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: '1rem 2.5rem',
-        background: 'rgba(2,6,23,0.7)',
+        background: 'rgba(229,236,233,0.7)',
         backdropFilter: 'blur(20px)',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
       }}>
@@ -123,7 +123,7 @@ export default function LandingPage() {
               cursor: 'pointer',
               transition: 'all 0.3s',
             }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--glass-hover)'; e.currentTarget.style.color = '#fff' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--glass-hover)'; e.currentTarget.style.color = '#41808B' }}
               onMouseLeave={e => { e.currentTarget.style.background = 'var(--glass)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
             >
               Login
@@ -160,8 +160,8 @@ export default function LandingPage() {
         position: 'relative',
         overflow: 'hidden',
         backgroundImage: `
-          radial-gradient(circle at 20% 30%, rgba(37,99,235,0.16) 0%, transparent 50%),
-          radial-gradient(circle at 80% 70%, rgba(6,182,212,0.12) 0%, transparent 50%)
+          radial-gradient(circle at 20% 30%, rgba(87,163,175,0.16) 0%, transparent 50%),
+          radial-gradient(circle at 80% 70%, rgba(87,163,175,0.12) 0%, transparent 50%)
         `,
       }}
         id="hero"
@@ -171,9 +171,9 @@ export default function LandingPage() {
             display: 'inline-block',
             padding: '0.5rem 1.25rem',
             borderRadius: 20,
-            background: 'rgba(20,184,166,0.12)',
-            border: '1px solid rgba(20,184,166,0.3)',
-            color: '#5eead4',
+            background: 'rgba(87,163,175,0.12)',
+            border: '1px solid rgba(87,163,175,0.3)',
+            color: '#7FB800',
             fontSize: '0.85rem',
             fontWeight: 600,
             marginBottom: '1.5rem',
@@ -190,20 +190,20 @@ export default function LandingPage() {
             alignItems: 'center',
             justifyContent: 'center',
             flexWrap: 'wrap',
-            background: 'linear-gradient(135deg, #fff 0%, #7dd3fc 50%, #2DD4BF 100%)',
+            background: 'linear-gradient(135deg, #41808B 0%, #57A3AF 50%, #7FB800 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
           }}>
             {typedText}
             <span style={{
-              WebkitTextFillColor: '#2DD4BF',
+              WebkitTextFillColor: '#7FB800',
               animation: 'blink 1s step-end infinite',
               marginLeft: '2px',
             }}>|</span>
           </h1>
           <p style={{
             fontSize: '1.2rem',
-            color: '#94a3b8',
+            color: '#57A3AF',
             lineHeight: 1.6,
             marginBottom: '2.5rem',
             maxWidth: 600,
@@ -242,7 +242,7 @@ export default function LandingPage() {
                 borderRadius: 14,
                 border: '1px solid var(--glass-border)',
                 background: 'var(--glass)',
-                color: 'white',
+                color: '#41808B',
                 fontWeight: 700,
                 fontSize: '1rem',
                 cursor: 'pointer',
@@ -260,7 +260,7 @@ export default function LandingPage() {
           </p>
         </div>
         <div style={{ position: 'absolute', bottom: '2rem', left: 0, right: 0, textAlign: 'center' }}>
-          <ChevronDown size={32} color="#64748b" style={{ animation: 'bounce 2s infinite' }} />
+          <ChevronDown size={32} color="#41808B" style={{ animation: 'bounce 2s infinite' }} />
         </div>
       </div>
 
@@ -268,7 +268,7 @@ export default function LandingPage() {
         <div style={{ padding: '5rem 2rem', maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
             <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '1rem' }}>How It Works</h2>
-            <p style={{ color: '#94a3b8', fontSize: '1.05rem', maxWidth: 600, margin: '0 auto' }}>
+            <p style={{ color: '#57A3AF', fontSize: '1.05rem', maxWidth: 600, margin: '0 auto' }}>
               Get your AI receptionist running in minutes. Three simple steps.
             </p>
           </div>
@@ -291,7 +291,7 @@ export default function LandingPage() {
                 transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
                 transitionDelay: `${i * 0.1}s`,
               }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--brand-accent)'; e.currentTarget.style.transform = 'translateY(-6px) scale(1.02)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(37,99,235,0.18)' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--brand-accent)'; e.currentTarget.style.transform = 'translateY(-6px) scale(1.02)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(87,163,175,0.18)' }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.transform = 'translateY(0) scale(1)'; e.currentTarget.style.boxShadow = 'none' }}
               >
                 <div style={{
@@ -304,7 +304,7 @@ export default function LandingPage() {
                   {item.step}
                 </div>
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '0.75rem' }}>{item.title}</h3>
-                <p style={{ color: '#94a3b8', fontSize: '0.9rem', lineHeight: 1.6 }}>{item.desc}</p>
+                <p style={{ color: '#57A3AF', fontSize: '0.9rem', lineHeight: 1.6 }}>{item.desc}</p>
               </div>
             ))}
           </div>
@@ -316,7 +316,7 @@ export default function LandingPage() {
           <div style={{ maxWidth: 1200, margin: '0 auto' }}>
             <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
               <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '1rem' }}>Everything You Need</h2>
-              <p style={{ color: '#94a3b8', fontSize: '1.05rem', maxWidth: 600, margin: '0 auto' }}>
+              <p style={{ color: '#57A3AF', fontSize: '1.05rem', maxWidth: 600, margin: '0 auto' }}>
                 A complete AI receptionist platform — no piecemeal integrations.
               </p>
             </div>
@@ -336,23 +336,23 @@ export default function LandingPage() {
                     transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
                     transitionDelay: `${i * 0.05}s`,
                   }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--brand-accent)'; e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(37,99,235,0.18)' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--brand-accent)'; e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(87,163,175,0.18)' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.transform = 'translateY(0) scale(1)'; e.currentTarget.style.boxShadow = 'none' }}
                   >
                     <div style={{
                       width: 44, height: 44,
                       borderRadius: 12,
-                      background: 'linear-gradient(135deg, rgba(37,99,235,0.18), rgba(37,99,235,0.18))',
-                      border: '1px solid rgba(37,99,235,0.18)',
+                      background: 'linear-gradient(135deg, rgba(87,163,175,0.18), rgba(87,163,175,0.18))',
+                      border: '1px solid rgba(87,163,175,0.18)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       marginBottom: '1rem',
                     }}>
-                      <Icon size={22} color="#5eead4" />
+                      <Icon size={22} color="#7FB800" />
                     </div>
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.5rem' }}>{feat.title}</h3>
-                    <p style={{ color: '#94a3b8', fontSize: '0.9rem', lineHeight: 1.6 }}>{feat.desc}</p>
+                    <p style={{ color: '#57A3AF', fontSize: '0.9rem', lineHeight: 1.6 }}>{feat.desc}</p>
                   </div>
                 );
               })}
@@ -365,7 +365,7 @@ export default function LandingPage() {
         <div style={{ padding: '5rem 2rem', maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
             <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '1rem' }}>Who It's For</h2>
-            <p style={{ color: '#94a3b8', fontSize: '1.05rem', maxWidth: 600, margin: '0 auto' }}>
+            <p style={{ color: '#57A3AF', fontSize: '1.05rem', maxWidth: 600, margin: '0 auto' }}>
               Perfect for any business that wants to automate front-desk operations.
             </p>
           </div>
@@ -388,24 +388,24 @@ export default function LandingPage() {
                   transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
                   transitionDelay: `${i * 0.05}s`,
                 }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--brand-accent)'; e.currentTarget.style.transform = 'translateX(4px)'; e.currentTarget.style.boxShadow = '0 0 20px rgba(6,182,212,0.18)' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--brand-accent)'; e.currentTarget.style.transform = 'translateX(4px)'; e.currentTarget.style.boxShadow = '0 0 20px rgba(87,163,175,0.18)' }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.boxShadow = 'none' }}
                 >
                   <div style={{
                     width: 44, height: 44,
                     borderRadius: 12,
-                    background: 'linear-gradient(135deg, rgba(37,99,235,0.18), rgba(37,99,235,0.18))',
-                    border: '1px solid rgba(37,99,235,0.18)',
+                    background: 'linear-gradient(135deg, rgba(87,163,175,0.18), rgba(87,163,175,0.18))',
+                    border: '1px solid rgba(87,163,175,0.18)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
                   }}>
-                    <Icon size={22} color="#5eead4" />
+                    <Icon size={22} color="#7FB800" />
                   </div>
                   <div>
                     <h3 style={{ fontSize: '1.05rem', fontWeight: 600, marginBottom: '0.3rem' }}>{uc.title}</h3>
-                    <p style={{ color: '#94a3b8', fontSize: '0.88rem', lineHeight: 1.5 }}>{uc.desc}</p>
+                    <p style={{ color: '#57A3AF', fontSize: '0.88rem', lineHeight: 1.5 }}>{uc.desc}</p>
                   </div>
                 </div>
               );
@@ -418,13 +418,13 @@ export default function LandingPage() {
         <div style={{
           padding: '4rem 2rem',
           textAlign: 'center',
-          background: 'rgba(6,182,212,0.08)',
-          borderTop: '1px solid rgba(6,182,212,0.18)',
+          background: 'rgba(87,163,175,0.08)',
+          borderTop: '1px solid rgba(87,163,175,0.18)',
         }}>
           <h2 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '1rem' }}>
             Ready to Try It?
           </h2>
-          <p style={{ color: '#94a3b8', fontSize: '1.05rem', marginBottom: '2rem', maxWidth: 500, margin: '0 auto 2rem' }}>
+          <p style={{ color: '#57A3AF', fontSize: '1.05rem', marginBottom: '2rem', maxWidth: 500, margin: '0 auto 2rem' }}>
             Set up your AI receptionist in minutes. Start free.
           </p>
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -452,7 +452,7 @@ export default function LandingPage() {
                 borderRadius: 14,
                 border: '1px solid var(--glass-border)',
                 background: 'var(--glass)',
-                color: 'white',
+                color: '#41808B',
                 fontWeight: 700,
                 fontSize: '1.05rem',
                 cursor: 'pointer',
@@ -471,7 +471,7 @@ export default function LandingPage() {
         padding: '2rem',
         borderTop: '1px solid var(--glass-border)',
         textAlign: 'center',
-        color: '#64748b',
+        color: '#41808B',
         fontSize: '0.85rem',
       }}>
         Loggix AI Receptionist &copy; {new Date().getFullYear()} Loggix. All rights reserved.

@@ -72,7 +72,7 @@ const platforms = [
     tenantId: "YOUR_TENANT_ID",
     title: "My Support",
     greeting: "Hi! How can I help?",
-    primaryColor: "#14B8A6"
+    primaryColor: "#57A3AF"
   };
   </script>
   <script src="https://your-railway-url.up.railway.app/static/widget.js"></script>
@@ -90,7 +90,7 @@ export default function Layout({ children }) {
       tenantId: "YOUR_TENANT_ID",
       title: "My Support",
       greeting: "Hi! How can I help?",
-      primaryColor: "#14B8A6"
+      primaryColor: "#57A3AF"
     };
     const script = document.createElement('script');
     script.src = "https://your-railway-url.up.railway.app/static/widget.js";
@@ -110,7 +110,7 @@ window.LoggixWidget = {
   tenantId: "YOUR_TENANT_ID",
   title: "My Support",
   greeting: "Hi! How can I help?",
-  primaryColor: "#14B8A6"
+  primaryColor: "#57A3AF"
 };
 </script>
 <script src="https://your-railway-url.up.railway.app/static/widget.js"></script>`,
@@ -133,13 +133,13 @@ export default function SetupGuide() {
           fontSize: '2rem',
           fontWeight: 800,
           marginBottom: '0.75rem',
-          background: 'linear-gradient(135deg, #fff 0%, #14B8A6 100%)',
+          background: 'linear-gradient(135deg, #41808B 0%, #57A3AF 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
         }}>
           Setup Guide
         </h1>
-        <p style={{ color: '#94a3b8', fontSize: '1rem', maxWidth: 500, margin: '0 auto' }}>
+        <p style={{ color: '#57A3AF', fontSize: '1rem', maxWidth: 500, margin: '0 auto' }}>
           Get your AI receptionist running in under 5 minutes. Follow these steps.
         </p>
       </div>
@@ -159,19 +159,19 @@ export default function SetupGuide() {
                 <div style={{
                   width: 48, height: 48,
                   borderRadius: 14,
-                  background: 'rgba(20,184,166,0.15)',
+                  background: 'rgba(87,163,175,0.15)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
                 }}>
-                  <Icon size={24} color="#14B8A6" />
+                  <Icon size={24} color="#57A3AF" />
                 </div>
                 <div>
                   <div style={{
                     fontSize: '0.75rem',
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: '#41808B',
                     marginBottom: '0.25rem',
                   }}>
                     STEP {i + 1}
@@ -179,13 +179,13 @@ export default function SetupGuide() {
                   <h2 style={{ fontSize: '1.3rem', fontWeight: 700 }}>{step.title}</h2>
                 </div>
               </div>
-              <p style={{ color: '#94a3b8', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '1rem', marginLeft: '4rem' }}>
+              <p style={{ color: '#57A3AF', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '1rem', marginLeft: '4rem' }}>
                 {step.desc}
               </p>
               <div style={{ marginLeft: '4rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {step.details.map((d, j) => (
-                  <div key={j} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', color: '#94a3b8', fontSize: '0.88rem' }}>
-                    <CheckCircle size={16} color="#10b981" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <div key={j} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', color: '#57A3AF', fontSize: '0.88rem' }}>
+                    <CheckCircle size={16} color="#7FB800" style={{ flexShrink: 0, marginTop: 2 }} />
                     <span>{d}</span>
                   </div>
                 ))}
@@ -193,7 +193,7 @@ export default function SetupGuide() {
               {step.link && (
                 <div style={{ marginLeft: '4rem', marginTop: '1rem' }}>
                   <Link to={step.link.to} style={{
-                    color: '#14B8A6',
+                    color: '#57A3AF',
                     fontWeight: 600,
                     fontSize: '0.9rem',
                   }}>
@@ -224,7 +224,7 @@ export default function SetupGuide() {
               <pre style={{
                 padding: '1.5rem',
                 margin: 0,
-                color: '#10b981',
+                color: '#7FB800',
                 fontFamily: "'Courier New', monospace",
                 fontSize: '0.82rem',
                 lineHeight: 1.6,
@@ -239,7 +239,7 @@ export default function SetupGuide() {
 
       <div>
         <h2 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <HelpCircle size={20} color="#14B8A6" /> Frequently Asked Questions
+          <HelpCircle size={20} color="#57A3AF" /> Frequently Asked Questions
         </h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {faqs.map((f, i) => (
@@ -251,7 +251,7 @@ export default function SetupGuide() {
               cursor: 'pointer',
             }}>
               <summary style={{ fontWeight: 600, fontSize: '0.95rem', outline: 'none' }}>{f.q}</summary>
-              <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '0.75rem', lineHeight: 1.5 }}>{f.a}</p>
+              <p style={{ color: '#57A3AF', fontSize: '0.9rem', marginTop: '0.75rem', lineHeight: 1.5 }}>{f.a}</p>
             </details>
           ))}
         </div>

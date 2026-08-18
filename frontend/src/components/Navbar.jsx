@@ -36,7 +36,7 @@ export default function Navbar() {
       <NavLink to="/" style={{
         fontSize: '1.2rem',
         fontWeight: 800,
-        background: 'linear-gradient(135deg, #fff 0%, var(--brand-accent) 100%)',
+        background: 'linear-gradient(135deg, #41808B 0%, var(--brand-accent) 100%)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
         textDecoration: 'none',
@@ -60,7 +60,7 @@ export default function Navbar() {
               fontSize: '0.85rem',
               fontWeight: 600,
               whiteSpace: 'nowrap',
-              color: isActive ? '#fff' : '#94a3b8',
+              color: isActive ? '#fff' : '#57A3AF',
               background: isActive ? 'var(--brand-gradient)' : 'transparent',
               boxShadow: isActive ? '0 4px 12px var(--brand-glow)' : 'none',
               transition: 'all 0.3s',
@@ -78,13 +78,13 @@ export default function Navbar() {
               borderRadius: 8,
               border: '1px solid var(--glass-border)',
               background: 'transparent',
-              color: '#94a3b8',
+              color: '#57A3AF',
               fontSize: '0.8rem',
               cursor: 'pointer',
               transition: 'all 0.3s',
             }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--glass-hover)'; e.currentTarget.style.color = '#fff' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#94a3b8' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--glass-hover)'; e.currentTarget.style.color = '#41808B' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#57A3AF' }}
             >
               Logout
             </button>

@@ -113,8 +113,8 @@ export default function VoicePage() {
       position: 'relative',
       overflow: 'hidden',
       backgroundImage: `
-        radial-gradient(circle at 20% 30%, rgba(37,99,235,0.14) 0%, transparent 50%),
-        radial-gradient(circle at 80% 70%, rgba(239,68,68,0.07) 0%, transparent 50%)
+        radial-gradient(circle at 20% 30%, rgba(87,163,175,0.14) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(244,96,54,0.07) 0%, transparent 50%)
       `,
     }}>
       <div style={{
@@ -136,14 +136,14 @@ export default function VoicePage() {
           alignItems: 'center',
           justifyContent: 'center',
           padding: '3rem',
-          boxShadow: '-20px 20px 50px rgba(0,0,0,0.5), inset 0 0 20px rgba(20,184,166,0.07)',
+          boxShadow: '-20px 20px 50px rgba(0,0,0,0.5), inset 0 0 20px rgba(87,163,175,0.07)',
         }}>
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
             <h1 style={{
               fontSize: '1.5rem',
               fontWeight: 800,
               letterSpacing: '-1px',
-              background: 'linear-gradient(135deg, #fff 0%, var(--brand-accent) 100%)',
+              background: 'linear-gradient(135deg, #41808B 0%, var(--brand-accent) 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
             }}>
@@ -157,7 +157,7 @@ export default function VoicePage() {
               position: 'absolute',
               width: 180, height: 180,
               border: '2px solid var(--glass-border)',
-              borderTopColor: active ? '#10b981' : 'var(--brand-accent)',
+              borderTopColor: active ? '#7FB800' : 'var(--brand-accent)',
               borderRadius: '50%',
               animation: 'spin 3s linear infinite',
             }} />
@@ -165,21 +165,21 @@ export default function VoicePage() {
               position: 'absolute',
               width: 220, height: 220,
               border: '2px solid var(--glass-border)',
-              borderRightColor: active ? '#10b981' : 'var(--brand-accent)',
+              borderRightColor: active ? '#7FB800' : 'var(--brand-accent)',
               borderRadius: '50%',
               animation: 'spin 5s linear infinite reverse',
             }} />
             <div style={{
               width: 120, height: 120,
               background: active
-                ? 'radial-gradient(circle at 30% 30%, #10b981, #065f46)'
-                : 'radial-gradient(circle at 30% 30%, #14B8A6, #0E1730)',
+                ? 'radial-gradient(circle at 30% 30%, #7FB800, #41808B)'
+                : 'radial-gradient(circle at 30% 30%, #57A3AF, #D9E3DF)',
               borderRadius: '50%',
               position: 'relative',
               zIndex: 5,
               boxShadow: active
-                ? '0 0 80px rgba(16,185,129,0.5)'
-                : '0 0 60px rgba(20,184,166,0.4)',
+                ? '0 0 80px rgba(127,184,0,0.5)'
+                : '0 0 60px rgba(87,163,175,0.4)',
               animation: 'float 4s infinite ease-in-out',
             }} />
           </div>
@@ -192,7 +192,7 @@ export default function VoicePage() {
               padding: '1.25rem',
               borderRadius: 20,
               border: 'none',
-              background: connecting ? 'var(--brand-gradient)' : (active ? 'linear-gradient(135deg,#EF4444,#F97316)' : 'var(--brand-gradient)'),
+              background: connecting ? 'var(--brand-gradient)' : (active ? 'linear-gradient(135deg,#F46036,#F46036)' : 'var(--brand-gradient)'),
               color: 'white',
               fontWeight: 700,
               fontSize: '1rem',
@@ -200,8 +200,8 @@ export default function VoicePage() {
               opacity: (!sdkReady && !failed) ? 0.6 : 1,
               transition: 'all 0.3s',
               boxShadow: active
-                ? '0 10px 20px rgba(239,68,68,0.3)'
-                : '0 10px 20px rgba(20,184,166,0.35)',
+                ? '0 10px 20px rgba(244,96,54,0.3)'
+                : '0 10px 20px rgba(87,163,175,0.35)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -213,14 +213,14 @@ export default function VoicePage() {
             <span>{btnIcon}</span>
             <span>{btnLabel}</span>
           </button>
-          <p style={{ marginTop: '1rem', fontSize: '0.75rem', fontWeight: 600, color: active ? '#10b981' : 'var(--text-muted)' }}>
+          <p style={{ marginTop: '1rem', fontSize: '0.75rem', fontWeight: 600, color: active ? '#7FB800' : 'var(--text-muted)' }}>
             {connecting ? 'CONNECTING TO VOICE AGENT...' : (active ? 'LIVE CONNECTION ACTIVE' : 'ENCRYPTED CHANNEL SECURE')}
           </p>
           {error && (
             <div style={{
               marginTop: '0.75rem', padding: '0.75rem 1rem', borderRadius: 12,
-              background: 'var(--error-bg)', border: '1px solid rgba(239,68,68,0.3)',
-              color: '#fca5a5', fontSize: '0.8rem', width: '100%', textAlign: 'center',
+              background: 'var(--error-bg)', border: '1px solid rgba(244,96,54,0.3)',
+              color: '#F46036', fontSize: '0.8rem', width: '100%', textAlign: 'center',
             }}>
               {error}
             </div>

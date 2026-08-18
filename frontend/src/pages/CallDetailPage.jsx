@@ -13,11 +13,11 @@ export default function CallDetailPage() {
     getCallDetail(callId).then(setCall).catch(e => setError(e.message));
   }, [callId]);
 
-  if (error) return <div style={{ padding: '2rem', color: '#fca5a5' }}>{error}</div>;
+  if (error) return <div style={{ padding: '2rem', color: '#F46036' }}>{error}</div>;
   if (!call) return <div style={{ padding: '2rem', color: 'var(--text-muted)' }}>Loading call…</div>;
 
   const msgRole = (r) => (r === 'assistant' ? 'Assistant' : r === 'tool' ? 'Tool call' : 'Caller');
-  const msgColor = (r) => (r === 'assistant' ? '#5eead4' : r === 'tool' ? '#93c5fd' : '#fbbf24');
+  const msgColor = (r) => (r === 'assistant' ? '#7FB800' : r === 'tool' ? '#41808B' : '#7FB800');
 
   return (
     <div style={{ padding: '2rem', maxWidth: 900, margin: '0 auto', width: '100%' }}>
@@ -25,7 +25,7 @@ export default function CallDetailPage() {
         <ChevronLeft size={15} /> Back to calls
       </Link>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-        <Phone size={20} color="#5eead4" />
+        <Phone size={20} color="#7FB800" />
         <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>{call.caller || call.phone || 'Unknown caller'}</h1>
       </div>
       <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
@@ -36,7 +36,7 @@ export default function CallDetailPage() {
 
       {call.summary && (
         <div style={{ background: 'var(--glass)', border: '1px solid var(--glass-border)', borderRadius: 14, padding: '1rem 1.25rem', marginBottom: '1.25rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-          <strong style={{ color: '#e2e8f0' }}>Summary: </strong>{call.summary}
+          <strong style={{ color: '#41808B' }}>Summary: </strong>{call.summary}
         </div>
       )}
 
@@ -64,14 +64,14 @@ export default function CallDetailPage() {
                     {(m.sources && m.sources.length > 0) && (
                       <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
                         {m.sources.map((s, j) => (
-                          <span key={j} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.7rem', color: '#93c5fd' }}>
+                          <span key={j} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.7rem', color: '#41808B' }}>
                             <BookOpen size={11} /> {s.document_name || s.document_id} {s.section ? `· ${s.section}` : ''} {s.final_relevance ? `· score ${s.final_relevance}` : ''}
                           </span>
                         ))}
                       </div>
                     )}
                     {(m.tools_used && m.tools_used.length > 0) && (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.7rem', color: '#5eead4', marginTop: 3 }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.7rem', color: '#7FB800', marginTop: 3 }}>
                         <Wrench size={11} /> {m.tools_used.map(t => resolveLabel(t, TOOL_LABELS)).join(', ')}
                       </span>
                     )}
@@ -85,8 +85,8 @@ export default function CallDetailPage() {
 
       {call.resolution_status && (
         <div style={{ marginTop: '1.25rem', display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-          <FileText size={15} color="#94a3b8" />
-          Resolved: <strong style={{ color: '#e2e8f0', textTransform: 'capitalize' }}>{resolveLabel(call.resolution_status, RESOLUTION_LABELS)}</strong>
+          <FileText size={15} color="#57A3AF" />
+          Resolved: <strong style={{ color: '#41808B', textTransform: 'capitalize' }}>{resolveLabel(call.resolution_status, RESOLUTION_LABELS)}</strong>
           {call.resolved_by && <span style={{ color: 'var(--text-muted)' }}>· by {call.resolved_by}</span>}
           {call.resolution_reason && <span style={{ color: 'var(--text-muted)' }}>· {call.resolution_reason}</span>}
         </div>

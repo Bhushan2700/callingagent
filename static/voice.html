@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Loggix AI | Voice Support</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;800&display=swap');
 
         :root {
-            --brand-blue: #8B5CF6;
-            --brand-glow: rgba(139, 92, 246, 0.4);
-            --bg-dark: #0A0A1A;
+            --brand-blue: #57A3AF;
+            --brand-glow: rgba(87, 163, 175, 0.4);
+            --bg-dark: #E5ECE9;
             --glass: rgba(255, 255, 255, 0.03);
             --glass-border: rgba(255, 255, 255, 0.1);
         }
@@ -19,12 +19,12 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-family: 'Open Sans', sans-serif;
         }
 
         body {
             background-color: var(--bg-dark);
-            color: white;
+            color: #41808B;
             height: 100vh;
             display: flex;
             align-items: center;
@@ -32,8 +32,8 @@
             overflow: hidden;
             perspective: 1000px;
             background-image: 
-                radial-gradient(circle at 20% 30%, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
-                radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.06) 0%, transparent 50%);
+                radial-gradient(circle at 20% 30%, rgba(87, 163, 175, 0.12) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(87, 163, 175, 0.06) 0%, transparent 50%);
         }
 
         .layout-grid {
@@ -82,7 +82,7 @@
         .core-3d {
             width: 120px;
             height: 120px;
-            background: radial-gradient(circle at 30% 30%, var(--brand-blue), #4C1D95);
+            background: radial-gradient(circle at 30% 30%, var(--brand-blue), #41808B);
             border-radius: 50%;
             position: relative;
             z-index: 5;
@@ -108,11 +108,11 @@
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
         .active .core-3d {
-            background: radial-gradient(circle at 30% 30%, #10b981, #065f46);
-            box-shadow: 0 0 80px rgba(16, 185, 129, 0.5);
+            background: radial-gradient(circle at 30% 30%, #7FB800, #41808B);
+            box-shadow: 0 0 80px rgba(127, 184, 0, 0.5);
         }
 
-        .active .ring-3d { border-color: rgba(16, 185, 129, 0.2); }
+        .active .ring-3d { border-color: rgba(127, 184, 0, 0.2); }
 
         /* Transcript Panel */
         .transcript-island {
@@ -124,7 +124,7 @@
             display: flex;
             flex-direction: column;
             height: 100%; /* Fix height to match grid */
-            box-shadow: 10px 10px 30px rgba(0,0,0,0.3);
+            box-shadow: 10px 10px 30px rgba(65,128,139,0.15);
             overflow: hidden; /* Prevent child overflow */
         }
 
@@ -158,13 +158,13 @@
             font-size: 0.85rem;
             margin-bottom: 1rem;
             line-height: 1.5;
-            color: #94a3b8;
+            color: #57A3AF;
             animation: slideIn 0.3s ease forwards;
         }
 
         @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
 
-        .line b { color: white; display: block; font-size: 0.7rem; margin-bottom: 2px; text-transform: uppercase; }
+        .line b { color: #41808B; display: block; font-size: 0.7rem; margin-bottom: 2px; text-transform: uppercase; }
 
         /* Single Control Button */
         .btn-wrap {
@@ -183,7 +183,7 @@
             font-size: 1rem;
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            box-shadow: 0 10px 20px rgba(139, 92, 246, 0.3);
+            box-shadow: 0 10px 20px rgba(87, 163, 175, 0.3);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -192,14 +192,14 @@
 
         .btn-3d:hover {
             transform: translateY(-5px) scale(1.02);
-            box-shadow: 0 15px 30px rgba(139, 92, 246, 0.5);
+            box-shadow: 0 15px 30px rgba(87, 163, 175, 0.5);
         }
 
         .btn-3d:active { transform: translateY(0) scale(0.98); }
 
         .btn-3d.active {
-            background: #ef4444;
-            box-shadow: 0 10px 20px rgba(239, 68, 68, 0.3);
+            background: #F46036;
+            box-shadow: 0 10px 20px rgba(244, 96, 54, 0.3);
         }
 
         .brand-header {
@@ -215,7 +215,7 @@
 
         .brand-sub {
             font-size: 0.7rem;
-            color: #64748b;
+            color: #41808B;
             text-transform: uppercase;
             letter-spacing: 3px;
             margin-top: 4px;
@@ -234,11 +234,11 @@
 </head>
 <body>
     <nav style="display:flex;justify-content:space-between;align-items:center;padding:0.75rem 2rem;background:rgba(255,255,255,0.03);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.1);position:fixed;top:0;left:0;right:0;z-index:100;">
-        <div style="font-size:1.1rem;font-weight:800;background:linear-gradient(135deg,#fff 0%,#8B5CF6 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Loggix AI</div>
+        <div style="font-size:1.1rem;font-weight:800;background:linear-gradient(135deg,#41808B 0%,#57A3AF 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Loggix AI</div>
         <div style="display:flex;gap:0.5rem;">
-            <a href="/voice" style="padding:0.5rem 1rem;border-radius:10px;font-size:0.85rem;font-weight:600;color:#fff;text-decoration:none;background:#8B5CF6;">Voice Agent</a>
-            <a href="/tickets" style="padding:0.5rem 1rem;border-radius:10px;font-size:0.85rem;font-weight:600;color:#94a3b8;text-decoration:none;transition:all 0.3s;">Tickets</a>
-            <a href="/upload" style="padding:0.5rem 1rem;border-radius:10px;font-size:0.85rem;font-weight:600;color:#94a3b8;text-decoration:none;transition:all 0.3s;">Documents</a>
+            <a href="/voice" style="padding:0.5rem 1rem;border-radius:10px;font-size:0.85rem;font-weight:600;color:#fff;text-decoration:none;background:#57A3AF;">Voice Agent</a>
+            <a href="/tickets" style="padding:0.5rem 1rem;border-radius:10px;font-size:0.85rem;font-weight:600;color:#57A3AF;text-decoration:none;transition:all 0.3s;">Tickets</a>
+            <a href="/upload" style="padding:0.5rem 1rem;border-radius:10px;font-size:0.85rem;font-weight:600;color:#57A3AF;text-decoration:none;transition:all 0.3s;">Documents</a>
         </div>
     </nav>
 
@@ -266,7 +266,7 @@
                     <span id="btn-icon">⚡</span>
                     <span id="btn-text">Connect to Support</span>
                 </button>
-                <p id="status-text" style="margin-top: 1rem; font-size: 0.75rem; color: #64748b; font-weight: 600;">ENCRYPTED CHANNEL SECURE</p>
+                <p id="status-text" style="margin-top: 1rem; font-size: 0.75rem; color: #41808B; font-weight: 600;">ENCRYPTED CHANNEL SECURE</p>
             </div>
         </div>
 
@@ -357,7 +357,7 @@
                 btnText.innerText = "Connect to Support";
                 btnIcon.innerText = "⚡";
                 status.innerText = "ENCRYPTED CHANNEL SECURE";
-                status.style.color = "#64748b";
+                status.style.color = "#41808B";
             }
         }
     </script>

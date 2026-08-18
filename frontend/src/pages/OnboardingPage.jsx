@@ -49,13 +49,13 @@ const inputStyle = {
   width: '100%',
   padding: '11px 14px',
   borderRadius: 12,
-  border: '1px solid rgba(255,255,255,0.12)',
-  background: 'rgba(255,255,255,0.05)',
-  color: '#fff',
+  border: '1px solid rgba(65,128,139,0.25)',
+  background: 'rgba(255,255,255,0.65)',
+  color: '#41808B',
   fontSize: '14px',
   outline: 'none',
 };
-const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 600, color: '#94a3b8', marginBottom: 6 };
+const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 600, color: '#57A3AF', marginBottom: 6 };
 const cardStyle = { background: 'var(--glass)', border: '1px solid var(--glass-border)', borderRadius: 24, padding: '2rem', width: 560, maxWidth: '100%' };
 
 export default function OnboardingPage() {
@@ -70,7 +70,7 @@ export default function OnboardingPage() {
     languages: ['English'], voice_id: VOICES[0].id,
     greeting: '', tools_enabled: ['search_knowledge', 'raise_ticket'],
     phone: { mode: 'buy', country: 'US', area_code: '', provider: 'twilio', number: '', credentials: {} },
-    widget: { title: '', primaryColor: '#14B8A6', position: 'bottom-right' },
+    widget: { title: '', primaryColor: '#57A3AF', position: 'bottom-right' },
   });
 
   useEffect(() => {
@@ -151,7 +151,7 @@ export default function OnboardingPage() {
             {phase === 'error' ? (
               <>
                 <h1 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '0.75rem' }}>Almost there</h1>
-                <p style={{ color: '#fca5a5', fontSize: '0.9rem', marginBottom: '1.5rem' }}>{error}</p>
+                <p style={{ color: '#F46036', fontSize: '0.9rem', marginBottom: '1.5rem' }}>{error}</p>
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
                   <button className="btn btn-primary" onClick={() => setPhase('form')}>Back to setup</button>
                   <button className="btn" onClick={provisioningSequence} style={{ background: 'var(--brand-gradient)', color: '#fff', border: 'none', fontWeight: 600, borderRadius: 10, padding: '0.6rem 1.2rem', cursor: 'pointer' }}>Retry</button>
@@ -163,8 +163,8 @@ export default function OnboardingPage() {
                 <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>This takes a few seconds.</p>
                 <div style={{ maxWidth: 360, margin: '0 auto' }}>
                   {PROVISION_STEPS.map((label, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.4rem 0', color: i <= provisionIdx ? '#5eead4' : '#475569', fontSize: '0.9rem', fontWeight: i === provisionIdx ? 700 : 500 }}>
-                      <span style={{ width: 18, height: 18, borderRadius: '50%', flexShrink: 0, border: '2px solid', borderColor: i < provisionIdx ? '#14B8A6' : i === provisionIdx ? '#2DD4BF' : '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.4rem 0', color: i <= provisionIdx ? '#7FB800' : '#57A3AF', fontSize: '0.9rem', fontWeight: i === provisionIdx ? 700 : 500 }}>
+                      <span style={{ width: 18, height: 18, borderRadius: '50%', flexShrink: 0, border: '2px solid', borderColor: i < provisionIdx ? '#57A3AF' : i === provisionIdx ? '#7FB800' : '#57A3AF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>
                         {i < provisionIdx ? <Check size={11} /> : i === provisionIdx ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : ''}
                       </span>
                       {label}
@@ -185,7 +185,7 @@ export default function OnboardingPage() {
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
       <div style={{ width: 620, maxWidth: '100%' }}>
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '1.7rem', fontWeight: 800, marginBottom: '0.5rem', background: 'linear-gradient(135deg, #fff 0%, #2DD4BF 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          <h1 style={{ fontSize: '1.7rem', fontWeight: 800, marginBottom: '0.5rem', background: 'linear-gradient(135deg, #41808B 0%, #7FB800 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
             Set Up Your AI Receptionist
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>We'll build, configure, and wire everything for you.</p>
@@ -197,14 +197,14 @@ export default function OnboardingPage() {
             return (
               <button key={s.key} onClick={() => i < step && setStep(i)} style={{
                 display: 'flex', alignItems: 'center', gap: 6, padding: '0.45rem 0.8rem', borderRadius: 10,
-                border: i === step ? '1px solid rgba(45,212,191,0.4)' : '1px solid var(--glass-border)',
-                background: i === step ? 'rgba(20,184,166,0.12)' : 'var(--glass)',
-                color: i === step ? '#5eead4' : i < step ? '#94a3b8' : '#64748b',
+                border: i === step ? '1px solid rgba(127,184,0,0.4)' : '1px solid var(--glass-border)',
+                background: i === step ? 'rgba(87,163,175,0.12)' : 'var(--glass)',
+                color: i === step ? '#7FB800' : i < step ? '#57A3AF' : '#41808B',
                 fontSize: '12px', fontWeight: 600, cursor: i < step ? 'pointer' : 'default',
               }}>
                 <Icon size={13} />
                 {s.short}
-                {i < step && <Check size={12} color="#14B8A6" />}
+                {i < step && <Check size={12} color="#57A3AF" />}
               </button>
             );
           })}
@@ -258,9 +258,9 @@ export default function OnboardingPage() {
                       set({ languages: has ? form.languages.filter(x => x !== lang) : [...form.languages, lang] });
                     }} style={{
                       padding: '6px 14px', borderRadius: 20, fontSize: '12px', fontWeight: 600, cursor: 'pointer',
-                      border: form.languages.includes(lang) ? '1px solid rgba(45,212,191,0.5)' : '1px solid var(--glass-border)',
-                      background: form.languages.includes(lang) ? 'rgba(20,184,166,0.15)' : 'var(--glass)',
-                      color: form.languages.includes(lang) ? '#5eead4' : '#94a3b8',
+                      border: form.languages.includes(lang) ? '1px solid rgba(127,184,0,0.5)' : '1px solid var(--glass-border)',
+                      background: form.languages.includes(lang) ? 'rgba(87,163,175,0.15)' : 'var(--glass)',
+                      color: form.languages.includes(lang) ? '#7FB800' : '#57A3AF',
                     }}>{lang}</button>
                   ))}
                 </div>
@@ -270,12 +270,12 @@ export default function OnboardingPage() {
                 {VOICES.map(v => (
                   <button key={v.id} type="button" onClick={() => set({ voice_id: v.id })} style={{
                     padding: '12px 14px', borderRadius: 14, textAlign: 'left', cursor: 'pointer',
-                    border: form.voice_id === v.id ? '1.5px solid rgba(45,212,191,0.6)' : '1px solid var(--glass-border)',
-                    background: form.voice_id === v.id ? 'rgba(20,184,166,0.12)' : 'var(--glass)',
+                    border: form.voice_id === v.id ? '1.5px solid rgba(127,184,0,0.6)' : '1px solid var(--glass-border)',
+                    background: form.voice_id === v.id ? 'rgba(87,163,175,0.12)' : 'var(--glass)',
                     transition: 'all 0.2s',
                   }}>
-                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff', marginBottom: 2 }}>{v.name} <span style={{ fontWeight: 500, color: '#64748b', fontSize: 11 }}>({v.gender})</span></div>
-                    <div style={{ fontSize: '11px', color: '#64748b' }}>{v.desc}</div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#41808B', marginBottom: 2 }}>{v.name} <span style={{ fontWeight: 500, color: '#41808B', fontSize: 11 }}>({v.gender})</span></div>
+                    <div style={{ fontSize: '11px', color: '#41808B' }}>{v.desc}</div>
                   </button>
                 ))}
               </div>
@@ -300,16 +300,16 @@ export default function OnboardingPage() {
                 }} style={{
                   width: '100%', display: 'flex', gap: 12, alignItems: 'center', padding: '12px 14px', borderRadius: 14,
                   marginBottom: 8, textAlign: 'left', cursor: 'pointer',
-                  border: form.tools_enabled.includes(cap.key) ? '1.5px solid rgba(45,212,191,0.6)' : '1px solid var(--glass-border)',
-                  background: form.tools_enabled.includes(cap.key) ? 'rgba(20,184,166,0.12)' : 'var(--glass)',
+                  border: form.tools_enabled.includes(cap.key) ? '1.5px solid rgba(127,184,0,0.6)' : '1px solid var(--glass-border)',
+                  background: form.tools_enabled.includes(cap.key) ? 'rgba(87,163,175,0.12)' : 'var(--glass)',
                 }}>
                   <span style={{
                     width: 22, height: 22, borderRadius: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    border: '2px solid', borderColor: form.tools_enabled.includes(cap.key) ? '#2DD4BF' : '#475569', color: '#0A0F1A', background: form.tools_enabled.includes(cap.key) ? '#2DD4BF' : 'transparent', fontSize: 13,
+                    border: '2px solid', borderColor: form.tools_enabled.includes(cap.key) ? '#7FB800' : '#57A3AF', color: '#fff', background: form.tools_enabled.includes(cap.key) ? '#7FB800' : 'transparent', fontSize: 13,
                   }}>{form.tools_enabled.includes(cap.key) ? '✓' : ''}</span>
                   <span>
-                    <span style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#fff' }}>{cap.title}</span>
-                    <span style={{ display: 'block', fontSize: '12px', color: '#64748b' }}>{cap.desc}</span>
+                    <span style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#41808B' }}>{cap.title}</span>
+                    <span style={{ display: 'block', fontSize: '12px', color: '#41808B' }}>{cap.desc}</span>
                   </span>
                 </button>
               ))}
@@ -326,16 +326,16 @@ export default function OnboardingPage() {
                 <button key={opt.mode} type="button" onClick={() => set({ phone: { ...form.phone, mode: opt.mode } })} style={{
                   width: '100%', display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 14,
                   marginBottom: 8, textAlign: 'left', cursor: 'pointer',
-                  border: form.phone.mode === opt.mode ? '1.5px solid rgba(45,212,191,0.6)' : '1px solid var(--glass-border)',
-                  background: form.phone.mode === opt.mode ? 'rgba(20,184,166,0.12)' : 'var(--glass)',
+                  border: form.phone.mode === opt.mode ? '1.5px solid rgba(127,184,0,0.6)' : '1px solid var(--glass-border)',
+                  background: form.phone.mode === opt.mode ? 'rgba(87,163,175,0.12)' : 'var(--glass)',
                 }}>
                   <span style={{
                     width: 22, height: 22, borderRadius: 999, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    border: '2px solid', borderColor: form.phone.mode === opt.mode ? '#2DD4BF' : '#475569',
-                  }}>{form.phone.mode === opt.mode && <span style={{ width: 10, height: 10, borderRadius: 999, background: '#2DD4BF' }} />}</span>
+                    border: '2px solid', borderColor: form.phone.mode === opt.mode ? '#7FB800' : '#57A3AF',
+                  }}>{form.phone.mode === opt.mode && <span style={{ width: 10, height: 10, borderRadius: 999, background: '#7FB800' }} />}</span>
                   <span>
-                    <span style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#fff' }}>{opt.title}</span>
-                    <span style={{ display: 'block', fontSize: '12px', color: '#64748b' }}>{opt.desc}</span>
+                    <span style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#41808B' }}>{opt.title}</span>
+                    <span style={{ display: 'block', fontSize: '12px', color: '#41808B' }}>{opt.desc}</span>
                   </span>
                 </button>
               ))}
@@ -374,7 +374,7 @@ export default function OnboardingPage() {
                         onChange={e => set({ phone: { ...form.phone, credentials: { ...form.phone.credentials, [k]: e.target.value } } })} />
                     </div>
                   ))}
-                  <p style={{ fontSize: '11px', color: '#64748b', marginTop: '0.5rem' }}>Your credentials are forwarded directly to Vapi to power your number. We never store them.</p>
+                  <p style={{ fontSize: '11px', color: '#41808B', marginTop: '0.5rem' }}>Your credentials are forwarded directly to Vapi to power your number. We never store them.</p>
                 </div>
               )}
             </>
@@ -403,31 +403,31 @@ export default function OnboardingPage() {
                   <input style={inputStyle} value={form.widget.primaryColor} onChange={e => set({ widget: { ...form.widget, primaryColor: e.target.value } })} />
                 </div>
               </div>
-              <p style={{ fontSize: '12px', color: '#64748b' }}>You can fine-tune the full widget (colors, icon, greeting) anytime from <b>Widget Config</b> after setup.</p>
+              <p style={{ fontSize: '12px', color: '#41808B' }}>You can fine-tune the full widget (colors, icon, greeting) anytime from <b>Widget Config</b> after setup.</p>
             </>
           )}
 
           {S.key === 'review' && (
             <div style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 2 }}>
               <div style={{ background: 'var(--glass)', borderRadius: 14, padding: '1rem 1.25rem', marginBottom: '0.75rem' }}>
-                <div style={{ color: '#fff', fontWeight: 700, marginBottom: 4 }}>{form.company_name || '—'}</div>
+                <div style={{ color: '#41808B', fontWeight: 700, marginBottom: 4 }}>{form.company_name || '—'}</div>
                 <div>{form.industry || 'No industry'} • {form.languages.join(', ')} • Voice: {VOICES.find(v => v.id === form.voice_id)?.name || 'Default'}</div>
-                <div style={{ fontSize: '13px', color: '#94a3b8' }}>Capabilities: {form.tools_enabled.length ? form.tools_enabled.join(', ') : 'none selected'}</div>
-                <div style={{ fontSize: '13px', color: '#94a3b8' }}>
+                <div style={{ fontSize: '13px', color: '#57A3AF' }}>Capabilities: {form.tools_enabled.length ? form.tools_enabled.join(', ') : 'none selected'}</div>
+                <div style={{ fontSize: '13px', color: '#57A3AF' }}>
                   Phone: {form.phone.mode === 'buy' ? `New number (${form.phone.country}${form.phone.area_code ? ' • ' + form.phone.area_code : ''})` : form.phone.mode === 'import' ? `Import ${form.phone.number || ''}` : 'None yet'}
                 </div>
               </div>
               <div style={{ background: 'var(--glass)', borderRadius: 14, padding: '1rem 1.25rem', marginBottom: '1rem' }}>
-                <div style={{ fontWeight: 700, color: '#fff', marginBottom: 4 }}>Chat widget</div>
-                <div style={{ fontSize: '13px', color: '#94a3b8' }}>Title: {form.widget.title || form.company_name || 'Support'} • Color: {form.widget.primaryColor} • Position: {form.widget.position}</div>
+                <div style={{ fontWeight: 700, color: '#41808B', marginBottom: 4 }}>Chat widget</div>
+                <div style={{ fontSize: '13px', color: '#57A3AF' }}>Title: {form.widget.title || form.company_name || 'Support'} • Color: {form.widget.primaryColor} • Position: {form.widget.position}</div>
               </div>
-              <p style={{ fontSize: '12px', color: '#64748b' }}>We'll create your Vapi assistant, wire the tools and webhook, and provision your phone number automatically. No dashboard work needed.</p>
+              <p style={{ fontSize: '12px', color: '#41808B' }}>We'll create your Vapi assistant, wire the tools and webhook, and provision your phone number automatically. No dashboard work needed.</p>
             </div>
           )}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem', gap: 10 }}>
             <button className="btn" onClick={() => setStep(s => Math.max(0, s - 1))} disabled={step === 0}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.65rem 1.2rem', borderRadius: 12, border: '1px solid var(--glass-border)', background: 'var(--glass)', color: '#94a3b8', cursor: step === 0 ? 'not-allowed' : 'pointer', opacity: step === 0 ? 0.5 : 1 }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.65rem 1.2rem', borderRadius: 12, border: '1px solid var(--glass-border)', background: 'var(--glass)', color: '#57A3AF', cursor: step === 0 ? 'not-allowed' : 'pointer', opacity: step === 0 ? 0.5 : 1 }}>
               <ChevronLeft size={15} /> Back
             </button>
             {step < STEPS.length - 1 ? (

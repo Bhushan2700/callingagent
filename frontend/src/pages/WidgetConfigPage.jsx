@@ -5,9 +5,9 @@ import { getTenantId } from '../api/auth.js';
 const DEFAULTS = {
   title: "Loggix AI Support",
   greeting: "Hi! I'm the Loggix AI assistant. How can I help you today?",
-  primaryColor: "#14B8A6",
-  primaryHover: "#0051d4",
-  backgroundColor: "#0f172a",
+  primaryColor: "#57A3AF",
+  primaryHover: "#41808B",
+  backgroundColor: "#41808B",
   headerBg: "rgba(255,255,255,0.03)",
   textColor: "#ffffff",
   botMessageBg: "rgba(255,255,255,0.06)",
@@ -75,7 +75,7 @@ export default function WidgetConfigPage() {
         padding: '24px 16px',
         flexShrink: 0,
       }}>
-        <h2 style={{ fontSize: 14, fontWeight: 700, color: 'white', marginBottom: 20, paddingLeft: 8 }}>Loggix Admin</h2>
+        <h2 style={{ fontSize: 14, fontWeight: 700, color: '#41808B', marginBottom: 20, paddingLeft: 8 }}>Loggix Admin</h2>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {[
             { href: '/documents', label: 'Documents' },
@@ -88,8 +88,8 @@ export default function WidgetConfigPage() {
               fontSize: 13,
               fontWeight: 500,
               textDecoration: 'none',
-              color: item.active ? '#14B8A6' : '#94a3b8',
-              background: item.active ? 'rgba(20,184,166,0.15)' : 'transparent',
+              color: item.active ? '#57A3AF' : '#57A3AF',
+              background: item.active ? 'rgba(87,163,175,0.15)' : 'transparent',
               transition: 'all 0.2s',
             }}>{item.label}</a>
           ))}
@@ -97,12 +97,12 @@ export default function WidgetConfigPage() {
       </div>
 
       <div style={{ flex: 1, padding: '32px 40px', maxWidth: 1200 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 800, color: 'white', marginBottom: 4 }}>Widget Configuration</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 800, color: '#41808B', marginBottom: 4 }}>Widget Configuration</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 28 }}>Customize the embeddable chat widget appearance and behavior.</p>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
           <div style={{ background: 'var(--glass)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 24 }}>
-            <h3 style={{ fontSize: 15, fontWeight: 700, color: 'white', marginBottom: 16 }}>General</h3>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: '#41808B', marginBottom: 16 }}>General</h3>
 
             <div className="form-group">
               <label>Title</label>
@@ -120,7 +120,7 @@ export default function WidgetConfigPage() {
               </select>
             </div>
 
-            <h3 style={{ fontSize: 15, fontWeight: 700, color: 'white', margin: '24px 0 16px' }}>Colors</h3>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: '#41808B', margin: '24px 0 16px' }}>Colors</h3>
 
             {[
               { key: 'primaryColor', label: 'Primary Color' },
@@ -133,7 +133,7 @@ export default function WidgetConfigPage() {
               <div key={key} className="form-group">
                 <label>{label}</label>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                  <input type="color" value={config[key].startsWith('#') ? config[key] : '#14B8A6'}
+                  <input type="color" value={config[key].startsWith('#') ? config[key] : '#57A3AF'}
                     onChange={e => update(key, e.target.value)}
                     style={{ width: 42, height: 42, borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', cursor: 'pointer', padding: 2, flexShrink: 0 }} />
                   <input type="text" value={config[key]}
@@ -143,14 +143,14 @@ export default function WidgetConfigPage() {
               </div>
             ))}
 
-            <h3 style={{ fontSize: 15, fontWeight: 700, color: 'white', margin: '24px 0 16px' }}>Icon</h3>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: '#41808B', margin: '24px 0 16px' }}>Icon</h3>
             <div className="form-group">
               <label>Custom SVG Icon (leave empty for default)</label>
               <textarea value={config.icon} onChange={e => update('icon', e.target.value)}
                 placeholder="<svg viewBox=...>...</svg>" style={{ fontFamily: "'Courier New', monospace" }} />
             </div>
 
-            <h3 style={{ fontSize: 15, fontWeight: 700, color: 'white', margin: '24px 0 16px' }}>Voice</h3>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: '#41808B', margin: '24px 0 16px' }}>Voice</h3>
             <div className="form-group">
               <label>Vapi Assistant ID (auto-filled from your account)</label>
               <input type="text" value={config.vapiAssistant || ''} onChange={e => update('vapiAssistant', e.target.value)}
@@ -162,7 +162,7 @@ export default function WidgetConfigPage() {
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>
               {saveStatus && (
-                <span style={{ fontSize: 13, fontWeight: 500, color: saveStatus.type === 'saved' ? '#10b981' : '#ef4444' }}>
+                <span style={{ fontSize: 13, fontWeight: 500, color: saveStatus.type === 'saved' ? '#7FB800' : '#F46036' }}>
                   {saveStatus.text}
                 </span>
               )}
@@ -171,7 +171,7 @@ export default function WidgetConfigPage() {
 
           <div>
             <div style={{ background: 'var(--glass)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 24 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, color: 'white', marginBottom: 16 }}>Live Preview</h3>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#41808B', marginBottom: 16 }}>Live Preview</h3>
               <div style={{
                 width: '100%',
                 height: 400,
@@ -215,7 +215,7 @@ export default function WidgetConfigPage() {
                   <div style={{ padding: '10px 12px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: 6 }}>
                     <input type="text" placeholder="Type a message..." disabled style={{
                       flex: 1, padding: '8px 12px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)',
-                      background: 'rgba(255,255,255,0.05)', color: 'white', fontSize: 12, outline: 'none',
+                      background: 'rgba(255,255,255,0.05)', color: '#41808B', fontSize: 12, outline: 'none',
                     }} />
                     <div style={{
                       width: 36, height: 36, borderRadius: 10, border: 'none',
@@ -249,14 +249,14 @@ export default function WidgetConfigPage() {
                 Embed Script — add to any website
               </div>
               <code style={{
-                display: 'block', color: '#10b981', fontFamily: "'Courier New', monospace",
+                display: 'block', color: '#7FB800', fontFamily: "'Courier New', monospace",
                 fontSize: 12, wordBreak: 'break-all', lineHeight: 1.6, whiteSpace: 'pre-wrap',
               }}>
                 {embedCode()}
               </code>
               <button id="copy-btn" onClick={copyEmbed} style={{
                 marginTop: 8, padding: '6px 16px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)',
-                background: 'transparent', color: '#94a3b8', fontSize: 12, cursor: 'pointer',
+                background: 'transparent', color: '#57A3AF', fontSize: 12, cursor: 'pointer',
               }}>Copy Embed Code</button>
             </div>
           </div>

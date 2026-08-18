@@ -5,13 +5,13 @@ import { getCalls } from '../api/admin.js';
 import EmptyState from '../components/EmptyState.jsx';
 
 const RESOLUTION_META = {
-  ai_resolved: { color: '#6ee7b7', label: 'AI Resolved' },
-  appointment_completed: { color: '#5eead4', label: 'Appointment Booked' },
-  ticket_created: { color: '#93c5fd', label: 'Ticket Created' },
-  human_resolved: { color: '#fbbf24', label: 'Human Resolved' },
-  escalated: { color: '#fbbf24', label: 'Escalated' },
-  abandoned: { color: '#fca5a5', label: 'Abandoned' },
-  unresolved: { color: '#f87171', label: 'Unresolved' },
+  ai_resolved: { color: '#7FB800', label: 'AI Resolved' },
+  appointment_completed: { color: '#7FB800', label: 'Appointment Booked' },
+  ticket_created: { color: '#41808B', label: 'Ticket Created' },
+  human_resolved: { color: '#7FB800', label: 'Human Resolved' },
+  escalated: { color: '#7FB800', label: 'Escalated' },
+  abandoned: { color: '#F46036', label: 'Abandoned' },
+  unresolved: { color: '#F46036', label: 'Unresolved' },
 };
 
 function fmtDuration(seconds) {
@@ -47,10 +47,10 @@ export default function CallsPage() {
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
             placeholder="Search caller, phone, summary…"
-            style={{ width: '100%', padding: '0.55rem 0.8rem 0.55rem 2.4rem', borderRadius: 10, border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.03)', color: '#e2e8f0', fontSize: '0.85rem', outline: 'none' }}
+            style={{ width: '100%', padding: '0.55rem 0.8rem 0.55rem 2.4rem', borderRadius: 10, border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.65)', color: '#41808B', fontSize: '0.85rem', outline: 'none' }}
           />
         </div>
-        <select value={status} onChange={e => { setStatus(e.target.value); setPage(1); }} style={{ padding: '0.55rem 0.8rem', borderRadius: 10, border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.03)', color: '#e2e8f0', fontSize: '0.85rem' }}>
+        <select value={status} onChange={e => { setStatus(e.target.value); setPage(1); }} style={{ padding: '0.55rem 0.8rem', borderRadius: 10, border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.65)', color: '#41808B', fontSize: '0.85rem' }}>
           <option value="">All statuses</option>
           {Object.entries(RESOLUTION_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
         </select>
@@ -73,11 +73,11 @@ export default function CallsPage() {
               </thead>
               <tbody>
                 {data.calls.map(c => {
-                  const r = RESOLUTION_META[c.resolution_status] || { color: '#64748b', label: c.resolution_status || 'Unknown' };
+                  const r = RESOLUTION_META[c.resolution_status] || { color: '#41808B', label: c.resolution_status || 'Unknown' };
                   return (
                     <tr key={c.id} style={{ borderTop: '1px solid var(--glass-border)' }}>
                       <td style={{ padding: '0.75rem 1.25rem' }}>
-                        <Link to={`/calls/${c.id}`} style={{ color: '#e2e8f0', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
+                        <Link to={`/calls/${c.id}`} style={{ color: '#41808B', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
                           <Phone size={14} color={r.color} /> {c.caller || c.phone || 'Unknown caller'}
                         </Link>
                       </td>
@@ -99,8 +99,8 @@ export default function CallsPage() {
           <div style={{ padding: '0.75rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--glass-border)' }}>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Page {page} of {totalPages}</span>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} style={{ padding: '0.4rem 0.8rem', borderRadius: 8, border: '1px solid var(--glass-border)', background: 'transparent', color: page <= 1 ? '#475569' : '#e2e8f0', cursor: page <= 1 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8rem' }}><ChevronLeft size={14} /> Prev</button>
-              <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} style={{ padding: '0.4rem 0.8rem', borderRadius: 8, border: '1px solid var(--glass-border)', background: 'transparent', color: page >= totalPages ? '#475569' : '#e2e8f0', cursor: page >= totalPages ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8rem' }}>Next <ChevronRight size={14} /></button>
+              <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} style={{ padding: '0.4rem 0.8rem', borderRadius: 8, border: '1px solid var(--glass-border)', background: 'transparent', color: page <= 1 ? '#57A3AF' : '#41808B', cursor: page <= 1 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8rem' }}><ChevronLeft size={14} /> Prev</button>
+              <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} style={{ padding: '0.4rem 0.8rem', borderRadius: 8, border: '1px solid var(--glass-border)', background: 'transparent', color: page >= totalPages ? '#57A3AF' : '#41808B', cursor: page >= totalPages ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8rem' }}>Next <ChevronRight size={14} /></button>
             </div>
           </div>
         </div>

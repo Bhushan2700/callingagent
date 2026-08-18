@@ -6,42 +6,42 @@
     <title>Document Manager - Loggix RAG</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; padding: 2rem; }
-        h1 { font-size: 1.8rem; margin-bottom: 0.5rem; color: #fff; }
-        h2 { font-size: 1.2rem; margin: 1.5rem 0 1rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
-        .subtitle { color: #64748b; margin-bottom: 2rem; }
+        body { font-family: 'Open Sans', sans-serif; background: #E5ECE9; color: #41808B; min-height: 100vh; padding: 2rem; }
+        h1 { font-size: 1.8rem; margin-bottom: 0.5rem; color: #41808B; }
+        h2 { font-size: 1.2rem; margin: 1.5rem 0 1rem; color: #57A3AF; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+        .subtitle { color: #41808B; margin-bottom: 2rem; }
         
         /* Upload Zone */
         .upload-zone {
-            border: 2px dashed #334155;
+            border: 2px dashed #57A3AF;
             border-radius: 12px;
             padding: 3rem 2rem;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s;
-            background: #1e293b;
+            background: #E5ECE9;
         }
         .upload-zone:hover, .upload-zone.dragover {
-            border-color: #3b82f6;
-            background: #1e3a5f;
+            border-color: #57A3AF;
+            background: #D9E3DF;
         }
         .upload-zone .icon { font-size: 3rem; margin-bottom: 1rem; }
-        .upload-zone p { color: #94a3b8; margin-bottom: 0.5rem; }
-        .upload-zone .hint { font-size: 0.85rem; color: #64748b; }
+        .upload-zone p { color: #57A3AF; margin-bottom: 0.5rem; }
+        .upload-zone .hint { font-size: 0.85rem; color: #41808B; }
         .upload-zone input { display: none; }
         
         /* Status */
         .status { margin-top: 1rem; padding: 1rem; border-radius: 8px; display: none; }
-        .status.success { display: block; background: #064e3b; border: 1px solid #10b981; color: #6ee7b7; }
-        .status.error { display: block; background: #7f1d1d; border: 1px solid #ef4444; color: #fca5a5; }
-        .status.info { display: block; background: #1e3a5f; border: 1px solid #3b82f6; color: #93c5fd; }
+        .status.success { display: block; background: rgba(127,184,0,0.12); border: 1px solid #7FB800; color: #7FB800; }
+        .status.error { display: block; background: rgba(244,96,54,0.12); border: 1px solid #F46036; color: #F46036; }
+        .status.info { display: block; background: rgba(87,163,175,0.12); border: 1px solid #57A3AF; color: #41808B; }
         
         /* Progress */
         .progress { margin-top: 1rem; display: none; }
         .progress.active { display: block; }
-        .progress-bar { height: 6px; background: #334155; border-radius: 3px; overflow: hidden; }
-        .progress-fill { height: 100%; background: #3b82f6; transition: width 0.3s; }
-        .progress-text { font-size: 0.85rem; color: #94a3b8; margin-top: 0.5rem; }
+        .progress-bar { height: 6px; background: #57A3AF; border-radius: 3px; overflow: hidden; }
+        .progress-fill { height: 100%; background: #57A3AF; transition: width 0.3s; }
+        .progress-text { font-size: 0.85rem; color: #57A3AF; margin-top: 0.5rem; }
         
         /* Document List */
         .doc-list { display: flex; flex-direction: column; gap: 0.5rem; }
@@ -50,14 +50,14 @@
             align-items: center;
             justify-content: space-between;
             padding: 1rem;
-            background: #1e293b;
+            background: #E5ECE9;
             border-radius: 8px;
-            border: 1px solid #334155;
+            border: 1px solid #57A3AF;
         }
-        .doc-item:hover { border-color: #475569; }
+        .doc-item:hover { border-color: #57A3AF; }
         .doc-info { flex: 1; }
-        .doc-name { font-weight: 500; color: #fff; }
-        .doc-meta { font-size: 0.85rem; color: #64748b; margin-top: 0.25rem; }
+        .doc-name { font-weight: 500; color: #41808B; }
+        .doc-meta { font-size: 0.85rem; color: #41808B; margin-top: 0.25rem; }
         .doc-actions { display: flex; gap: 0.5rem; }
         .btn {
             padding: 0.5rem 1rem;
@@ -68,28 +68,28 @@
             font-weight: 500;
             transition: all 0.2s;
         }
-        .btn-danger { background: #7f1d1d; color: #fca5a5; border: 1px solid #ef4444; }
-        .btn-danger:hover { background: #991b1b; }
-        .btn-primary { background: #1e40af; color: #93c5fd; border: 1px solid #3b82f6; }
-        .btn-primary:hover { background: #1e3a8a; }
+        .btn-danger { background: #D9E3DF; color: #F46036; border: 1px solid #F46036; }
+        .btn-danger:hover { background: rgba(244,96,54,0.25); }
+        .btn-primary { background: #57A3AF; color: white; border: 1px solid #57A3AF; }
+        .btn-primary:hover { background: #41808B; }
         
         /* Empty State */
-        .empty { text-align: center; padding: 2rem; color: #64748b; }
+        .empty { text-align: center; padding: 2rem; color: #41808B; }
         
         /* Stats */
         .stats { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
-        .stat { background: #1e293b; padding: 1rem 1.5rem; border-radius: 8px; border: 1px solid #334155; }
-        .stat-value { font-size: 1.5rem; font-weight: 700; color: #3b82f6; }
-        .stat-label { font-size: 0.85rem; color: #64748b; }
+        .stat { background: #E5ECE9; padding: 1rem 1.5rem; border-radius: 8px; border: 1px solid #57A3AF; }
+        .stat-value { font-size: 1.5rem; font-weight: 700; color: #57A3AF; }
+        .stat-label { font-size: 0.85rem; color: #41808B; }
     </style>
 </head>
 <body>
     <nav style="display:flex;justify-content:space-between;align-items:center;padding:0.75rem 2rem;background:rgba(255,255,255,0.03);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.1);position:fixed;top:0;left:0;right:0;z-index:100;">
-        <div style="font-size:1.1rem;font-weight:800;background:linear-gradient(135deg,#fff 0%,#0061FF 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Loggix AI</div>
+        <div style="font-size:1.1rem;font-weight:800;background:linear-gradient(135deg,#fff 0%,#57A3AF 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Loggix AI</div>
         <div style="display:flex;gap:0.5rem;">
-            <a href="/voice" style="padding:0.5rem 1rem;border-radius:10px;font-size:0.85rem;font-weight:600;color:#94a3b8;text-decoration:none;">Voice Agent</a>
-            <a href="/tickets" style="padding:0.5rem 1rem;border-radius:10px;font-size:0.85rem;font-weight:600;color:#94a3b8;text-decoration:none;">Tickets</a>
-            <a href="/upload" style="padding:0.5rem 1rem;border-radius:10px;font-size:0.85rem;font-weight:600;color:#fff;text-decoration:none;background:#0061FF;">Documents</a>
+            <a href="/voice" style="padding:0.5rem 1rem;border-radius:10px;font-size:0.85rem;font-weight:600;color:#57A3AF;text-decoration:none;">Voice Agent</a>
+            <a href="/tickets" style="padding:0.5rem 1rem;border-radius:10px;font-size:0.85rem;font-weight:600;color:#57A3AF;text-decoration:none;">Tickets</a>
+            <a href="/upload" style="padding:0.5rem 1rem;border-radius:10px;font-size:0.85rem;font-weight:600;color:#fff;text-decoration:none;background:#57A3AF;">Documents</a>
         </div>
     </nav>
     <div style="padding-top: 60px;"></div>

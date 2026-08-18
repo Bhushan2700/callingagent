@@ -34,8 +34,8 @@ export default function ForgotPasswordPage() {
         position: 'relative',
         overflow: 'hidden',
         backgroundImage: `
-radial-gradient(circle at 20% 30%, rgba(37,99,235,0.18) 0%, transparent 50%),
-          radial-gradient(circle at 80% 70%, rgba(6,182,212,0.10) 0%, transparent 50%)
+radial-gradient(circle at 20% 30%, rgba(87,163,175,0.18) 0%, transparent 50%),
+          radial-gradient(circle at 80% 70%, rgba(87,163,175,0.10) 0%, transparent 50%)
         `,
       }} className="auth-brand-panel">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '3rem' }}>
@@ -51,12 +51,12 @@ radial-gradient(circle at 20% 30%, rgba(37,99,235,0.18) 0%, transparent 50%),
         </div>
         <h2 style={{
           fontSize: '2.3rem', fontWeight: 800, lineHeight: 1.15, marginBottom: '1.5rem',
-          background: 'linear-gradient(135deg, #fff 0%, #7dd3fc 60%, #14B8A6 100%)',
+          background: 'linear-gradient(135deg, #41808B 0%, #57A3AF 60%, #7FB800 100%)',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
         }}>
           Reset your password in seconds.
         </h2>
-        <p style={{ color: '#94a3b8', fontSize: '1.05rem', lineHeight: 1.6, marginBottom: '3rem' }}>
+        <p style={{ color: '#57A3AF', fontSize: '1.05rem', lineHeight: 1.6, marginBottom: '3rem' }}>
           We'll email you a one-time code. Enter it with your new password and you're back in.
         </p>
       </div>
@@ -72,15 +72,15 @@ radial-gradient(circle at 20% 30%, rgba(37,99,235,0.18) 0%, transparent 50%),
           <div style={{ width: 400, maxWidth: '100%', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div style={{
               width: 56, height: 56, margin: '0 auto', borderRadius: 16,
-              background: 'linear-gradient(135deg, rgba(16,185,129,0.2), rgba(20,184,166,0.2))',
-              border: '1px solid rgba(16,185,129,0.3)',
+              background: 'linear-gradient(135deg, rgba(127,184,0,0.2), rgba(87,163,175,0.2))',
+              border: '1px solid rgba(127,184,0,0.3)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <MailCheck size={26} color="#34D399" />
+              <MailCheck size={26} color="#7FB800" />
             </div>
             <h1 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Check your email</h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.6 }}>
-              If an account exists for <span style={{ color: '#fff', fontWeight: 600 }}>{email}</span>, a one-time code has been sent. The code expires in 15 minutes.
+              If an account exists for <span style={{ color: '#41808B', fontWeight: 600 }}>{email}</span>, a one-time code has been sent. The code expires in 15 minutes.
             </p>
             <Link to="/reset-password" style={{
               marginTop: '0.5rem', padding: '1rem', borderRadius: 12, textAlign: 'center',
@@ -98,14 +98,14 @@ radial-gradient(circle at 20% 30%, rgba(37,99,235,0.18) 0%, transparent 50%),
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Enter your account email to receive a reset code</p>
             </div>
             {error && <p style={{
-              color: '#fca5a5', fontSize: '0.85rem', padding: '0.75rem 1rem',
-              background: 'var(--error-bg)', borderRadius: 10, border: '1px solid rgba(239,68,68,0.25)',
+              color: '#F46036', fontSize: '0.85rem', padding: '0.75rem 1rem',
+              background: 'var(--error-bg)', borderRadius: 10, border: '1px solid rgba(244,96,54,0.25)',
             }}>{error}</p>}
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.4rem', fontWeight: 600 }}>Email</label>
               <input type="email" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} required
-                style={{ width: '100%', padding: '0.9rem 1.1rem', borderRadius: 12, border: '1px solid var(--glass-border)', background: 'var(--glass)', color: '#fff', fontSize: '0.95rem', outline: 'none', transition: 'border-color 0.3s, box-shadow 0.3s' }}
-                onFocus={e => { e.currentTarget.style.borderColor = '#2DD4BF'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(20,184,166,0.15)' }}
+                style={{ width: '100%', padding: '0.9rem 1.1rem', borderRadius: 12, border: '1px solid var(--glass-border)', background: 'var(--glass)', color: '#41808B', fontSize: '0.95rem', outline: 'none', transition: 'border-color 0.3s, box-shadow 0.3s' }}
+                onFocus={e => { e.currentTarget.style.borderColor = '#7FB800'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(87,163,175,0.15)' }}
                 onBlur={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.boxShadow = 'none' }} />
             </div>
             <button type="submit" disabled={busy} style={{

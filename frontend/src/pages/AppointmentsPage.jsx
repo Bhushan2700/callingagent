@@ -16,7 +16,7 @@ export default function AppointmentsPage() {
   }, [page, status, source]);
 
   const totalPages = Math.max(1, Math.ceil(data.total / perPage));
-  const statusColor = (s) => ({ confirmed: '#6ee7b7', cancelled: '#fca5a5', pending: '#fbbf24' }[s] || '#94a3b8');
+  const statusColor = (s) => ({ confirmed: '#7FB800', cancelled: '#F46036', pending: '#7FB800' }[s] || '#57A3AF');
 
   return (
     <div style={{ padding: '2rem', maxWidth: 1000, margin: '0 auto', width: '100%' }}>
@@ -58,13 +58,13 @@ export default function AppointmentsPage() {
               <tbody>
                 {data.appointments.map(a => (
                   <tr key={a.id} style={{ borderTop: '1px solid var(--glass-border)' }}>
-                    <td style={{ padding: '0.75rem 1.25rem', color: '#e2e8f0', fontWeight: 600 }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}><Calendar size={14} color="#5eead4" /> {a.customer_name || a.customer_email || 'Unknown'}</span>
+                    <td style={{ padding: '0.75rem 1.25rem', color: '#41808B', fontWeight: 600 }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}><Calendar size={14} color="#7FB800" /> {a.customer_name || a.customer_email || 'Unknown'}</span>
                     </td>
                     <td style={{ padding: '0.75rem', color: 'var(--text-secondary)' }}>{a.start_time ? new Date(a.start_time).toLocaleString() : '—'}</td>
                     <td style={{ padding: '0.75rem', color: 'var(--text-muted)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.event_type || '—'}</td>
                     <td style={{ padding: '0.75rem' }}>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: a.source === 'ai' ? '#5eead4' : '#94a3b8' }}>{resolveLabel(a.source, SOURCE_LABELS)}</span>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: a.source === 'ai' ? '#7FB800' : '#57A3AF' }}>{resolveLabel(a.source, SOURCE_LABELS)}</span>
                     </td>
                     <td style={{ padding: '0.75rem 1.25rem' }}>
                       <span style={{ display: 'inline-flex', padding: '0.15rem 0.6rem', borderRadius: 20, fontSize: '0.72rem', fontWeight: 600, background: `${statusColor(a.status)}1f`, color: statusColor(a.status) }}>
@@ -89,5 +89,5 @@ export default function AppointmentsPage() {
   );
 }
 
-const selectStyle = { padding: '0.55rem 0.8rem', borderRadius: 10, border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.03)', color: '#e2e8f0', fontSize: '0.85rem' };
-const pagerStyle = (disabled) => ({ padding: '0.4rem 0.8rem', borderRadius: 8, border: '1px solid var(--glass-border)', background: 'transparent', color: disabled ? '#475569' : '#e2e8f0', cursor: disabled ? 'default' : 'pointer', fontSize: '0.8rem' });
+const selectStyle = { padding: '0.55rem 0.8rem', borderRadius: 10, border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.65)', color: '#41808B', fontSize: '0.85rem' };
+const pagerStyle = (disabled) => ({ padding: '0.4rem 0.8rem', borderRadius: 8, border: '1px solid var(--glass-border)', background: 'transparent', color: disabled ? '#57A3AF' : '#41808B', cursor: disabled ? 'default' : 'pointer', fontSize: '0.8rem' });

@@ -4,9 +4,9 @@ import { getTenantId } from '../api/auth.js';
 const DEFAULTS = {
   title: "Loggix AI Support",
   greeting: "Hi! I'm the Loggix AI assistant. How can I help you today?",
-  primaryColor: "#14B8A6",
-  primaryHover: "#0051d4",
-  backgroundColor: "#0f172a",
+  primaryColor: "#57A3AF",
+  primaryHover: "#41808B",
+  backgroundColor: "#41808B",
   headerBg: "rgba(255,255,255,0.03)",
   textColor: "#ffffff",
   botMessageBg: "rgba(255,255,255,0.06)",
@@ -43,7 +43,7 @@ export default function WidgetDemoPage() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundImage: 'radial-gradient(circle at 30% 40%, rgba(6,182,212,0.12) 0%, transparent 50%)',
+      backgroundImage: 'radial-gradient(circle at 30% 40%, rgba(87,163,175,0.12) 0%, transparent 50%)',
       padding: '2rem',
     }}>
       <div style={{ maxWidth: 700, textAlign: 'center' }}>
@@ -52,28 +52,28 @@ export default function WidgetDemoPage() {
           fontSize: '2.5rem',
           fontWeight: 800,
           marginBottom: '1rem',
-          background: 'linear-gradient(135deg, #fff 0%, #14B8A6 100%)',
+          background: 'linear-gradient(135deg, #41808B 0%, #57A3AF 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
         }}>
           Loggix AI Chat Widget
         </h1>
-        <p style={{ color: '#94a3b8', fontSize: '1.1rem', marginBottom: '2rem', lineHeight: 1.6 }}>
+        <p style={{ color: '#57A3AF', fontSize: '1.1rem', marginBottom: '2rem', lineHeight: 1.6 }}>
           Try the chat widget! Click the blue button in the bottom-right corner to start chatting with the AI assistant.
           You can type or use voice.
         </p>
 
         <div style={{
-          background: 'rgba(255,255,255,0.05)',
+          background: 'rgba(255,255,255,0.65)',
           border: '1px solid rgba(255,255,255,0.1)',
           borderRadius: 12,
           padding: '1.5rem',
           textAlign: 'left',
           marginBottom: '2rem',
         }}>
-          <p style={{ color: '#64748b', fontSize: '0.8rem', marginBottom: '0.5rem' }}>Add to any website:</p>
+          <p style={{ color: '#41808B', fontSize: '0.8rem', marginBottom: '0.5rem' }}>Add to any website:</p>
           <pre style={{
-            color: '#10b981',
+            color: '#7FB800',
             fontFamily: "'Courier New', monospace",
             fontSize: '0.85rem',
             wordBreak: 'break-all',
@@ -86,7 +86,7 @@ export default function WidgetDemoPage() {
             borderRadius: 8,
             border: '1px solid rgba(255,255,255,0.1)',
             background: 'transparent',
-            color: '#94a3b8',
+            color: '#57A3AF',
             fontSize: '0.85rem',
             cursor: 'pointer',
           }}>
@@ -105,14 +105,14 @@ export default function WidgetDemoPage() {
             { icon: '🔌', title: 'Easy Embed', desc: 'One script tag to add anywhere' },
           ].map((f, i) => (
             <div key={i} style={{
-              background: 'rgba(255,255,255,0.03)',
+              background: 'rgba(255,255,255,0.65)',
               border: '1px solid rgba(255,255,255,0.1)',
               borderRadius: 12,
               padding: '1.5rem',
             }}>
               <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{f.icon}</div>
               <h3 style={{ fontSize: '0.9rem', marginBottom: '0.25rem' }}>{f.title}</h3>
-              <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: 0 }}>{f.desc}</p>
+              <p style={{ color: '#57A3AF', fontSize: '0.8rem', margin: 0 }}>{f.desc}</p>
             </div>
           ))}
         </div>

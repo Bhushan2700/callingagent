@@ -57,11 +57,11 @@ export default function DocumentsPage() {
   function onDragOver(e) {
     e.preventDefault();
     e.currentTarget.style.borderColor = 'var(--brand-accent)';
-    e.currentTarget.style.background = 'rgba(37,99,235,0.1)';
+    e.currentTarget.style.background = 'rgba(87,163,175,0.1)';
   }
 
   function onDragLeave(e) {
-    e.currentTarget.style.borderColor = 'rgba(20,184,166,0.3)';
+    e.currentTarget.style.borderColor = 'rgba(87,163,175,0.3)';
     e.currentTarget.style.background = 'var(--glass)';
   }
 
@@ -103,7 +103,7 @@ export default function DocumentsPage() {
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         style={{
-          border: '2px dashed rgba(20,184,166,0.3)',
+          border: '2px dashed rgba(87,163,175,0.3)',
           borderRadius: 16,
           padding: '3rem 2rem',
           textAlign: 'center',
@@ -113,7 +113,7 @@ export default function DocumentsPage() {
           marginBottom: '1rem',
         }}
       >
-        <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}><FileUp size={44} strokeWidth={1.5} color="#5eead4" /></div>
+        <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}><FileUp size={44} strokeWidth={1.5} color="#7FB800" /></div>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Drag & drop files here or click to browse</p>
         <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Supports .md, .pdf, .txt, .json</p>
         <input ref={fileInputRef} type="file" multiple accept=".md,.pdf,.txt,.json" style={{ display: 'none' }}
@@ -122,7 +122,7 @@ export default function DocumentsPage() {
 
       {uploading && (
         <div style={{ marginBottom: '1rem' }}>
-          <div style={{ height: 6, background: 'rgba(20,184,166,0.15)', borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{ height: 6, background: 'rgba(87,163,175,0.15)', borderRadius: 3, overflow: 'hidden' }}>
             <div style={{ height: '100%', background: 'var(--brand-gradient)', transition: 'width 0.3s', width: `${progress.pct}%` }} />
           </div>
           <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>{progress.text}</div>
@@ -134,9 +134,9 @@ export default function DocumentsPage() {
           marginBottom: '1rem',
           padding: '1rem',
           borderRadius: 8,
-          background: status.type === 'success' ? '#064e3b' : status.type === 'error' ? '#7f1d1d' : '#1e3a5f',
-          border: `1px solid ${status.type === 'success' ? '#10b981' : status.type === 'error' ? '#ef4444' : '#3b82f6'}`,
-          color: status.type === 'success' ? '#6ee7b7' : status.type === 'error' ? '#fca5a5' : '#93c5fd',
+          background: status.type === 'success' ? '#D9E3DF' : status.type === 'error' ? '#D9E3DF' : '#D9E3DF',
+          border: `1px solid ${status.type === 'success' ? '#7FB800' : status.type === 'error' ? '#F46036' : '#57A3AF'}`,
+          color: status.type === 'success' ? '#7FB800' : status.type === 'error' ? '#F46036' : '#41808B',
         }}>
           {status.text}
         </div>
@@ -165,7 +165,7 @@ export default function DocumentsPage() {
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.transform = 'translateX(0)' }}
             >
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 500, color: '#fff' }}>{doc.doc_id.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</div>
+                <div style={{ fontWeight: 500, color: '#41808B' }}>{doc.doc_id.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</div>
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
                   {doc.chunk_count} chunks • {doc.doc_type}
                 </div>

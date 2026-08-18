@@ -3,12 +3,12 @@ import { X, BookOpen, Wrench } from 'lucide-react';
 import { resolveLabel, RESOLUTION_LABELS, RESOLUTION_COLORS, TOOL_LABELS, CHANNEL_LABELS, humanizeLabel } from '../lib/labels.js';
 
 const ROLE_LABEL = { user: 'Caller', assistant: 'Assistant', tool: 'Tool' };
-const ROLE_COLOR = { user: '#fbbf24', assistant: '#5eead4', tool: '#93c5fd' };
+const ROLE_COLOR = { user: '#7FB800', assistant: '#57A3AF', tool: '#41808B' };
 
 export default function ConversationModal({ conversation, onClose }) {
   if (!conversation) return null;
 
-  const statusColor = RESOLUTION_COLORS[conversation.resolution_status] || '#64748b';
+  const statusColor = RESOLUTION_COLORS[conversation.resolution_status] || '#41808B';
   const channelName = CHANNEL_LABELS[conversation.channel] || humanizeLabel(conversation.channel) || 'Conversation';
 
   return (
@@ -85,7 +85,7 @@ export default function ConversationModal({ conversation, onClose }) {
               <div key={i} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
                 <span style={{
                   flexShrink: 0, fontSize: '0.68rem', fontWeight: 700,
-                  color: ROLE_COLOR[m.role] || '#94a3b8',
+                  color: ROLE_COLOR[m.role] || '#57A3AF',
                   textTransform: 'uppercase', minWidth: 70, paddingTop: 3,
                 }}>
                   {ROLE_LABEL[m.role] || m.role}
@@ -102,7 +102,7 @@ export default function ConversationModal({ conversation, onClose }) {
                       {m.sources.map((s, j) => (
                         <span key={j} style={{
                           display: 'inline-flex', alignItems: 'center', gap: 5,
-                          fontSize: '0.7rem', color: '#93c5fd',
+                          fontSize: '0.7rem', color: '#41808B',
                         }}>
                           <BookOpen size={11} /> {s.document_name || s.document_id}
                           {s.section && <span>· {s.section}</span>}
@@ -112,7 +112,7 @@ export default function ConversationModal({ conversation, onClose }) {
                     </div>
                   )}
                   {(m.tools_used && m.tools_used.length > 0) && (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.7rem', color: '#5eead4', marginTop: 3 }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.7rem', color: '#7FB800', marginTop: 3 }}>
                       <Wrench size={11} /> {m.tools_used.map(t => resolveLabel(t, TOOL_LABELS)).join(', ')}
                     </span>
                   )}

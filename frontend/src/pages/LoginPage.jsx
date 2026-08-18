@@ -44,8 +44,8 @@ export default function LoginPage() {
         position: 'relative',
         overflow: 'hidden',
         backgroundImage: `
-radial-gradient(circle at 20% 30%, rgba(37,99,235,0.18) 0%, transparent 50%),
-          radial-gradient(circle at 80% 70%, rgba(6,182,212,0.10) 0%, transparent 50%)
+radial-gradient(circle at 20% 30%, rgba(87,163,175,0.18) 0%, transparent 50%),
+          radial-gradient(circle at 80% 70%, rgba(87,163,175,0.10) 0%, transparent 50%)
         `,
       }} className="auth-brand-panel">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '3rem' }}>
@@ -61,12 +61,12 @@ radial-gradient(circle at 20% 30%, rgba(37,99,235,0.18) 0%, transparent 50%),
         </div>
         <h2 style={{
           fontSize: '2.3rem', fontWeight: 800, lineHeight: 1.15, marginBottom: '1.5rem',
-          background: 'linear-gradient(135deg, #fff 0%, #7dd3fc 60%, #14B8A6 100%)',
+          background: 'linear-gradient(135deg, #41808B 0%, #57A3AF 60%, #7FB800 100%)',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
         }}>
           Your AI receptionist is one login away.
         </h2>
-        <p style={{ color: '#94a3b8', fontSize: '1.05rem', lineHeight: 1.6, marginBottom: '3rem' }}>
+        <p style={{ color: '#57A3AF', fontSize: '1.05rem', lineHeight: 1.6, marginBottom: '3rem' }}>
           Manage your voice agent, chat widget, tickets, and knowledge base from one dashboard.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -76,11 +76,11 @@ radial-gradient(circle at 20% 30%, rgba(37,99,235,0.18) 0%, transparent 50%),
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.9rem' }}>
                 <div style={{
                   width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-background: 'linear-gradient(135deg, rgba(37,99,235,0.18), rgba(20,184,166,0.18))',
-                  border: '1px solid rgba(20,184,166,0.25)',
+background: 'linear-gradient(135deg, rgba(87,163,175,0.18), rgba(87,163,175,0.18))',
+                  border: '1px solid rgba(87,163,175,0.25)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <Icon size={18} color="#2DD4BF" />
+                  <Icon size={18} color="#7FB800" />
                 </div>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>{h.text}</span>
               </div>
@@ -111,21 +111,21 @@ background: 'linear-gradient(135deg, rgba(37,99,235,0.18), rgba(20,184,166,0.18)
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Sign in to manage your AI receptionist</p>
           </div>
           {error && <p style={{
-            color: '#fca5a5', fontSize: '0.85rem', padding: '0.75rem 1rem',
-            background: 'var(--error-bg)', borderRadius: 10, border: '1px solid rgba(239,68,68,0.25)',
+            color: '#F46036', fontSize: '0.85rem', padding: '0.75rem 1rem',
+            background: 'var(--error-bg)', borderRadius: 10, border: '1px solid rgba(244,96,54,0.25)',
           }}>{error}</p>}
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.4rem', fontWeight: 600 }}>Email</label>
             <input type="email" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} required
-              style={{ width: '100%', padding: '0.9rem 1.1rem', borderRadius: 12, border: '1px solid var(--glass-border)', background: 'var(--glass)', color: '#fff', fontSize: '0.95rem', outline: 'none', transition: 'border-color 0.3s, box-shadow 0.3s' }}
-              onFocus={e => { e.currentTarget.style.borderColor = '#2DD4BF'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(20,184,166,0.15)' }}
+              style={{ width: '100%', padding: '0.9rem 1.1rem', borderRadius: 12, border: '1px solid var(--glass-border)', background: 'var(--glass)', color: '#41808B', fontSize: '0.95rem', outline: 'none', transition: 'border-color 0.3s, box-shadow 0.3s' }}
+              onFocus={e => { e.currentTarget.style.borderColor = '#7FB800'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(87,163,175,0.15)' }}
               onBlur={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.boxShadow = 'none' }} />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.4rem', fontWeight: 600 }}>Password</label>
             <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required
-              style={{ width: '100%', padding: '0.9rem 1.1rem', borderRadius: 12, border: '1px solid var(--glass-border)', background: 'var(--glass)', color: '#fff', fontSize: '0.95rem', outline: 'none', transition: 'border-color 0.3s, box-shadow 0.3s' }}
-              onFocus={e => { e.currentTarget.style.borderColor = '#2DD4BF'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(20,184,166,0.15)' }}
+              style={{ width: '100%', padding: '0.9rem 1.1rem', borderRadius: 12, border: '1px solid var(--glass-border)', background: 'var(--glass)', color: '#41808B', fontSize: '0.95rem', outline: 'none', transition: 'border-color 0.3s, box-shadow 0.3s' }}
+              onFocus={e => { e.currentTarget.style.borderColor = '#7FB800'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(87,163,175,0.15)' }}
               onBlur={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.boxShadow = 'none' }} />
           </div>
           <p style={{ margin: '0', textAlign: 'right', fontSize: '0.85rem' }}>
@@ -150,7 +150,7 @@ background: 'linear-gradient(135deg, rgba(37,99,235,0.18), rgba(20,184,166,0.18)
             {busy ? 'Signing in...' : 'Sign In'}
           </button>
           <p style={{ textAlign: 'center', fontSize: '0.88rem', color: 'var(--text-muted)' }}>
-            Don't have an account? <Link to="/register" style={{ color: '#2DD4BF', fontWeight: 600 }}>Create one free</Link>
+            Don't have an account? <Link to="/register" style={{ color: '#7FB800', fontWeight: 600 }}>Create one free</Link>
           </p>
         </form>
       </div>

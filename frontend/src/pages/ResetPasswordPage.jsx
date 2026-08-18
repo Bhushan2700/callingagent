@@ -12,11 +12,11 @@ const highlights = [
 const inputStyle = {
   width: '100%', padding: '0.9rem 1.1rem', borderRadius: 12,
   border: '1px solid var(--glass-border)', background: 'var(--glass)',
-  color: '#fff', fontSize: '0.95rem', outline: 'none',
+  color: '#41808B', fontSize: '0.95rem', outline: 'none',
   transition: 'border-color 0.3s, box-shadow 0.3s',
 };
 const focusProps = {
-  onFocus: e => { e.currentTarget.style.borderColor = '#2DD4BF'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(20,184,166,0.15)'; },
+  onFocus: e => { e.currentTarget.style.borderColor = '#7FB800'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(87,163,175,0.15)'; },
   onBlur: e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.boxShadow = 'none'; },
 };
 const labelStyle = { display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.4rem', fontWeight: 600 };
@@ -109,7 +109,7 @@ export default function ResetPasswordPage() {
       <div style={{
         flex: 1, display: 'none', flexDirection: 'column', justifyContent: 'center',
         padding: '4rem', position: 'relative', overflow: 'hidden',
-        backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(37,99,235,0.18) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(6,182,212,0.10) 0%, transparent 50%)',
+        backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(87,163,175,0.18) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(87,163,175,0.10) 0%, transparent 50%)',
       }} className="auth-brand-panel">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '3rem' }}>
           <div style={{
@@ -123,10 +123,10 @@ export default function ResetPasswordPage() {
         </div>
         <h2 style={{
           fontSize: '2.3rem', fontWeight: 800, lineHeight: 1.15, marginBottom: '1.5rem',
-          background: 'linear-gradient(135deg, #fff 0%, #7dd3fc 60%, #14B8A6 100%)',
+          background: 'linear-gradient(135deg, #41808B 0%, #57A3AF 60%, #7FB800 100%)',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
         }}>Set a new password.</h2>
-        <p style={{ color: '#94a3b8', fontSize: '1.05rem', lineHeight: 1.6, marginBottom: '3rem' }}>
+        <p style={{ color: '#57A3AF', fontSize: '1.05rem', lineHeight: 1.6, marginBottom: '3rem' }}>
           Enter the code we emailed you, then choose a fresh password.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -136,11 +136,11 @@ export default function ResetPasswordPage() {
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.9rem' }}>
                 <div style={{
                   width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-                  background: 'linear-gradient(135deg, rgba(37,99,235,0.18), rgba(20,184,166,0.18))',
-                  border: '1px solid rgba(20,184,166,0.25)',
+                  background: 'linear-gradient(135deg, rgba(87,163,175,0.18), rgba(87,163,175,0.18))',
+                  border: '1px solid rgba(87,163,175,0.25)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <Icon size={18} color="#2DD4BF" />
+                  <Icon size={18} color="#7FB800" />
                 </div>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>{h.text}</span>
               </div>
@@ -159,11 +159,11 @@ export default function ResetPasswordPage() {
             <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '1rem', padding: '2rem 0' }}>
               <div style={{
                 width: 56, height: 56, margin: '0 auto', borderRadius: 16,
-                background: 'linear-gradient(135deg, rgba(16,185,129,0.2), rgba(20,184,166,0.2))',
-                border: '1px solid rgba(16,185,129,0.3)',
+                background: 'linear-gradient(135deg, rgba(127,184,0,0.2), rgba(87,163,175,0.2))',
+                border: '1px solid rgba(127,184,0,0.3)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <ShieldCheck size={26} color="#34D399" />
+                <ShieldCheck size={26} color="#7FB800" />
               </div>
               <h1 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Password updated!</h1>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Redirecting you to sign in...</p>
@@ -175,8 +175,8 @@ export default function ResetPasswordPage() {
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Enter the 6-digit code and your new password</p>
               </div>
               {error && <p style={{
-                color: '#fca5a5', fontSize: '0.85rem', padding: '0.75rem 1rem',
-                background: 'var(--error-bg)', borderRadius: 10, border: '1px solid rgba(239,68,68,0.25)',
+                color: '#F46036', fontSize: '0.85rem', padding: '0.75rem 1rem',
+                background: 'var(--error-bg)', borderRadius: 10, border: '1px solid rgba(244,96,54,0.25)',
               }}>{error}</p>}
               <div>
                 <label style={labelStyle}>Email</label>
@@ -199,13 +199,13 @@ export default function ResetPasswordPage() {
                       onPaste={i === 0 ? handleOtpPaste : undefined}
                       style={{
                         width: 52, height: 60, borderRadius: 12,
-                        border: `2px solid ${digit ? '#2DD4BF' : 'var(--glass-border)'}`,
-                        background: 'var(--glass)', color: '#fff',
+                        border: `2px solid ${digit ? '#7FB800' : 'var(--glass-border)'}`,
+                        background: 'var(--glass)', color: '#41808B',
                         fontSize: '1.5rem', fontWeight: 700, textAlign: 'center',
                         outline: 'none', transition: 'border-color 0.2s',
                       }}
-                      onFocus={e => { e.currentTarget.style.borderColor = '#2DD4BF'; }}
-                      onBlur={e => { e.currentTarget.style.borderColor = digit ? '#2DD4BF' : 'var(--glass-border)'; }}
+                      onFocus={e => { e.currentTarget.style.borderColor = '#7FB800'; }}
+                      onBlur={e => { e.currentTarget.style.borderColor = digit ? '#7FB800' : 'var(--glass-border)'; }}
                     />
                   ))}
                 </div>
@@ -238,7 +238,7 @@ export default function ResetPasswordPage() {
                   <>Resend code in {countdown}s</>
                 ) : (
                   <button type="button" onClick={handleResend}
-                    style={{ background: 'none', border: 'none', color: '#2DD4BF', fontWeight: 600, cursor: 'pointer', fontSize: '0.88rem', padding: 0 }}>
+                    style={{ background: 'none', border: 'none', color: '#7FB800', fontWeight: 600, cursor: 'pointer', fontSize: '0.88rem', padding: 0 }}>
                     Resend code
                   </button>
                 )}

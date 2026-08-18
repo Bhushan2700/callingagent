@@ -9,13 +9,13 @@ export const RESOLUTION_LABELS = {
 };
 
 export const RESOLUTION_COLORS = {
-  ai_resolved: '#6ee7b7',
-  appointment_completed: '#5eead4',
-  ticket_created: '#93c5fd',
-  human_resolved: '#fbbf24',
-  escalated: '#fbbf24',
-  abandoned: '#fca5a5',
-  unresolved: '#f87171',
+  ai_resolved: '#7FB800',
+  appointment_completed: '#7FB800',
+  ticket_created: '#41808B',
+  human_resolved: '#7FB800',
+  escalated: '#7FB800',
+  abandoned: '#F46036',
+  unresolved: '#F46036',
 };
 
 export const INTENT_LABELS = {
@@ -29,13 +29,13 @@ export const INTENT_LABELS = {
 };
 
 export const INTENT_COLORS = {
-  appointment_booking: '#5eead4',
-  refund_policy: '#fbbf24',
-  pricing: '#93c5fd',
-  support: '#f87171',
-  business_hours: '#c084fc',
-  shipping: '#34d399',
-  general: '#64748b',
+  appointment_booking: '#7FB800',
+  refund_policy: '#7FB800',
+  pricing: '#41808B',
+  support: '#F46036',
+  business_hours: '#57A3AF',
+  shipping: '#7FB800',
+  general: '#41808B',
 };
 
 export const TOOL_LABELS = {
