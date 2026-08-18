@@ -66,13 +66,6 @@ def run_migrations():
     """)
     print("  ✓ widget_configs table")
 
-    try:
-        cur.execute("ALTER TABLE loggix_knowledge ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(36) DEFAULT ''")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_knowledge_tenant ON loggix_knowledge(tenant_id)")
-        print("  ✓ loggix_knowledge.tenant_id column")
-    except Exception as e:
-        print(f"  - loggix_knowledge: {e}")
-
     for col, ddl in {
         "phone_number_id": "VARCHAR(255) DEFAULT ''",
         "phone_number": "VARCHAR(32) DEFAULT ''",

@@ -1491,24 +1491,63 @@ def _transcript_tool_calls(transcript: list) -> list:
     return tools
 
 
+_CLOSING_ASSISTANT = re.compile(
+    r"(anything else|is there anything else|have a (great|good|nice|wonderful) day|"
+    r"thank you for calling|thanks? for calling|goodbye|bye now|happy to help|"
+    r"glad to help|let me know if you need|feel free to (reach out|call|ask))",
+    re.IGNORECASE,
+)
+
+_CALLER_FAREWELL = re.compile(
+    r"(^|\W)(bye|goodbye|thank you|thanks|that'?s all|that is all|no thanks?|"
+    r"no thank you|have a good day|have a great day)(\W|$)",
+    re.IGNORECASE,
+)
+
+
+def _transcript_text(transcript: list, role: str) -> list:
+    """Return normalized text utterances for a role from a Vapi transcript."""
+    out = []
+    for m in transcript or []:
+        if not isinstance(m, dict) or m.get("role") != role:
+            continue
+        content = m.get("content")
+        if isinstance(content, list):
+            text = " ".join(
+                str(part.get("text", "")) for part in content if isinstance(part, dict)
+            )
+        else:
+            text = str(content or "")
+        text = " ".join(text.split())
+        if text:
+            out.append(text)
+    return out
+
+
 def classify_call_resolution(call_data: dict, tool_calls: list) -> tuple:
-    """Deterministic resolution classification for a Vapi call.
-    Priority: appointment_completed > ticket_created > ai_resolved (Vapi analysis.resolved)
-    > human_resolved/escalated > abandoned > unresolved."""
+    """Deterministic, rule-based resolution classification for a Vapi call.
+    Priority: appointment_completed > ticket_created > escalated > abandoned
+    > ai_resolved (transcript closing rules) > unresolved."""
     tools = [t.get("function", {}).get("name", "") for t in tool_calls if isinstance(t, dict)]
-    analysis = call_data.get("analysis") or {}
     status = str(call_data.get("status", ""))
 
     if "book_appointment" in tools:
         return "appointment_completed", "Booked via book_appointment tool", "ai"
     if "raise_ticket" in tools:
         return "ticket_created", "Created support ticket via raise_ticket tool", "ai"
-    if analysis.get("resolved") is True:
-        return "ai_resolved", str(analysis.get("successEvaluation") or "Resolved by AI")[:500], "ai"
     if any(k in tools for k in ("escalate", "human_escalation")):
         return "escalated", "Escalated to human", "human"
-    if status in ("ended", "completed") and not call_data.get("transcript"):
+
+    transcript = call_data.get("transcript") or []
+    caller_msgs = _transcript_text(transcript, "user")
+    assistant_msgs = _transcript_text(transcript, "assistant")
+    if status in ("failed", "no-answer") or not caller_msgs:
         return "abandoned", "Call ended without conversation", ""
+
+    if assistant_msgs and _CLOSING_ASSISTANT.search(assistant_msgs[-1]):
+        return "ai_resolved", "Assistant closed the conversation after answering", "ai"
+    if _CALLER_FAREWELL.search(caller_msgs[-1]):
+        return "ai_resolved", "Caller closed the conversation", "ai"
     return "unresolved", "No resolution signal detected", ""
 
 

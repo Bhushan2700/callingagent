@@ -7,6 +7,8 @@ const links = [
   { to: '/documents', label: 'Documents' },
   { to: '/tickets', label: 'Tickets' },
   { to: '/voice', label: 'Voice Agent' },
+  { to: '/admin/widget', label: 'Widget Config' },
+  { to: '/widget', label: 'Widget Test' },
 ];
 
 export default function Navbar() {
