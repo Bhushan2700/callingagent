@@ -26,7 +26,7 @@ export default function WidgetDemoPage() {
     script.src = '/static/widget.js';
     script.async = true;
     document.body.appendChild(script);
-    return () => { document.body.removeChild(script); };
+    return () => { document.body.removeChild(script); const host = document.getElementById('loggix-widget-host'); if (host) host.remove(); };
   }, []);
 
   const embedCode = `<script>\nwindow.LoggixWidget = {\n  tenantId: ${JSON.stringify(DEFAULTS.tenantId)}\n};\n<\/script>\n<script src="${window.location.origin}/static/widget.js"><\/script>`;
