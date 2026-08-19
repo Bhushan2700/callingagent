@@ -1031,7 +1031,8 @@ def _get_widget_db(tenant_id: str) -> dict:
         cur.execute("SELECT config FROM widget_configs WHERE tenant_id = %s", (tenant_id,))
         row = cur.fetchone()
         if row:
-            config = {**config, **json.loads(row[0])}
+            stored = row[0] if isinstance(row[0], dict) else json.loads(row[0])
+            config = {**config, **stored}
         cur.execute("SELECT assistant_id FROM tenants WHERE id = %s", (tenant_id,))
         t = cur.fetchone()
         if t and t[0]:
@@ -1043,7 +1044,8 @@ def _get_widget_db(tenant_id: str) -> dict:
 def _save_widget_db(tenant_id: str, config: dict):
     merged = dict(DEFAULT_WIDGET_CONFIG)
     merged.update(config)
-    with get_db() as conn:
+    conn = get_db()
+    try:
         cur = conn.cursor()
         cur.execute(
             "INSERT INTO widget_configs (tenant_id, config) VALUES (%s, %s) "
@@ -1051,6 +1053,8 @@ def _save_widget_db(tenant_id: str, config: dict):
             (tenant_id, json.dumps(merged), json.dumps(merged)),
         )
         conn.commit()
+    finally:
+        conn.close()
 
 
 ALLOWED_POSITIONS = ["bottom-right", "bottom-left"]
@@ -1071,8 +1075,12 @@ async def update_widget_config(request: Request):
     pos = raw.get("position", "bottom-right")
     if pos not in ALLOWED_POSITIONS:
         raise HTTPException(status_code=400, detail=f"position must be one of {ALLOWED_POSITIONS}")
-    _save_widget_db(tenant_id, raw)
-    return {"status": "ok", "config": _get_widget_db(tenant_id)}
+    try:
+        _save_widget_db(tenant_id, raw)
+        return {"status": "ok", "config": _get_widget_db(tenant_id)}
+    except Exception as e:
+        app_logger.error(f"widget-config save failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to save widget config: {e}")
 
 
 @app.get("/admin/widget", response_class=HTMLResponse)
