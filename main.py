@@ -288,7 +288,8 @@ async def request_otp(request: Request):
         )
         conn.commit()
 
-    send_otp_email(name, email, otp)
+    if not send_otp_email(name, email, otp):
+        raise HTTPException(status_code=500, detail="Failed to send OTP email. Please try again.")
     return {"status": "sent", "email": email}
 
 
@@ -386,7 +387,8 @@ async def resend_otp(request: Request):
         )
         conn.commit()
 
-    send_otp_email(row[0], email, otp)
+    if not send_otp_email(row[0], email, otp):
+        raise HTTPException(status_code=500, detail="Failed to send OTP email. Please try again.")
     return {"status": "sent", "email": email}
 
 
@@ -422,7 +424,8 @@ async def forgot_password(request: Request):
         )
         conn.commit()
 
-    send_otp_email(name, email, otp)
+    if not send_otp_email(name, email, otp):
+        raise HTTPException(status_code=500, detail="Failed to send OTP email. Please try again.")
     return {"status": "sent", "email": email}
 
 

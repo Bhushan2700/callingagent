@@ -22,11 +22,13 @@ def _send(to: str, subject: str, html: str) -> bool:
             json={"from": MAIL_FROM, "to": [to], "subject": subject, "html": html},
             timeout=15,
         )
-        return r.status_code == 200
+        if r.status_code != 200:
+            app_logger.warning("Email send rejected by Resend to %s: %d %s", to, r.status_code, r.text[:300])
+            return False
+        return True
     except Exception as e:
         app_logger.warning("Email send failed to %s: %s", to, e)
         return False
-
 
 BRAND_HEADER = """
 <div style="text-align:center;padding:32px 0 24px;border-bottom:2px solid #2563eb">
