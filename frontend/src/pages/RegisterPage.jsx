@@ -198,7 +198,7 @@ export default function RegisterPage() {
               </div>
               <div>
                 <label style={labelStyle}>Password</label>
-                <input type="password" placeholder="At least 6 characters" value={password} onChange={e => setPassword(e.target.value)} required minLength={6}
+                <input type="password" autocomplete="new-password" placeholder="At least 6 characters" value={password} onChange={e => setPassword(e.target.value)} required minLength={6}
                   style={inputStyle} {...focusProps} />
               </div>
               <button type="submit" disabled={busy} style={{

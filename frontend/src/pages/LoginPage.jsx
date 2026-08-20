@@ -123,7 +123,7 @@ background: 'linear-gradient(135deg, rgba(87,163,175,0.18), rgba(87,163,175,0.18
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.4rem', fontWeight: 600 }}>Password</label>
-            <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required
+            <input type="password" autocomplete="current-password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required
               style={{ width: '100%', padding: '0.9rem 1.1rem', borderRadius: 12, border: '1px solid var(--glass-border)', background: 'var(--glass)', color: '#41808B', fontSize: '0.95rem', outline: 'none', transition: 'border-color 0.3s, box-shadow 0.3s' }}
               onFocus={e => { e.currentTarget.style.borderColor = '#7FB800'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(87,163,175,0.15)' }}
               onBlur={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.boxShadow = 'none' }} />

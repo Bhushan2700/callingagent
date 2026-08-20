@@ -370,7 +370,7 @@ export default function OnboardingPage() {
                   {PROVIDERS.find(p => p.value === form.phone.provider)?.fields.map(([k, lbl]) => (
                     <div className="form-group" key={k} style={{ marginBottom: '0.75rem' }}>
                       <label style={labelStyle}>{lbl}</label>
-                      <input type="password" style={inputStyle} value={form.phone.credentials[k] || ''}
+                      <input type="password" autocomplete="off" style={inputStyle} value={form.phone.credentials[k] || ''}
                         onChange={e => set({ phone: { ...form.phone, credentials: { ...form.phone.credentials, [k]: e.target.value } } })} />
                     </div>
                   ))}
