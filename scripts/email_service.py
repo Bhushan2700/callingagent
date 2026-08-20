@@ -5,25 +5,32 @@ from datetime import datetime, timezone
 
 app_logger = logging.getLogger("loggix.email")
 
-RESEND_KEY = os.getenv("RESEND_API_KEY", "")
-MAIL_FROM = os.getenv("MAIL_FROM", "onboarding@resend.dev")
+ELASTIC_EMAIL_KEY = os.getenv("ELASTIC_EMAIL_KEY", "")
+MAIL_FROM = os.getenv("MAIL_FROM", "nik68199@gmail.com")
 ADMIN_EMAIL = os.getenv("ADMIN_NOTIFY_EMAIL", "")
 PUBLIC_DOMAIN = os.getenv("RAILWAY_PUBLIC_DOMAIN", "")
 
 
 def _send(to: str, subject: str, html: str) -> bool:
-    if not RESEND_KEY:
-        app_logger.warning("RESEND_API_KEY not set — skipping email to %s", to)
+    if not ELASTIC_EMAIL_KEY:
+        app_logger.warning("ELASTIC_EMAIL_KEY not set — skipping email to %s", to)
         return False
     try:
         r = httpx.post(
-            "https://api.resend.com/emails",
-            headers={"Authorization": f"Bearer {RESEND_KEY}"},
-            json={"from": MAIL_FROM, "to": [to], "subject": subject, "html": html},
+            "https://api.elasticemail.com/v4/emails/transactional",
+            headers={"X-ElasticEmail-ApiKey": ELASTIC_EMAIL_KEY},
+            json={
+                "Recipients": {"To": [to]},
+                "Content": {
+                    "From": MAIL_FROM,
+                    "Subject": subject,
+                    "Body": [{"ContentType": "HTML", "Content": html}],
+                },
+            },
             timeout=15,
         )
-        if r.status_code != 200:
-            app_logger.warning("Email send rejected by Resend to %s: %d %s", to, r.status_code, r.text[:300])
+        if r.status_code not in (200, 201):
+            app_logger.warning("Email send rejected to %s: %d %s", to, r.status_code, r.text[:300])
             return False
         return True
     except Exception as e:
