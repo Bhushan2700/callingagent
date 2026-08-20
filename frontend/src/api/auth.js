@@ -1,19 +1,3 @@
-import emailjs from '@emailjs/browser';
-
-emailjs.init('DSGUFelUkxLs5cwVW');
-
-const EMAILJS_SERVICE = 'service_0ycp7gu';
-const EMAILJS_OTP_TEMPLATE = 'template_qij1f0f';
-const EMAILJS_WELCOME_TEMPLATE = 'template_uygt63e';
-
-export async function sendOtpEmail(name, email, otp) {
-  return emailjs.send(EMAILJS_SERVICE, EMAILJS_OTP_TEMPLATE, { name, email, otp });
-}
-
-export async function sendWelcomeEmail(name, email) {
-  return emailjs.send(EMAILJS_SERVICE, EMAILJS_WELCOME_TEMPLATE, { name, email });
-}
-
 const BASE = '';
 
 export function getToken() {

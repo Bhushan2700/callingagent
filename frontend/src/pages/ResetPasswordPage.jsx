@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Mic, MessageSquare, Calendar, ArrowRight, ArrowLeft, ShieldCheck, Zap, Mail } from 'lucide-react';
-import { resetPassword, resendOtp, forgotPassword, sendOtpEmail } from '../api/auth.js';
+import { resetPassword, resendOtp, forgotPassword } from '../api/auth.js';
 
 const highlights = [
   { icon: ShieldCheck, text: 'Secure, one-time reset codes' },
@@ -93,12 +93,10 @@ export default function ResetPasswordPage() {
     setCanResend(false);
     setCountdown(45);
     try {
-      const res = await resendOtp(email);
-      if (res.otp) await sendOtpEmail(res.name, email, res.otp);
+      await resendOtp(email);
     } catch (err) {
       if (err.message.includes('No verification')) {
-        const res = await forgotPassword(email);
-        if (res.otp) await sendOtpEmail(res.name, email, res.otp);
+        await forgotPassword(email);
       } else {
         setError(err.message);
         setCanResend(true);
