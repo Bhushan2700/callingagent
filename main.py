@@ -42,7 +42,7 @@ from scripts.vapi_client import (
     get_assistant,
 )
 from scripts.storage import storage
-from scripts.email_service import send_otp_email, send_welcome_email, send_admin_notification
+from scripts.email_service import send_welcome_email, send_admin_notification
 
 app = FastAPI()
 cors_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "*").split(",") if o.strip()]
@@ -288,9 +288,7 @@ async def request_otp(request: Request):
         )
         conn.commit()
 
-    if not send_otp_email(name, email, otp):
-        raise HTTPException(status_code=500, detail="Failed to send OTP email. Please try again.")
-    return {"status": "sent", "email": email}
+    return {"status": "sent", "email": email, "otp": otp, "name": name}
 
 
 @app.post("/api/auth/verify-otp")
@@ -387,9 +385,7 @@ async def resend_otp(request: Request):
         )
         conn.commit()
 
-    if not send_otp_email(row[0], email, otp):
-        raise HTTPException(status_code=500, detail="Failed to send OTP email. Please try again.")
-    return {"status": "sent", "email": email}
+    return {"status": "sent", "email": email, "otp": otp, "name": row[0]}
 
 
 @app.post("/api/auth/forgot-password")
@@ -424,9 +420,7 @@ async def forgot_password(request: Request):
         )
         conn.commit()
 
-    if not send_otp_email(name, email, otp):
-        raise HTTPException(status_code=500, detail="Failed to send OTP email. Please try again.")
-    return {"status": "sent", "email": email}
+    return {"status": "sent", "email": email, "otp": otp, "name": name}
 
 
 @app.post("/api/auth/reset-password")

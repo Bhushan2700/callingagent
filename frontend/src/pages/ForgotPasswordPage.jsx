@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, MailCheck } from 'lucide-react';
-import { forgotPassword } from '../api/auth.js';
+import { forgotPassword, sendOtpEmail } from '../api/auth.js';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -14,7 +14,8 @@ export default function ForgotPasswordPage() {
     setError('');
     setBusy(true);
     try {
-      await forgotPassword(email);
+      const res = await forgotPassword(email);
+      if (res.otp) await sendOtpEmail(res.name, email, res.otp);
       setSent(true);
     } catch (err) {
       setError(err.message);

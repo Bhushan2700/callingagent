@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mic, MessageSquare, Calendar, ArrowRight, ShieldCheck, Zap, Mail, ArrowLeft } from 'lucide-react';
-import { requestOtp, verifyOtp, resendOtp } from '../api/auth.js';
+import { requestOtp, verifyOtp, resendOtp, sendOtpEmail, sendWelcomeEmail } from '../api/auth.js';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 const highlights = [
@@ -54,7 +54,8 @@ export default function RegisterPage() {
     setError('');
     setBusy(true);
     try {
-      await requestOtp(email, password, name);
+      const res = await requestOtp(email, password, name);
+      await sendOtpEmail(res.name, res.email, res.otp);
       setStep('otp');
       setCountdown(45);
       setCanResend(false);
@@ -105,6 +106,7 @@ export default function RegisterPage() {
     try {
       const data = await verifyOtp(email, code);
       loginUser(data.token, data.tenant_id, data.name, data.email, data.assistant_id, data.onboarding_complete);
+      try { await sendWelcomeEmail(data.name, data.email); } catch {}
       nav('/onboarding');
     } catch (err) {
       setError(err.message);
@@ -118,7 +120,8 @@ export default function RegisterPage() {
     setCanResend(false);
     setCountdown(45);
     try {
-      await resendOtp(email);
+      const res = await resendOtp(email);
+      await sendOtpEmail(res.name, email, res.otp);
     } catch (err) {
       setError(err.message);
       setCanResend(true);
