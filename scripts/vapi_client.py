@@ -131,6 +131,44 @@ def build_tools(tools_enabled: list) -> list:
     return tools
 
 
+def _transcriber(cfg: dict) -> dict:
+    lang = LANGUAGE_CODES.get((cfg.get("languages") or ["English"])[0], "en")
+    if lang == "en":
+        return {"provider": "deepgram", "model": "flux-general-en", "language": "en"}
+    return {"provider": "deepgram", "model": "nova-3", "language": "multi"}
+
+
+async def _sync_tools(client, assistant_id: str, tools_enabled: list) -> None:
+    """Create Vapi tools and attach them to the assistant via model.toolIds."""
+    if not assistant_id:
+        return
+    tool_ids = []
+    for payload in build_tools(tools_enabled):
+        try:
+            tr = await client.post(f"{VAPI_BASE}/tool", json=payload, headers=_headers(), timeout=30)
+            tr.raise_for_status()
+            tool_ids.append(tr.json().get("id"))
+            logger.info(f"Created Vapi tool {payload['function']['name']}: {tool_ids[-1]}")
+        except Exception as e:
+            logger.error(f"Failed to create Vapi tool {payload['function']['name']}: {e}")
+            if isinstance(e, httpx.HTTPStatusError) and e.response is not None:
+                logger.error(f"Vapi response body: {e.response.text[:500]}")
+    if tool_ids:
+        try:
+            pr = await client.patch(
+                f"{VAPI_BASE}/assistant/{assistant_id}",
+                json={"model": {"toolIds": tool_ids}},
+                headers=_headers(),
+                timeout=30,
+            )
+            pr.raise_for_status()
+            logger.info(f"Attached tools {tool_ids} to assistant {assistant_id}")
+        except Exception as e:
+            logger.error(f"Failed to attach tools to assistant {assistant_id}: {e}")
+            if isinstance(e, httpx.HTTPStatusError) and e.response is not None:
+                logger.error(f"Vapi response body: {e.response.text[:500]}")
+
+
 def _headers() -> dict:
     return {"Authorization": f"Bearer {VAPI_KEY}", "Content-Type": "application/json"}
 
@@ -151,13 +189,8 @@ async def create_assistant(cfg: dict) -> str | None:
             "messages": [{"role": "system", "content": build_system_prompt(cfg)}],
         },
         "server": {"url": build_server_url("/webhook/vapi")},
-        "transcriber": {
-            "provider": "deepgram",
-            "model": "flux-general-en",
-            "language": LANGUAGE_CODES.get((cfg.get("languages") or ["English"])[0], "en"),
-        },
+        "transcriber": _transcriber(cfg),
         "voice": {"provider": "11labs", "voiceId": cfg.get("voice_id") or "21m00Tcm4TlvDq8ikWAM"},
-        "tools": build_tools(cfg.get("tools_enabled")),
     }
 
     async with httpx.AsyncClient() as client:
@@ -165,8 +198,10 @@ async def create_assistant(cfg: dict) -> str | None:
             resp = await client.post(f"{VAPI_BASE}/assistant", json=payload, headers=_headers(), timeout=30)
             resp.raise_for_status()
             data = resp.json()
-            logger.info(f"Created Vapi assistant {data.get('id')} for {company}")
-            return data.get("id")
+            assistant_id = data.get("id")
+            logger.info(f"Created Vapi assistant {assistant_id} for {company}")
+            await _sync_tools(client, assistant_id, cfg.get("tools_enabled"))
+            return assistant_id
         except Exception as e:
             logger.error(f"Failed to create Vapi assistant for {company}: {e}")
             if isinstance(e, httpx.HTTPStatusError) and e.response is not None:
@@ -202,19 +237,15 @@ async def update_assistant(assistant_id: str, cfg: dict) -> bool:
             "model": "gpt-4o",
             "messages": [{"role": "system", "content": build_system_prompt(cfg)}],
         },
-        "transcriber": {
-            "provider": "deepgram",
-            "model": "flux-general-en",
-            "language": LANGUAGE_CODES.get((cfg.get("languages") or ["English"])[0], "en"),
-        },
+        "transcriber": _transcriber(cfg),
         "voice": {"provider": "11labs", "voiceId": cfg.get("voice_id") or "21m00Tcm4TlvDq8ikWAM"},
-        "tools": build_tools(cfg.get("tools_enabled")),
     }
 
     async with httpx.AsyncClient() as client:
         try:
             resp = await client.patch(f"{VAPI_BASE}/assistant/{assistant_id}", json=payload, headers=_headers(), timeout=30)
             resp.raise_for_status()
+            await _sync_tools(client, assistant_id, cfg.get("tools_enabled"))
             logger.info(f"Updated Vapi assistant {assistant_id}")
             return True
         except Exception as e:
