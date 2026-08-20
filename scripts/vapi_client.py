@@ -124,7 +124,7 @@ def build_tools(tools_enabled: list) -> list:
         if not schema:
             continue
         tools.append({
-            "type": "server",
+            "type": "function",
             "function": {"name": schema["name"], "description": schema["description"], "parameters": schema["parameters"]},
             "server": {"url": build_server_url(f"/tool/{name}"), "timeoutSeconds": 20},
         })
@@ -153,6 +153,7 @@ async def create_assistant(cfg: dict) -> str | None:
         "server": {"url": build_server_url("/webhook/vapi")},
         "transcriber": {
             "provider": "deepgram",
+            "model": "flux-general-en",
             "language": LANGUAGE_CODES.get((cfg.get("languages") or ["English"])[0], "en"),
         },
         "voice": {"provider": "11labs", "voiceId": cfg.get("voice_id") or "21m00Tcm4TlvDq8ikWAM"},
@@ -168,6 +169,8 @@ async def create_assistant(cfg: dict) -> str | None:
             return data.get("id")
         except Exception as e:
             logger.error(f"Failed to create Vapi assistant for {company}: {e}")
+            if isinstance(e, httpx.HTTPStatusError) and e.response is not None:
+                logger.error(f"Vapi response body: {e.response.text[:500]}")
             return None
 
 
@@ -201,6 +204,7 @@ async def update_assistant(assistant_id: str, cfg: dict) -> bool:
         },
         "transcriber": {
             "provider": "deepgram",
+            "model": "flux-general-en",
             "language": LANGUAGE_CODES.get((cfg.get("languages") or ["English"])[0], "en"),
         },
         "voice": {"provider": "11labs", "voiceId": cfg.get("voice_id") or "21m00Tcm4TlvDq8ikWAM"},
@@ -215,6 +219,8 @@ async def update_assistant(assistant_id: str, cfg: dict) -> bool:
             return True
         except Exception as e:
             logger.error(f"Failed to update Vapi assistant {assistant_id}: {e}")
+            if isinstance(e, httpx.HTTPStatusError) and e.response is not None:
+                logger.error(f"Vapi response body: {e.response.text[:500]}")
             return False
 
 
