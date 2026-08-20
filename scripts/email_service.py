@@ -1,36 +1,55 @@
 import os
+import base64
 import logging
 import httpx
 from datetime import datetime, timezone
+from email.message import EmailMessage
 
 app_logger = logging.getLogger("loggix.email")
 
-ELASTIC_EMAIL_KEY = os.getenv("ELASTIC_EMAIL_KEY", "")
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+GMAIL_REFRESH_TOKEN = os.getenv("GMAIL_REFRESH_TOKEN", "")
 MAIL_FROM = os.getenv("MAIL_FROM", "nik68199@gmail.com")
 ADMIN_EMAIL = os.getenv("ADMIN_NOTIFY_EMAIL", "")
 PUBLIC_DOMAIN = os.getenv("RAILWAY_PUBLIC_DOMAIN", "")
 
 
+def _get_gmail_token() -> str:
+    r = httpx.post(
+        "https://oauth2.googleapis.com/token",
+        data={
+            "client_id": GOOGLE_CLIENT_ID,
+            "client_secret": GOOGLE_CLIENT_SECRET,
+            "refresh_token": GMAIL_REFRESH_TOKEN,
+            "grant_type": "refresh_token",
+        },
+        timeout=10,
+    )
+    r.raise_for_status()
+    return r.json()["access_token"]
+
+
 def _send(to: str, subject: str, html: str) -> bool:
-    if not ELASTIC_EMAIL_KEY:
-        app_logger.warning("ELASTIC_EMAIL_KEY not set — skipping email to %s", to)
+    if not all([GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GMAIL_REFRESH_TOKEN]):
+        app_logger.warning("Gmail API credentials not set — skipping email to %s", to)
         return False
     try:
+        token = _get_gmail_token()
+        msg = EmailMessage()
+        msg["From"] = MAIL_FROM
+        msg["To"] = to
+        msg["Subject"] = subject
+        msg.set_content(html, subtype="html")
+        raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
         r = httpx.post(
-            "https://api.elasticemail.com/v4/emails/transactional",
-            headers={"X-ElasticEmail-ApiKey": ELASTIC_EMAIL_KEY},
-            json={
-                "Recipients": {"To": [to]},
-                "Content": {
-                    "From": MAIL_FROM,
-                    "Subject": subject,
-                    "Body": [{"ContentType": "HTML", "Content": html}],
-                },
-            },
+            "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"raw": raw},
             timeout=15,
         )
         if r.status_code not in (200, 201):
-            app_logger.warning("Email send rejected to %s: %d %s", to, r.status_code, r.text[:300])
+            app_logger.warning("Gmail API send rejected to %s: %d %s", to, r.status_code, r.text[:300])
             return False
         return True
     except Exception as e:
