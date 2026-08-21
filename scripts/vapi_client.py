@@ -287,10 +287,10 @@ async def create_credential(provider: str, credentials: dict) -> str | None:
             return None
 
 
-async def buy_phone_number(name: str, area_code: str, assistant_id: str) -> dict | None:
-    """Buy a Vapi-managed phone number. Returns {id, number} or None."""
+async def buy_phone_number(name: str, area_code: str, assistant_id: str) -> dict:
+    """Buy a Vapi-managed phone number. Returns {id, number} on success, {error: msg} on failure."""
     if not VAPI_KEY:
-        return None
+        return {"error": "VAPI_PRIVATE_KEY is not configured on the server."}
 
     payload = {
         "provider": "vapi",
@@ -307,9 +307,20 @@ async def buy_phone_number(name: str, area_code: str, assistant_id: str) -> dict
             data = resp.json()
             logger.info(f"Bought Vapi number {data.get('number')} ({data.get('id')}) for {name}")
             return {"id": data.get("id"), "number": data.get("number")}
+        except httpx.HTTPStatusError as e:
+            body = {}
+            try:
+                body = e.response.json()
+            except Exception:
+                pass
+            msg = (body.get("message")
+                   or (body.get("error", {}) or {}).get("message")
+                   or str(e))
+            logger.error(f"Vapi buy failed ({e.response.status_code}): {msg}")
+            return {"error": msg}
         except Exception as e:
             logger.error(f"Failed to buy Vapi phone number: {e}")
-            return None
+            return {"error": str(e)}
 
 
 async def import_phone_number(name: str, provider: str, credential_id: str, number: str, assistant_id: str) -> dict | None:

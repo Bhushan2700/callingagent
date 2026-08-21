@@ -1376,7 +1376,30 @@ async def save_onboarding(request: Request):
                 assistant_id,
             )
             if not bought:
-                return {"status": "error", "step": "phone", "message": "Couldn't buy a number with that area code. Try another one."}
+                detail = bought.get("error", "") if isinstance(bought, dict) else ""
+                # Assistant was created but the number couldn't be bought — persist it and flag phone pending
+                try:
+                    with get_db() as conn:
+                        cur = conn.cursor()
+                        cur.execute(
+                            "UPDATE tenants SET assistant_id=%s, phone_number_id=NULL, phone_number='', onboarding_complete=TRUE WHERE id=%s",
+                            (assistant_id, tenant_id),
+                        )
+                        conn.commit()
+                except Exception:
+                    pass
+                try:
+                    with get_db() as conn:
+                        cur = conn.cursor()
+                        cur.execute(
+                            "INSERT INTO phone_requests (tenant_id, provider, phone_number, credentials, status) "
+                            "VALUES (%s, %s, %s, %s, 'pending')",
+                            (tenant_id, "vapi", "", json.dumps({"error": detail or "buy failed"})),
+                        )
+                        conn.commit()
+                except Exception:
+                    pass
+                return {"status": "error", "step": "phone", "assistant_id": assistant_id, "message": detail or "Couldn't buy a phone number. Check your Vapi account settings."}
             new_phone_id, new_phone_number = bought["id"], bought["number"]
         else:
             await assign_phone_number(phone_number_id, assistant_id)

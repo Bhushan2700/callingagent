@@ -122,6 +122,7 @@ export default function OnboardingPage() {
       });
       if (res.status !== 'ok') {
         clearInterval(timer);
+        if (res.assistant_id) localStorage.setItem('loggix_assistant_id', res.assistant_id);
         setError(res.message || 'Something went wrong while creating your assistant.');
         setPhase('error');
         return;
@@ -161,11 +162,11 @@ export default function OnboardingPage() {
             </div>
             {phase === 'error' ? (
               <>
-                <h1 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '0.75rem' }}>Almost there</h1>
+                <h1 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '0.75rem' }}>Assistant created</h1>
                 <p style={{ color: '#F46036', fontSize: '0.9rem', marginBottom: '1.5rem' }}>{error}</p>
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
                   <button className="btn btn-primary" onClick={() => setPhase('form')}>Back to setup</button>
-                  <button className="btn" onClick={provisioningSequence} style={{ background: 'var(--brand-gradient)', color: '#fff', border: 'none', fontWeight: 600, borderRadius: 10, padding: '0.6rem 1.2rem', cursor: 'pointer' }}>Retry</button>
+                  <button className="btn" onClick={() => nav('/dashboard', { replace: true })} style={{ background: 'var(--brand-gradient)', color: '#fff', border: 'none', fontWeight: 600, borderRadius: 10, padding: '0.6rem 1.2rem', cursor: 'pointer' }}>Go to Dashboard</button>
                 </div>
               </>
             ) : (
