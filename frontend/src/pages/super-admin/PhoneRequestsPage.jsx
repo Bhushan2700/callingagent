@@ -161,7 +161,7 @@ export default function PhoneRequestsPage() {
                       </td>
                       <td style={tdStyle}>
                         <code style={{ fontSize: '12px', color: '#41808B', background: 'var(--bg)', padding: '0.15rem 0.5rem', borderRadius: 6 }}>
-                          {r.phone_number}
+                          {r.provider === 'vapi' ? `Area: ${r.phone_number || 'any'}` : (r.phone_number || '—')}
                         </code>
                       </td>
                       <td style={tdStyle}>
@@ -216,8 +216,8 @@ export default function PhoneRequestsPage() {
                   <div style={{ fontWeight: 600, color: '#41808B' }}>{selectedRequest.provider}</div>
                 </div>
                 <div style={{ background: 'var(--glass)', borderRadius: 12, padding: '1rem' }}>
-                  <div style={{ fontSize: '11px', color: '#57A3AF', marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Phone Number</div>
-                  <code style={{ fontSize: '13px', color: '#41808B', fontFamily: 'monospace' }}>{selectedRequest.phone_number}</code>
+                  <div style={{ fontSize: '11px', color: '#57A3AF', marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{selectedRequest.provider === 'vapi' ? 'Area Code' : 'Phone Number'}</div>
+                  <code style={{ fontSize: '13px', color: '#41808B', fontFamily: 'monospace' }}>{selectedRequest.provider === 'vapi' ? (selectedRequest.phone_number || 'any (admin picks)') : (selectedRequest.phone_number || '—')}</code>
                 </div>
               </div>
               <div style={{ background: 'var(--glass)', borderRadius: 12, padding: '1rem' }}>

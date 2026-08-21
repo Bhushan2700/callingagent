@@ -30,7 +30,7 @@ const COUNTRIES = [
 ];
 
 const PROVIDERS = [
-  { value: 'vapi', label: 'Vapi (Instant)', fields: [] },
+  { value: 'vapi', label: 'Vapi (Free)', fields: [['area_code', 'Area Code (US)']] },
   { value: 'twilio', label: 'Twilio', fields: [['accountSid', 'Account SID'], ['authToken', 'Auth Token']] },
   { value: 'vonage', label: 'Vonage', fields: [['apiKey', 'API Key'], ['apiSecret', 'API Secret']] },
   { value: 'telnyx', label: 'Telnyx', fields: [['apiKey', 'API Key']] },
@@ -113,12 +113,11 @@ export default function OnboardingPage() {
     setProvisionIdx(0);
     const timer = setInterval(() => setProvisionIdx(i => Math.min(i + 1, PROVISION_STEPS.length - 1)), 900);
     try {
-      const useVapiNumber = form.phone.provider === 'vapi';
       const res = await saveOnboarding({
         company_name: form.company_name, industry: form.industry, description: form.description,
         business_hours: form.business_hours, timezone: form.timezone, greeting: form.greeting,
         languages: form.languages, voice_id: form.voice_id, tools_enabled: form.tools_enabled,
-        phone: useVapiNumber ? { mode: 'buy' } : form.phone, widget: form.widget,
+        phone: form.phone, widget: form.widget,
       });
       if (res.status !== 'ok') {
         clearInterval(timer);
@@ -129,14 +128,12 @@ export default function OnboardingPage() {
       }
       if (res.assistant_id) localStorage.setItem('loggix_assistant_id', res.assistant_id);
       if (res.phone_number) localStorage.setItem('loggix_phone_number', res.phone_number);
-      // BYO numbers still need admin configuration
-      if (!useVapiNumber) {
-        await createPhoneRequest({
-          provider: form.phone.provider,
-          phone_number: form.phone.number,
-          credentials: form.phone.credentials,
-        });
-      }
+      // Save the phone configuration request for the admin to set up in Vapi
+      await createPhoneRequest({
+        provider: form.phone.provider,
+        phone_number: form.phone.provider === 'vapi' ? form.phone.area_code : form.phone.number,
+        credentials: form.phone.credentials,
+      });
       clearInterval(timer);
       nav('/dashboard', { replace: true });
     } catch (err) {
@@ -331,10 +328,10 @@ export default function OnboardingPage() {
           {S.key === 'phone' && (
             <>
               <p style={{ fontSize: '12px', color: '#57A3AF', marginBottom: '0.75rem' }}>
-                Get a ready-to-use number instantly, or connect your existing provider. BYO numbers are configured by our team after setup.
+                Choose how you want your AI receptionist to take calls. For Vapi you'll get a free number (US area code); for your own provider, enter the number + credentials. Our team configures it in Vapi after setup.
               </p>
               {[
-                { provider: 'vapi', title: 'Get a phone number instantly', desc: 'We assign a working number automatically — nothing to configure.' },
+                { provider: 'vapi', title: 'Get a free Vapi number', desc: 'Free US number assigned by our team. Just give an area code.' },
                 { provider: 'twilio', title: 'Use my Twilio number', desc: 'Requires Twilio Account SID + Auth Token' },
                 { provider: 'vonage', title: 'Use my Vonage number', desc: 'Requires Vonage API Key + API Secret' },
                 { provider: 'telnyx', title: 'Use my Telnyx number', desc: 'Requires Telnyx API Key' },
@@ -355,6 +352,16 @@ export default function OnboardingPage() {
                   </span>
                 </button>
               ))}
+
+              {form.phone.mode === 'provider' && form.phone.provider === 'vapi' && (
+                <div style={{ marginTop: '1rem' }}>
+                  <div className="form-group" style={{ marginBottom: '0.75rem' }}>
+                    <label style={labelStyle}>Area Code (US)</label>
+                    <input style={inputStyle} value={form.phone.area_code} onChange={e => set({ phone: { ...form.phone, area_code: e.target.value } })} placeholder="e.g. 415" />
+                  </div>
+                  <p style={{ fontSize: '11px', color: '#41808B', marginTop: '0.5rem' }}>Free Vapi numbers are US-only. Leave blank and our team will pick an available area code.</p>
+                </div>
+              )}
 
               {form.phone.mode === 'provider' && form.phone.provider !== 'vapi' && (
                 <div style={{ marginTop: '1rem' }}>
