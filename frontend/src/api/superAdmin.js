@@ -1,3 +1,5 @@
+import { getToken } from './auth.js';
+
 const BASE = '';
 
 function authHeaders() {
@@ -26,7 +28,7 @@ export function getAdminToken() {
 }
 
 export async function createPhoneRequest({ provider, phone_number, credentials }) {
-  const token = getAdminToken();
+  const token = getToken() || getAdminToken();
   const res = await fetch(`${BASE}/super-admin/phone-requests`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },

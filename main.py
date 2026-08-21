@@ -1166,10 +1166,11 @@ async def create_phone_request(request: Request):
     try:
         with get_db() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT company_name FROM tenants WHERE id = %s", (tenant_id,))
-            trow = cur.fetchone()
+        cur.execute("SELECT company_name, email FROM tenants WHERE id = %s", (tenant_id,))
+        trow = cur.fetchone()
         company = trow[0] if trow else "Unknown"
-        send_phone_request_notification(company, email, provider, phone_number)
+        tenant_email = trow[1] if trow and len(trow) > 1 else ""
+        send_phone_request_notification(company, tenant_email, provider, phone_number)
     except Exception:
         pass
     return {"status": "ok", "request_id": row[0], "created_at": row[1].isoformat()}
