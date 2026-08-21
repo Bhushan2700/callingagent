@@ -139,3 +139,26 @@ def send_admin_notification(name: str, email: str, tenant_id: str) -> bool:
     </div>
     """
     return _send(ADMIN_EMAIL, f"New signup: {name}", html)
+
+
+def send_phone_request_notification(company_name: str, tenant_email: str, provider: str, phone_number: str) -> bool:
+    if not ADMIN_EMAIL:
+        return False
+    masked_number = phone_number[:4] + "****" + phone_number[-4:] if len(phone_number) > 8 else "****"
+    html = f"""
+    <div style="max-width:480px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0f172a">
+      {BRAND_HEADER}
+      <div style="padding:32px 24px">
+        <h2 style="font-size:1.1rem;font-weight:700;margin:0 0 16px">New phone request from {company_name}</h2>
+        <table style="width:100%;font-size:0.9rem;border-collapse:collapse">
+          <tr><td style="padding:8px 0;color:#64748b;width:120px">Business</td><td style="padding:8px 0;font-weight:600">{company_name}</td></tr>
+          <tr><td style="padding:8px 0;color:#64748b">Contact</td><td style="padding:8px 0;font-weight:600">{tenant_email}</td></tr>
+          <tr><td style="padding:8px 0;color:#64748b">Provider</td><td style="padding:8px 0;font-weight:600">{provider}</td></tr>
+          <tr><td style="padding:8px 0;color:#64748b">Phone</td><td style="padding:8px 0;font-family:monospace;font-size:0.8rem">{masked_number}</td></tr>
+        </table>
+        <p style="color:#94a3b8;font-size:0.8rem;margin:24px 0 0">Log into the super-admin panel to configure this phone number.</p>
+      </div>
+      {FOOTER}
+    </div>
+    """
+    return _send(ADMIN_EMAIL, f"New phone request: {company_name}", html)

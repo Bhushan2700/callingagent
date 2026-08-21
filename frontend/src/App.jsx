@@ -21,6 +21,9 @@ import RegisterPage from './pages/RegisterPage.jsx';
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
 import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
 import OnboardingPage from './pages/OnboardingPage.jsx';
+import SuperAdminLoginPage from './pages/super-admin/LoginPage.jsx';
+import SuperAdminLayout from './pages/super-admin/AdminLayout.jsx';
+import SuperAdminPhoneRequests from './pages/super-admin/PhoneRequestsPage.jsx';
 import './App.css';
 
 function AppContent() {
@@ -52,6 +55,10 @@ function AppContent() {
           <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
           <Route path="/admin/widget" element={<ProtectedRoute><WidgetConfigPage /></ProtectedRoute>} />
           <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
+          <Route path="/super-admin/login" element={<SuperAdminLoginPage />} />
+          <Route element={<SuperAdminLayout />}>
+            <Route path="/super-admin/phone-requests" element={<SuperAdminPhoneRequests />} />
+          </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

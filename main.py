@@ -13,7 +13,7 @@ from pathlib import Path
 from datetime import datetime, date, timezone, timedelta
 from uuid import uuid4
 from random import randint
-from fastapi import FastAPI, Request, Response, HTTPException, UploadFile, File
+from fastapi import FastAPI, Request, Response, HTTPException, UploadFile, File, Depends
 from fastapi.responses import PlainTextResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -34,7 +34,7 @@ from receptionist import LoggixReceptionist
 from scripts.pgvector_writer import PGVectorWriter
 from scripts.unified_ingest import UnifiedIngest
 from scripts.cal_client import CalClient
-from scripts.auth import hash_password, verify_password, create_token, decode_token
+from scripts.auth import hash_password, verify_password, create_token, decode_token, create_admin_token, decode_admin_token
 from scripts.vapi_client import (
     create_assistant, update_assistant, delete_assistant, create_credential,
     buy_phone_number, import_phone_number, assign_phone_number, delete_phone_number,
@@ -146,6 +146,17 @@ def get_current_tenant(request: Request) -> str:
     if not tenant_id:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     return tenant_id
+
+
+def get_current_admin(request: Request) -> str:
+    """Validate admin JWT and return admin_id."""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    admin_id = decode_admin_token(token)
+    if not admin_id:
+        raise HTTPException(status_code=401, detail="Invalid or expired admin token")
+    return admin_id
 
 
 def tenant_exists(tenant_id: str) -> bool:
@@ -1094,6 +1105,186 @@ async def admin_widget_page():
     if admin_html.exists():
         return HTMLResponse(content=admin_html.read_text(encoding="utf-8"))
     return HTMLResponse(content="<h1>Admin Widget page not found</h1>", status_code=404)
+
+
+# ==================== SUPER ADMIN ENDPOINTS ====================
+
+@app.post("/super-admin/login")
+async def super_admin_login(request: Request):
+    """Admin login — returns admin JWT."""
+    raw = await request.json()
+    email = raw.get("email", "").strip().lower()
+    password = raw.get("password", "")
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="email and password required")
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT id, password_hash, name FROM admin_users WHERE email = %s", (email,))
+        row = cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    admin_id, pw_hash, name = row
+    if not verify_password(password, pw_hash):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    token = create_admin_token(admin_id)
+    return {"token": token, "admin_id": admin_id, "name": name, "email": email}
+
+
+@app.get("/super-admin/me")
+async def super_admin_me(admin_id: str = Depends(get_current_admin)):
+    """Get current admin info."""
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT id, email, name, created_at FROM admin_users WHERE id = %s", (admin_id,))
+        row = cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    return {"id": row[0], "email": row[1], "name": row[2], "created_at": row[3].isoformat()}
+
+
+@app.post("/super-admin/phone-requests")
+async def create_phone_request(request: Request):
+    """Save phone request from onboarding wizard."""
+    tenant_id = get_current_tenant(request)
+    raw = await request.json()
+    provider = raw.get("provider", "").strip()
+    phone_number = raw.get("phone_number", "").strip()
+    credentials = raw.get("credentials", {}) or {}
+    if not provider or not phone_number:
+        raise HTTPException(status_code=400, detail="provider and phone_number required")
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO phone_requests (tenant_id, provider, phone_number, credentials, status)
+               VALUES (%s, %s, %s, %s, 'pending')
+               RETURNING id, created_at""",
+            (tenant_id, provider, phone_number, json.dumps(credentials)),
+        )
+        row = cur.fetchone()
+        conn.commit()
+    # Notify admin
+    try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT company_name FROM tenants WHERE id = %s", (tenant_id,))
+            trow = cur.fetchone()
+        company = trow[0] if trow else "Unknown"
+        send_phone_request_notification(company, email, provider, phone_number)
+    except Exception:
+        pass
+    return {"status": "ok", "request_id": row[0], "created_at": row[1].isoformat()}
+
+
+@app.get("/super-admin/phone-requests")
+async def list_phone_requests(admin_id: str = Depends(get_current_admin)):
+    """List all phone requests with optional status filter."""
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT pr.id, pr.tenant_id, pr.provider, pr.phone_number, pr.credentials,
+                   pr.status, pr.admin_notes, pr.created_at, pr.updated_at,
+                   t.company_name, t.email as tenant_email
+            FROM phone_requests pr
+            JOIN tenants t ON t.id = pr.tenant_id
+            ORDER BY pr.created_at DESC
+        """)
+        rows = cur.fetchall()
+    return {
+        "requests": [
+            {
+                "id": r[0],
+                "tenant_id": r[1],
+                "provider": r[2],
+                "phone_number": r[3],
+                "credentials": r[4],
+                "status": r[5],
+                "admin_notes": r[6],
+                "created_at": r[7].isoformat(),
+                "updated_at": r[8].isoformat(),
+                "company_name": r[9],
+                "tenant_email": r[10],
+            }
+            for r in rows
+        ]
+    }
+
+
+@app.get("/super-admin/phone-requests/{request_id}")
+async def get_phone_request(request_id: int, admin_id: str = Depends(get_current_admin)):
+    """Get single phone request detail."""
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT pr.id, pr.tenant_id, pr.provider, pr.phone_number, pr.credentials,
+                   pr.status, pr.admin_notes, pr.created_at, pr.updated_at,
+                   t.company_name, t.email as tenant_email
+            FROM phone_requests pr
+            JOIN tenants t ON t.id = pr.tenant_id
+            WHERE pr.id = %s
+        """, (request_id,))
+        row = cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Phone request not found")
+    return {
+        "id": row[0],
+        "tenant_id": row[1],
+        "provider": row[2],
+        "phone_number": row[3],
+        "credentials": row[4],
+        "status": row[5],
+        "admin_notes": row[6],
+        "created_at": row[7].isoformat(),
+        "updated_at": row[8].isoformat(),
+        "company_name": row[9],
+        "tenant_email": row[10],
+    }
+
+
+@app.patch("/super-admin/phone-requests/{request_id}")
+async def update_phone_request(request_id: int, request: Request, admin_id: str = Depends(get_current_admin)):
+    """Update phone request status/notes."""
+    raw = await request.json()
+    status = raw.get("status")
+    admin_notes = raw.get("admin_notes", "")
+    if status not in ("pending", "in_progress", "completed"):
+        raise HTTPException(status_code=400, detail="status must be pending, in_progress, or completed")
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE phone_requests SET status = %s, admin_notes = %s, updated_at = NOW() WHERE id = %s RETURNING id",
+            (status, admin_notes, request_id),
+        )
+        row = cur.fetchone()
+        conn.commit()
+    if not row:
+        raise HTTPException(status_code=404, detail="Phone request not found")
+    return {"status": "ok", "request_id": row[0]}
+
+
+@app.get("/super-admin/tenants")
+async def list_all_tenants(admin_id: str = Depends(get_current_admin)):
+    """List all tenants for admin context."""
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT id, email, name, company_name, onboarding_complete, created_at
+            FROM tenants
+            ORDER BY created_at DESC
+        """)
+        rows = cur.fetchall()
+    return {
+        "tenants": [
+            {
+                "id": r[0],
+                "email": r[1],
+                "name": r[2],
+                "company_name": r[3],
+                "onboarding_complete": r[4],
+                "created_at": r[5].isoformat(),
+            }
+            for r in rows
+        ]
+    }
 
 
 # ==================== ONBOARDING ====================

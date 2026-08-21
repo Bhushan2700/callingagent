@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mic, Building2, Phone, MessageSquare, Video, Palette, Check, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { getOnboardingStatus, saveOnboarding } from '../api/onboarding.js';
+import { createPhoneRequest } from '../api/superAdmin.js';
 
 const VOICES = [
   { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', gender: 'Female', desc: 'Warm, friendly' },
@@ -30,8 +31,8 @@ const COUNTRIES = [
 
 const PROVIDERS = [
   { value: 'twilio', label: 'Twilio', fields: [['accountSid', 'Account SID'], ['authToken', 'Auth Token']] },
-  { value: 'telnyx', label: 'Telnyx', fields: [['apiKey', 'API Key']] },
   { value: 'vonage', label: 'Vonage', fields: [['apiKey', 'API Key'], ['apiSecret', 'API Secret']] },
+  { value: 'telnyx', label: 'Telnyx', fields: [['apiKey', 'API Key']] },
 ];
 
 const STEPS = [
@@ -43,7 +44,7 @@ const STEPS = [
   { key: 'review', icon: Video, title: 'Review & Create', short: 'Review' },
 ];
 
-const PROVISION_STEPS = ['Creating your voice assistant', 'Wiring tools & webhook', 'Provisioning phone number', 'Saving your settings'];
+const PROVISION_STEPS = ['Creating your voice assistant', 'Wiring tools & webhook', 'Saving phone info', 'Saving your settings'];
 
 const inputStyle = {
   width: '100%',
@@ -69,7 +70,7 @@ export default function OnboardingPage() {
     company_name: '', industry: '', description: '', business_hours: '', timezone: 'UTC',
     languages: ['English'], voice_id: VOICES[0].id,
     greeting: '', tools_enabled: ['search_knowledge', 'raise_ticket'],
-    phone: { mode: 'buy', country: 'US', area_code: '', provider: 'twilio', number: '', credentials: {} },
+    phone: { mode: 'provider', country: 'US', area_code: '', provider: 'twilio', number: '', credentials: {} },
     widget: { title: '', primaryColor: '#57A3AF', position: 'bottom-right' },
   });
 
@@ -95,43 +96,47 @@ export default function OnboardingPage() {
     if (s === 'voice') return form.languages.length > 0 && form.voice_id;
     if (s === 'capabilities') return form.tools_enabled.length > 0;
     if (s === 'phone') {
-      if (form.phone.mode === 'none') return true;
-      if (form.phone.mode === 'buy') return true;
       const p = form.phone;
-      return p.number.trim() && PROVIDERS.find(x => x.value === p.provider)?.fields.every(([k]) => (p.credentials[k] || '').trim());
+      return p.mode === 'provider' && p.number.trim() && p.provider && 
+        PROVIDERS.find(x => x.value === p.provider)?.fields.every(([k]) => (p.credentials[k] || '').trim());
     }
     return true;
   };
 
   const next = () => { if (stepValid()) setStep(s => Math.min(s + 1, STEPS.length - 1)); };
 
-  const provisioningSequence = () => {
+  const provisioningSequence = async () => {
     setPhase('provisioning');
     setError('');
     setProvisionIdx(0);
     const timer = setInterval(() => setProvisionIdx(i => Math.min(i + 1, PROVISION_STEPS.length - 1)), 900);
-    saveOnboarding({
-      company_name: form.company_name, industry: form.industry, description: form.description,
-      business_hours: form.business_hours, timezone: form.timezone, greeting: form.greeting,
-      languages: form.languages, voice_id: form.voice_id, tools_enabled: form.tools_enabled,
-      phone: form.phone, widget: form.widget,
-    }).then(res => {
-      if (res.status === 'ok') {
-        if (res.assistant_id) localStorage.setItem('loggix_assistant_id', res.assistant_id);
-        setTimeout(() => {
-          clearInterval(timer);
-          nav('/dashboard', { replace: true });
-        }, 600);
-      } else {
+    try {
+      const res = await saveOnboarding({
+        company_name: form.company_name, industry: form.industry, description: form.description,
+        business_hours: form.business_hours, timezone: form.timezone, greeting: form.greeting,
+        languages: form.languages, voice_id: form.voice_id, tools_enabled: form.tools_enabled,
+        phone: form.phone, widget: form.widget,
+      });
+      if (res.status !== 'ok') {
         clearInterval(timer);
         setError(res.message || 'Something went wrong while creating your assistant.');
         setPhase('error');
+        return;
       }
-    }).catch(() => {
+      if (res.assistant_id) localStorage.setItem('loggix_assistant_id', res.assistant_id);
+      // Save phone request to DB for admin to configure
+      await createPhoneRequest({
+        provider: form.phone.provider,
+        phone_number: form.phone.number,
+        credentials: form.phone.credentials,
+      });
+      clearInterval(timer);
+      nav('/dashboard', { replace: true });
+    } catch (err) {
       clearInterval(timer);
       setError('Network error while creating your assistant. Please try again.');
       setPhase('error');
-    });
+    }
   };
 
   if (!loaded) {
@@ -318,21 +323,24 @@ export default function OnboardingPage() {
 
           {S.key === 'phone' && (
             <>
+              <p style={{ fontSize: '12px', color: '#57A3AF', marginBottom: '0.75rem' }}>
+                Select your phone provider and enter your number + credentials. Our team will configure it in Vapi after setup.
+              </p>
               {[
-                { mode: 'buy', title: 'Get a new number', desc: 'We buy a number for you (required to receive calls). Pick country + area code.' },
-                { mode: 'import', title: 'Use my own number', desc: 'Bring a Twilio, Telnyx, or Vonage number you already own.' },
-                { mode: 'none', title: 'Skip — no phone yet', desc: 'Set up the chat widget and voice test first; add a number later.' },
+                { mode: 'provider', provider: 'twilio', title: 'Use my Twilio number', desc: 'Requires Twilio Account SID + Auth Token' },
+                { mode: 'provider', provider: 'vonage', title: 'Use my Vonage number', desc: 'Requires Vonage API Key + API Secret' },
+                { mode: 'provider', provider: 'telnyx', title: 'Use my Telnyx number', desc: 'Requires Telnyx API Key' },
               ].map(opt => (
-                <button key={opt.mode} type="button" onClick={() => set({ phone: { ...form.phone, mode: opt.mode } })} style={{
+                <button key={opt.provider} type="button" onClick={() => set({ phone: { ...form.phone, mode: 'provider', provider: opt.provider } })} style={{
                   width: '100%', display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 14,
                   marginBottom: 8, textAlign: 'left', cursor: 'pointer',
-                  border: form.phone.mode === opt.mode ? '1.5px solid rgba(127,184,0,0.6)' : '1px solid var(--glass-border)',
-                  background: form.phone.mode === opt.mode ? 'rgba(87,163,175,0.12)' : 'var(--glass)',
+                  border: form.phone.provider === opt.provider ? '1.5px solid rgba(127,184,0,0.6)' : '1px solid var(--glass-border)',
+                  background: form.phone.provider === opt.provider ? 'rgba(87,163,175,0.12)' : 'var(--glass)',
                 }}>
                   <span style={{
                     width: 22, height: 22, borderRadius: 999, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    border: '2px solid', borderColor: form.phone.mode === opt.mode ? '#7FB800' : '#57A3AF',
-                  }}>{form.phone.mode === opt.mode && <span style={{ width: 10, height: 10, borderRadius: 999, background: '#7FB800' }} />}</span>
+                    border: '2px solid', borderColor: form.phone.provider === opt.provider ? '#7FB800' : '#57A3AF',
+                  }}>{form.phone.provider === opt.provider && <span style={{ width: 10, height: 10, borderRadius: 999, background: '#7FB800' }} />}</span>
                   <span>
                     <span style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#41808B' }}>{opt.title}</span>
                     <span style={{ display: 'block', fontSize: '12px', color: '#41808B' }}>{opt.desc}</span>
@@ -340,22 +348,7 @@ export default function OnboardingPage() {
                 </button>
               ))}
 
-              {form.phone.mode === 'buy' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '1rem' }}>
-                  <div>
-                    <label style={labelStyle}>Country</label>
-                    <select style={inputStyle} value={form.phone.country} onChange={e => set({ phone: { ...form.phone, country: e.target.value } })}>
-                      {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Preferred Area Code</label>
-                    <input style={inputStyle} value={form.phone.area_code} onChange={e => set({ phone: { ...form.phone, area_code: e.target.value } })} placeholder="e.g. 415" />
-                  </div>
-                </div>
-              )}
-
-              {form.phone.mode === 'import' && (
+              {form.phone.mode === 'provider' && (
                 <div style={{ marginTop: '1rem' }}>
                   <div className="form-group" style={{ marginBottom: '0.75rem' }}>
                     <label style={labelStyle}>Provider</label>
@@ -414,14 +407,14 @@ export default function OnboardingPage() {
                 <div>{form.industry || 'No industry'} • {form.languages.join(', ')} • Voice: {VOICES.find(v => v.id === form.voice_id)?.name || 'Default'}</div>
                 <div style={{ fontSize: '13px', color: '#57A3AF' }}>Capabilities: {form.tools_enabled.length ? form.tools_enabled.join(', ') : 'none selected'}</div>
                 <div style={{ fontSize: '13px', color: '#57A3AF' }}>
-                  Phone: {form.phone.mode === 'buy' ? `New number (${form.phone.country}${form.phone.area_code ? ' • ' + form.phone.area_code : ''})` : form.phone.mode === 'import' ? `Import ${form.phone.number || ''}` : 'None yet'}
+                  Phone: {form.phone.mode === 'provider' ? `${PROVIDERS.find(p => p.value === form.phone.provider)?.label || form.phone.provider} • ${form.phone.number}` : 'Not configured'}
                 </div>
               </div>
               <div style={{ background: 'var(--glass)', borderRadius: 14, padding: '1rem 1.25rem', marginBottom: '1rem' }}>
                 <div style={{ fontWeight: 700, color: '#41808B', marginBottom: 4 }}>Chat widget</div>
                 <div style={{ fontSize: '13px', color: '#57A3AF' }}>Title: {form.widget.title || form.company_name || 'Support'} • Color: {form.widget.primaryColor} • Position: {form.widget.position}</div>
               </div>
-              <p style={{ fontSize: '12px', color: '#41808B' }}>We'll create your Vapi assistant, wire the tools and webhook, and provision your phone number automatically. No dashboard work needed.</p>
+              <p style={{ fontSize: '12px', color: '#41808B' }}>We'll create your Vapi assistant, wire the tools and webhook, and save your phone details for our team to configure. You'll see the status in your dashboard.</p>
             </div>
           )}
 

@@ -1,4 +1,6 @@
 import os
+import uuid
+import bcrypt
 import psycopg2
 from pathlib import Path
 from dotenv import load_dotenv
@@ -219,6 +221,44 @@ def run_migrations():
     """)
     cur.execute("CREATE INDEX IF NOT EXISTS idx_assistant_versions_tenant ON assistant_versions(tenant_id)")
     print("  ✓ assistant_versions table")
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS phone_requests (
+            id SERIAL PRIMARY KEY,
+            tenant_id VARCHAR(36) NOT NULL,
+            provider VARCHAR(50) NOT NULL,
+            phone_number VARCHAR(32) NOT NULL,
+            credentials JSONB DEFAULT '{}',
+            status VARCHAR(20) DEFAULT 'pending',
+            admin_notes TEXT DEFAULT '',
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_phone_requests_tenant ON phone_requests(tenant_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_phone_requests_status ON phone_requests(status)")
+    print("  ✓ phone_requests table")
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS admin_users (
+            id VARCHAR(36) PRIMARY KEY,
+            email VARCHAR(255) UNIQUE NOT NULL,
+            password_hash VARCHAR(255) NOT NULL,
+            name VARCHAR(255) NOT NULL,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+    """)
+    print("  ✓ admin_users table")
+
+    admin_email = "nik68199@gmail.com"
+    admin_password = "Bhushan@1"
+    admin_id = str(uuid.uuid4())
+    pw_hash = bcrypt.hashpw(admin_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    cur.execute(
+        "INSERT INTO admin_users (id, email, password_hash, name) VALUES (%s, %s, %s, %s) ON CONFLICT (email) DO NOTHING",
+        (admin_id, admin_email, pw_hash, "Nik"),
+    )
+    print("  ✓ admin user seeded")
 
     conn.commit()
     cur.close()
