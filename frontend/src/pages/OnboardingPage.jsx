@@ -30,6 +30,7 @@ const COUNTRIES = [
 ];
 
 const PROVIDERS = [
+  { value: 'vapi', label: 'Vapi (Instant)', fields: [] },
   { value: 'twilio', label: 'Twilio', fields: [['accountSid', 'Account SID'], ['authToken', 'Auth Token']] },
   { value: 'vonage', label: 'Vonage', fields: [['apiKey', 'API Key'], ['apiSecret', 'API Secret']] },
   { value: 'telnyx', label: 'Telnyx', fields: [['apiKey', 'API Key']] },
@@ -70,7 +71,7 @@ export default function OnboardingPage() {
     company_name: '', industry: '', description: '', business_hours: '', timezone: 'UTC',
     languages: ['English'], voice_id: VOICES[0].id,
     greeting: '', tools_enabled: ['search_knowledge', 'raise_ticket'],
-    phone: { mode: 'provider', country: 'US', area_code: '', provider: 'twilio', number: '', credentials: {} },
+    phone: { mode: 'provider', country: 'US', area_code: '', provider: 'vapi', number: '', credentials: {} },
     widget: { title: '', primaryColor: '#57A3AF', position: 'bottom-right' },
   });
 
@@ -97,7 +98,8 @@ export default function OnboardingPage() {
     if (s === 'capabilities') return form.tools_enabled.length > 0;
     if (s === 'phone') {
       const p = form.phone;
-      return p.mode === 'provider' && p.number.trim() && p.provider && 
+      if (p.provider === 'vapi') return true;
+      return p.number.trim() && p.provider && 
         PROVIDERS.find(x => x.value === p.provider)?.fields.every(([k]) => (p.credentials[k] || '').trim());
     }
     return true;
@@ -111,11 +113,12 @@ export default function OnboardingPage() {
     setProvisionIdx(0);
     const timer = setInterval(() => setProvisionIdx(i => Math.min(i + 1, PROVISION_STEPS.length - 1)), 900);
     try {
+      const useVapiNumber = form.phone.provider === 'vapi';
       const res = await saveOnboarding({
         company_name: form.company_name, industry: form.industry, description: form.description,
         business_hours: form.business_hours, timezone: form.timezone, greeting: form.greeting,
         languages: form.languages, voice_id: form.voice_id, tools_enabled: form.tools_enabled,
-        phone: form.phone, widget: form.widget,
+        phone: useVapiNumber ? { mode: 'buy' } : form.phone, widget: form.widget,
       });
       if (res.status !== 'ok') {
         clearInterval(timer);
@@ -124,12 +127,15 @@ export default function OnboardingPage() {
         return;
       }
       if (res.assistant_id) localStorage.setItem('loggix_assistant_id', res.assistant_id);
-      // Save phone request to DB for admin to configure
-      await createPhoneRequest({
-        provider: form.phone.provider,
-        phone_number: form.phone.number,
-        credentials: form.phone.credentials,
-      });
+      if (res.phone_number) localStorage.setItem('loggix_phone_number', res.phone_number);
+      // BYO numbers still need admin configuration
+      if (!useVapiNumber) {
+        await createPhoneRequest({
+          provider: form.phone.provider,
+          phone_number: form.phone.number,
+          credentials: form.phone.credentials,
+        });
+      }
       clearInterval(timer);
       nav('/dashboard', { replace: true });
     } catch (err) {
@@ -324,12 +330,13 @@ export default function OnboardingPage() {
           {S.key === 'phone' && (
             <>
               <p style={{ fontSize: '12px', color: '#57A3AF', marginBottom: '0.75rem' }}>
-                Select your phone provider and enter your number + credentials. Our team will configure it in Vapi after setup.
+                Get a ready-to-use number instantly, or connect your existing provider. BYO numbers are configured by our team after setup.
               </p>
               {[
-                { mode: 'provider', provider: 'twilio', title: 'Use my Twilio number', desc: 'Requires Twilio Account SID + Auth Token' },
-                { mode: 'provider', provider: 'vonage', title: 'Use my Vonage number', desc: 'Requires Vonage API Key + API Secret' },
-                { mode: 'provider', provider: 'telnyx', title: 'Use my Telnyx number', desc: 'Requires Telnyx API Key' },
+                { provider: 'vapi', title: 'Get a phone number instantly', desc: 'We assign a working number automatically — nothing to configure.' },
+                { provider: 'twilio', title: 'Use my Twilio number', desc: 'Requires Twilio Account SID + Auth Token' },
+                { provider: 'vonage', title: 'Use my Vonage number', desc: 'Requires Vonage API Key + API Secret' },
+                { provider: 'telnyx', title: 'Use my Telnyx number', desc: 'Requires Telnyx API Key' },
               ].map(opt => (
                 <button key={opt.provider} type="button" onClick={() => set({ phone: { ...form.phone, mode: 'provider', provider: opt.provider } })} style={{
                   width: '100%', display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 14,
@@ -348,7 +355,7 @@ export default function OnboardingPage() {
                 </button>
               ))}
 
-              {form.phone.mode === 'provider' && (
+              {form.phone.mode === 'provider' && form.phone.provider !== 'vapi' && (
                 <div style={{ marginTop: '1rem' }}>
                   <div className="form-group" style={{ marginBottom: '0.75rem' }}>
                     <label style={labelStyle}>Provider</label>
@@ -407,7 +414,7 @@ export default function OnboardingPage() {
                 <div>{form.industry || 'No industry'} • {form.languages.join(', ')} • Voice: {VOICES.find(v => v.id === form.voice_id)?.name || 'Default'}</div>
                 <div style={{ fontSize: '13px', color: '#57A3AF' }}>Capabilities: {form.tools_enabled.length ? form.tools_enabled.join(', ') : 'none selected'}</div>
                 <div style={{ fontSize: '13px', color: '#57A3AF' }}>
-                  Phone: {form.phone.mode === 'provider' ? `${PROVIDERS.find(p => p.value === form.phone.provider)?.label || form.phone.provider} • ${form.phone.number}` : 'Not configured'}
+                  Phone: {form.phone.provider === 'vapi' ? 'New number assigned automatically (Vapi)' : `${PROVIDERS.find(p => p.value === form.phone.provider)?.label || form.phone.provider} • ${form.phone.number}`}
                 </div>
               </div>
               <div style={{ background: 'var(--glass)', borderRadius: 14, padding: '1rem 1.25rem', marginBottom: '1rem' }}>

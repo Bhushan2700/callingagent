@@ -1372,7 +1372,7 @@ async def save_onboarding(request: Request):
         if not phone_number_id:
             bought = await buy_phone_number(
                 f"{cfg['company_name']} AI Receptionist",
-                str(phone_cfg.get("area_code", "") or "").strip(),
+                str(phone_cfg.get("area_code", "") or "").strip() or "415",
                 assistant_id,
             )
             if not bought:
