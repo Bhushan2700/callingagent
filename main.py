@@ -1288,6 +1288,46 @@ async def list_all_tenants(admin_id: str = Depends(get_current_admin)):
     }
 
 
+@app.delete("/super-admin/tenants/{tenant_id}")
+async def delete_tenant(tenant_id: str, admin_id: str = Depends(get_current_admin)):
+    """Delete a tenant and all associated data, including Vapi assistant."""
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT assistant_id FROM tenants WHERE id = %s", (tenant_id,))
+        row = cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    assistant_id = row[0]
+
+    deleted = {}
+    with get_db() as conn:
+        cur = conn.cursor()
+        for table in [
+            "widget_configs", "phone_requests", "messages", "appointments",
+            "tickets", "calls", "conversations", "knowledge_gaps",
+            "assistant_versions", "loggix_knowledge",
+        ]:
+            try:
+                cur.execute(f"DELETE FROM {table} WHERE tenant_id = %s", (tenant_id,))
+                deleted[table] = cur.rowcount
+            except Exception:
+                conn.rollback()
+                cur = conn.cursor()
+                deleted[table] = "skipped"
+        cur.execute("DELETE FROM tenants WHERE id = %s", (tenant_id,))
+        deleted["tenants"] = cur.rowcount
+        conn.commit()
+
+    vapi_deleted = False
+    if assistant_id:
+        try:
+            vapi_deleted = await delete_assistant(assistant_id)
+        except Exception as e:
+            app_logger.error(f"Vapi assistant delete failed for {assistant_id}: {e}")
+
+    return {"status": "ok", "deleted": deleted, "vapi_assistant_deleted": vapi_deleted}
+
+
 # ==================== ONBOARDING ====================
 
 

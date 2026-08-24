@@ -75,3 +75,13 @@ export async function getTenants() {
   if (!res.ok) throw new Error((await res.json()).detail || 'Failed to fetch tenants');
   return res.json();
 }
+
+export async function deleteTenant(tenantId) {
+  const token = getAdminToken();
+  const res = await fetch(`${BASE}/super-admin/tenants/${tenantId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error((await res.json()).detail || 'Failed to delete tenant');
+  return res.json();
+}
