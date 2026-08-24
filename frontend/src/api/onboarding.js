@@ -14,7 +14,11 @@ export async function saveOnboarding(payload) {
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(payload),
   });
-  return res.json();
+  try {
+    return await res.json();
+  } catch {
+    return { status: 'error', message: `Server error (${res.status}). Please try again.` };
+  }
 }
 
 export async function getVapiConfig() {

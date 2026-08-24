@@ -129,11 +129,16 @@ export default function OnboardingPage() {
       if (res.assistant_id) localStorage.setItem('loggix_assistant_id', res.assistant_id);
       if (res.phone_number) localStorage.setItem('loggix_phone_number', res.phone_number);
       // Save the phone configuration request for the admin to set up in Vapi
-      await createPhoneRequest({
-        provider: form.phone.provider,
-        phone_number: form.phone.provider === 'vapi' ? form.phone.area_code : form.phone.number,
-        credentials: form.phone.credentials,
-      });
+      // ponytail: best-effort log — assistant already created, don't fail the flow over it
+      try {
+        await createPhoneRequest({
+          provider: form.phone.provider,
+          phone_number: form.phone.provider === 'vapi' ? form.phone.area_code : form.phone.number,
+          credentials: form.phone.credentials,
+        });
+      } catch (phoneErr) {
+        console.error('Phone request logging failed:', phoneErr);
+      }
       clearInterval(timer);
       nav('/dashboard', { replace: true });
     } catch (err) {

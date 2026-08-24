@@ -42,7 +42,7 @@ from scripts.vapi_client import (
     get_assistant,
 )
 from scripts.storage import storage
-from scripts.email_service import send_otp_email, send_welcome_email, send_admin_notification
+from scripts.email_service import send_otp_email, send_welcome_email, send_admin_notification, send_phone_request_notification
 
 app = FastAPI()
 cors_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "*").split(",") if o.strip()]
@@ -1166,8 +1166,8 @@ async def create_phone_request(request: Request):
     try:
         with get_db() as conn:
             cur = conn.cursor()
-        cur.execute("SELECT company_name, email FROM tenants WHERE id = %s", (tenant_id,))
-        trow = cur.fetchone()
+            cur.execute("SELECT company_name, email FROM tenants WHERE id = %s", (tenant_id,))
+            trow = cur.fetchone()
         company = trow[0] if trow else "Unknown"
         tenant_email = trow[1] if trow and len(trow) > 1 else ""
         send_phone_request_notification(company, tenant_email, provider, phone_number)
@@ -1354,7 +1354,7 @@ async def onboarding_status(request: Request):
     with get_db() as conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT assistant_id, phone_number, onboarding_complete, company_name, voice_id, languages, tools_enabled "
+            "SELECT assistant_id, phone_number, onboarding_complete, company_name, voice_id, languages, tools_enabled, name "
             "FROM tenants WHERE id = %s",
             (tenant_id,),
         )
@@ -1365,7 +1365,7 @@ async def onboarding_status(request: Request):
         "assistant_id": row[0] or "",
         "phone_number": row[1] or "",
         "onboarding_complete": bool(row[2]),
-        "company_name": row[3] or "",
+        "company_name": row[3] or row[7] or "",
         "voice_id": row[4] or "",
         "languages": row[5] or ["English"],
         "tools_enabled": row[6] or [],
