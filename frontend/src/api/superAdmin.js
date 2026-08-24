@@ -8,7 +8,7 @@ function authHeaders() {
 }
 
 export async function loginAdmin(email, password) {
-  const res = await fetch(`${BASE}/super-admin/login`, {
+  const res = await fetch(`${BASE}/api/super-admin/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
@@ -29,7 +29,7 @@ export function getAdminToken() {
 
 export async function createPhoneRequest({ provider, phone_number, credentials }) {
   const token = getToken() || getAdminToken();
-  const res = await fetch(`${BASE}/super-admin/phone-requests`, {
+  const res = await fetch(`${BASE}/api/super-admin/phone-requests`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: JSON.stringify({ provider, phone_number, credentials }),
@@ -40,7 +40,7 @@ export async function createPhoneRequest({ provider, phone_number, credentials }
 
 export async function getPhoneRequests() {
   const token = getAdminToken();
-  const res = await fetch(`${BASE}/super-admin/phone-requests`, {
+  const res = await fetch(`${BASE}/api/super-admin/phone-requests`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error((await res.json()).detail || 'Failed to fetch phone requests');
@@ -49,7 +49,7 @@ export async function getPhoneRequests() {
 
 export async function getPhoneRequest(id) {
   const token = getAdminToken();
-  const res = await fetch(`${BASE}/super-admin/phone-requests/${id}`, {
+  const res = await fetch(`${BASE}/api/super-admin/phone-requests/${id}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error((await res.json()).detail || 'Failed to fetch phone request');
@@ -58,7 +58,7 @@ export async function getPhoneRequest(id) {
 
 export async function updatePhoneRequest(id, { status, admin_notes }) {
   const token = getAdminToken();
-  const res = await fetch(`${BASE}/super-admin/phone-requests/${id}`, {
+  const res = await fetch(`${BASE}/api/super-admin/phone-requests/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ status, admin_notes }),
@@ -69,7 +69,7 @@ export async function updatePhoneRequest(id, { status, admin_notes }) {
 
 export async function getTenants() {
   const token = getAdminToken();
-  const res = await fetch(`${BASE}/super-admin/tenants`, {
+  const res = await fetch(`${BASE}/api/super-admin/tenants`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error((await res.json()).detail || 'Failed to fetch tenants');
@@ -78,7 +78,7 @@ export async function getTenants() {
 
 export async function deleteTenant(tenantId) {
   const token = getAdminToken();
-  const res = await fetch(`${BASE}/super-admin/tenants/${tenantId}`, {
+  const res = await fetch(`${BASE}/api/super-admin/tenants/${tenantId}`, {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   });

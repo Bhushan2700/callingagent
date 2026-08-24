@@ -1109,7 +1109,7 @@ async def admin_widget_page():
 
 # ==================== SUPER ADMIN ENDPOINTS ====================
 
-@app.post("/super-admin/login")
+@app.post("/api/super-admin/login")
 async def super_admin_login(request: Request):
     """Admin login — returns admin JWT."""
     raw = await request.json()
@@ -1130,7 +1130,7 @@ async def super_admin_login(request: Request):
     return {"token": token, "admin_id": admin_id, "name": name, "email": email}
 
 
-@app.get("/super-admin/me")
+@app.get("/api/super-admin/me")
 async def super_admin_me(admin_id: str = Depends(get_current_admin)):
     """Get current admin info."""
     with get_db() as conn:
@@ -1142,7 +1142,7 @@ async def super_admin_me(admin_id: str = Depends(get_current_admin)):
     return {"id": row[0], "email": row[1], "name": row[2], "created_at": row[3].isoformat()}
 
 
-@app.post("/super-admin/phone-requests")
+@app.post("/api/super-admin/phone-requests")
 async def create_phone_request(request: Request):
     """Save phone request from onboarding wizard."""
     tenant_id = get_current_tenant(request)
@@ -1176,7 +1176,7 @@ async def create_phone_request(request: Request):
     return {"status": "ok", "request_id": row[0], "created_at": row[1].isoformat()}
 
 
-@app.get("/super-admin/phone-requests")
+@app.get("/api/super-admin/phone-requests")
 async def list_phone_requests(admin_id: str = Depends(get_current_admin)):
     """List all phone requests with optional status filter."""
     with get_db() as conn:
@@ -1210,7 +1210,7 @@ async def list_phone_requests(admin_id: str = Depends(get_current_admin)):
     }
 
 
-@app.get("/super-admin/phone-requests/{request_id}")
+@app.get("/api/super-admin/phone-requests/{request_id}")
 async def get_phone_request(request_id: int, admin_id: str = Depends(get_current_admin)):
     """Get single phone request detail."""
     with get_db() as conn:
@@ -1241,7 +1241,7 @@ async def get_phone_request(request_id: int, admin_id: str = Depends(get_current
     }
 
 
-@app.patch("/super-admin/phone-requests/{request_id}")
+@app.patch("/api/super-admin/phone-requests/{request_id}")
 async def update_phone_request(request_id: int, request: Request, admin_id: str = Depends(get_current_admin)):
     """Update phone request status/notes."""
     raw = await request.json()
@@ -1262,7 +1262,7 @@ async def update_phone_request(request_id: int, request: Request, admin_id: str 
     return {"status": "ok", "request_id": row[0]}
 
 
-@app.get("/super-admin/tenants")
+@app.get("/api/super-admin/tenants")
 async def list_all_tenants(admin_id: str = Depends(get_current_admin)):
     """List all tenants for admin context."""
     with get_db() as conn:
@@ -1288,7 +1288,7 @@ async def list_all_tenants(admin_id: str = Depends(get_current_admin)):
     }
 
 
-@app.delete("/super-admin/tenants/{tenant_id}")
+@app.delete("/api/super-admin/tenants/{tenant_id}")
 async def delete_tenant(tenant_id: str, admin_id: str = Depends(get_current_admin)):
     """Delete a tenant and all associated data, including Vapi assistant."""
     with get_db() as conn:
