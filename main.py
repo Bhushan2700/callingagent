@@ -2484,6 +2484,48 @@ async def admin_assistant_publish(request: Request):
     return {"status": "ok", "published": draft_id}
 
 
+# ==================== TEMP CLEANUP ENDPOINT (REMOVE AFTER USE) ====================
+
+@app.delete("/temp-cleanup-user/{tenant_id}")
+async def temp_cleanup_user(tenant_id: str, request: Request):
+    """TEMPORARY: Delete user and all associated data. Remove after use."""
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer ") or auth[7:] != "cleanup-2026-temp-xyz789":
+        raise HTTPException(status_code=401, detail="Invalid cleanup token")
+    
+    tid = tenant_id
+    deleted = {}
+    try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            # Delete related data
+            for table in ["widget_configs", "phone_requests", "messages", "appointments", "tickets", "calls", "conversations", "knowledge_gaps", "assistant_versions", "loggix_knowledge"]:
+                cur.execute(f"DELETE FROM {table} WHERE tenant_id = %s", (tid,))
+                deleted[table] = cur.rowcount
+            # Delete tenant
+            cur.execute("DELETE FROM tenants WHERE id = %s", (tid,))
+            deleted["tenants"] = cur.rowcount
+            conn.commit()
+    except Exception as e:
+        logger.error(f"DB cleanup failed: {e}")
+        return {"status": "error", "detail": str(e)}
+    
+    # Delete Vapi assistant
+    try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT assistant_id FROM tenants WHERE id = %s", (tid,))
+            row = cur.fetchone()
+        if row and row[0]:
+            await delete_assistant(row[0])
+            deleted["vapi_assistant"] = row[0]
+    except Exception as e:
+        logger.error(f"Vapi cleanup failed: {e}")
+        deleted["vapi_error"] = str(e)
+    
+    return {"status": "ok", "deleted": deleted}
+
+
 # ==================== HEALTH CHECK ====================
 
 @app.get("/health")
