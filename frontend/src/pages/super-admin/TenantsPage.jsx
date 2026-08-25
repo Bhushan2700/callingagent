@@ -110,7 +110,7 @@ export default function TenantsPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search by company, name, or email..."
-            style={{ width: '100%', padding: '0.65rem 0.75rem 0.65rem 2.25rem', borderRadius: 8, border: '1px solid var(--glass-border)', background: 'var(--bg)', color: '#41808B', fontSize: '13px' }}
+            style={{ width: '100%', padding: '0.65rem 0.75rem 0.65rem 2.25rem', borderRadius: 8, border: '1px solid var(--glass-border)', background: '#fff', color: '#41808B', fontSize: '13px' }}
           />
         </div>
 
@@ -173,7 +173,7 @@ export default function TenantsPage() {
 
       {confirmTarget && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', zIndex: 1000, animation: 'fadeIn 0.2s' }}>
-          <div style={{ background: 'var(--bg)', borderRadius: 16, padding: '2rem', width: 480, maxWidth: '100%' }}>
+          <div style={{ background: '#fff', borderRadius: 16, padding: '2rem', width: 480, maxWidth: '100%' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '1rem' }}>
               <AlertTriangle size={24} color="#F46036" />
               <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#F46036' }}>Delete User?</h2>

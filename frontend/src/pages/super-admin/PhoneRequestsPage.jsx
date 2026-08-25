@@ -160,7 +160,7 @@ export default function PhoneRequestsPage() {
                         <span style={{ fontWeight: 600, color: '#41808B' }}>{r.provider}</span>
                       </td>
                       <td style={tdStyle}>
-                        <code style={{ fontSize: '12px', color: '#41808B', background: 'var(--bg)', padding: '0.15rem 0.5rem', borderRadius: 6 }}>
+                        <code style={{ fontSize: '12px', color: '#41808B', background: '#fff', padding: '0.15rem 0.5rem', borderRadius: 6 }}>
                           {r.provider === 'vapi' ? `Area: ${r.phone_number || 'any'}` : (r.phone_number || '—')}
                         </code>
                       </td>
@@ -200,7 +200,7 @@ export default function PhoneRequestsPage() {
 
       {selectedRequest && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', zIndex: 1000, animation: 'fadeIn 0.2s' }}>
-          <div style={{ background: 'var(--bg)', borderRadius: 16, padding: '2rem', width: 520, maxWidth: '100%', maxHeight: '80vh', overflow: 'auto' }}>
+          <div style={{ background: '#fff', borderRadius: 16, padding: '2rem', width: 520, maxWidth: '100%', maxHeight: '80vh', overflow: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#41808B' }}>Request Details</h2>
               <button onClick={() => setSelectedRequest(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1.5rem' }}>✕</button>
@@ -235,7 +235,7 @@ export default function PhoneRequestsPage() {
                   value={selectedRequest.admin_notes || ''}
                   onChange={e => setSelectedRequest({ ...selectedRequest, admin_notes: e.target.value })}
                   placeholder="Add internal notes..."
-                  style={{ width: '100%', minHeight: 80, borderRadius: 8, border: '1px solid var(--glass-border)', background: 'var(--bg)', color: '#41808B', padding: '0.75rem', fontSize: '13px', resize: 'vertical' }}
+                  style={{ width: '100%', minHeight: 80, borderRadius: 8, border: '1px solid var(--glass-border)', background: '#fff', color: '#41808B', padding: '0.75rem', fontSize: '13px', resize: 'vertical' }}
                 />
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>

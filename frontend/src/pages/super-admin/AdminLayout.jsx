@@ -14,7 +14,7 @@ const sidebarStyle = {
 const mainStyle = {
   flex: 1,
   padding: '2rem 3rem',
-  background: 'var(--bg)',
+  background: 'var(--bg-dark)',
   minHeight: '100vh',
 };
 
