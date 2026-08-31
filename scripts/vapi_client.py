@@ -118,6 +118,12 @@ def build_system_prompt(cfg: dict) -> str:
 
 
 def build_tools(tools_enabled: list) -> list:
+    """Build inline function-tool definitions with per-tool server URLs.
+
+    Vapi requires the `model.tools` inline format for function tools
+    (not standalone /tool objects). Each tool has its own webhook so
+    calls land directly on the right handler.
+    """
     tools = []
     for name in tools_enabled or []:
         schema = TOOL_SCHEMAS.get(name)
@@ -138,56 +144,49 @@ def _transcriber(cfg: dict) -> dict:
     return {"provider": "deepgram", "model": "nova-3", "language": "multi"}
 
 
-async def _sync_tools(client, assistant_id: str, tools_enabled: list) -> None:
-    """Create Vapi tools and attach them to the assistant via model.toolIds."""
-    if not assistant_id:
-        return
-    tool_ids = []
-    for payload in build_tools(tools_enabled):
-        try:
-            tr = await client.post(f"{VAPI_BASE}/tool", json=payload, headers=_headers(), timeout=30)
-            tr.raise_for_status()
-            tool_ids.append(tr.json().get("id"))
-            logger.info(f"Created Vapi tool {payload['function']['name']}: {tool_ids[-1]}")
-        except Exception as e:
-            logger.error(f"Failed to create Vapi tool {payload['function']['name']}: {e}")
-            if isinstance(e, httpx.HTTPStatusError) and e.response is not None:
-                logger.error(f"Vapi response body: {e.response.text[:500]}")
-    if tool_ids:
-        try:
-            pr = await client.patch(
-                f"{VAPI_BASE}/assistant/{assistant_id}",
-                json={"model": {"toolIds": tool_ids}},
-                headers=_headers(),
-                timeout=30,
-            )
-            pr.raise_for_status()
-            logger.info(f"Attached tools {tool_ids} to assistant {assistant_id}")
-        except Exception as e:
-            logger.error(f"Failed to attach tools to assistant {assistant_id}: {e}")
-            if isinstance(e, httpx.HTTPStatusError) and e.response is not None:
-                logger.error(f"Vapi response body: {e.response.text[:500]}")
+def _vapi_key() -> str:
+    return os.getenv("VAPI_PRIVATE_KEY", "") or VAPI_KEY
 
 
 def _headers() -> dict:
-    return {"Authorization": f"Bearer {VAPI_KEY}", "Content-Type": "application/json"}
+    return {"Authorization": f"Bearer {_vapi_key()}", "Content-Type": "application/json"}
+
+
+async def _cleanup_orphan_tools(client) -> None:
+    """One-shot: delete broken function tools with empty names left by old builds."""
+    try:
+        resp = await client.get(f"{VAPI_BASE}/tool", headers=_headers(), timeout=30)
+        resp.raise_for_status()
+        for t in resp.json() or []:
+            if t.get("type") == "function" and not (t.get("function") or {}).get("name"):
+                try:
+                    await client.delete(f"{VAPI_BASE}/tool/{t['id']}", headers=_headers(), timeout=15)
+                    logger.info(f"Cleaned orphan tool {t['id']}")
+                except Exception:
+                    pass
+    except Exception as e:
+        logger.warning(f"Orphan tool cleanup skipped: {e}")
 
 
 async def create_assistant(cfg: dict) -> str | None:
     """Create a Vapi assistant from an onboarding config. Returns assistant id or None."""
-    if not VAPI_KEY:
+    if not _vapi_key():
         logger.warning("VAPI_PRIVATE_KEY not set, skipping assistant creation")
         return None
 
     company = cfg.get("company_name", "Your Business")
+    inline_tools = build_tools(cfg.get("tools_enabled"))
+    model_block: dict = {
+        "provider": "openai",
+        "model": "gpt-4o",
+        "messages": [{"role": "system", "content": build_system_prompt(cfg)}],
+    }
+    if inline_tools:
+        model_block["tools"] = inline_tools
     payload = {
         "name": f"{company} AI Receptionist",
         "firstMessage": cfg.get("greeting") or f"Hello! You've reached {company}. I'm the AI assistant. How can I help you today?",
-        "model": {
-            "provider": "openai",
-            "model": "gpt-4o",
-            "messages": [{"role": "system", "content": build_system_prompt(cfg)}],
-        },
+        "model": model_block,
         "server": {"url": build_server_url("/webhook/vapi")},
         "transcriber": _transcriber(cfg),
         "voice": {"provider": "11labs", "voiceId": cfg.get("voice_id") or "21m00Tcm4TlvDq8ikWAM"},
@@ -199,8 +198,12 @@ async def create_assistant(cfg: dict) -> str | None:
             resp.raise_for_status()
             data = resp.json()
             assistant_id = data.get("id")
-            logger.info(f"Created Vapi assistant {assistant_id} for {company}")
-            await _sync_tools(client, assistant_id, cfg.get("tools_enabled"))
+            logger.info(f"Created Vapi assistant {assistant_id} for {company} with {len(inline_tools)} inline tools")
+            # Fire-and-forget orphan cleanup — never block assistant creation on it
+            try:
+                await _cleanup_orphan_tools(client)
+            except Exception:
+                pass
             return assistant_id
         except Exception as e:
             logger.error(f"Failed to create Vapi assistant for {company}: {e}")
@@ -211,7 +214,7 @@ async def create_assistant(cfg: dict) -> str | None:
 
 async def get_assistant(assistant_id: str) -> dict | None:
     """Fetch an assistant from Vapi. Returns raw payload or None."""
-    if not VAPI_KEY or not assistant_id:
+    if not _vapi_key() or not assistant_id:
         return None
     async with httpx.AsyncClient() as client:
         try:
@@ -225,18 +228,26 @@ async def get_assistant(assistant_id: str) -> dict | None:
 
 async def update_assistant(assistant_id: str, cfg: dict) -> bool:
     """Update an existing Vapi assistant with new onboarding settings."""
-    if not VAPI_KEY or not assistant_id:
+    if not _vapi_key() or not assistant_id:
         return False
 
     company = cfg.get("company_name", "Your Business")
+    inline_tools = build_tools(cfg.get("tools_enabled"))
+    model_block: dict = {
+        "provider": "openai",
+        "model": "gpt-4o",
+        "messages": [{"role": "system", "content": build_system_prompt(cfg)}],
+    }
+    if inline_tools:
+        model_block["tools"] = inline_tools
+    else:
+        # Explicitly clear tools when none are enabled so removed tools stop firing
+        model_block["tools"] = []
     payload = {
         "name": f"{company} AI Receptionist",
         "firstMessage": cfg.get("greeting") or f"Hello! You've reached {company}. I'm the AI assistant. How can I help you today?",
-        "model": {
-            "provider": "openai",
-            "model": "gpt-4o",
-            "messages": [{"role": "system", "content": build_system_prompt(cfg)}],
-        },
+        "model": model_block,
+        "server": {"url": build_server_url("/webhook/vapi")},
         "transcriber": _transcriber(cfg),
         "voice": {"provider": "11labs", "voiceId": cfg.get("voice_id") or "21m00Tcm4TlvDq8ikWAM"},
     }
@@ -245,8 +256,7 @@ async def update_assistant(assistant_id: str, cfg: dict) -> bool:
         try:
             resp = await client.patch(f"{VAPI_BASE}/assistant/{assistant_id}", json=payload, headers=_headers(), timeout=30)
             resp.raise_for_status()
-            await _sync_tools(client, assistant_id, cfg.get("tools_enabled"))
-            logger.info(f"Updated Vapi assistant {assistant_id}")
+            logger.info(f"Updated Vapi assistant {assistant_id} with {len(inline_tools)} inline tools")
             return True
         except Exception as e:
             logger.error(f"Failed to update Vapi assistant {assistant_id}: {e}")
@@ -256,7 +266,7 @@ async def update_assistant(assistant_id: str, cfg: dict) -> bool:
 
 
 async def delete_assistant(assistant_id: str) -> bool:
-    if not VAPI_KEY:
+    if not _vapi_key():
         return False
 
     async with httpx.AsyncClient() as client:
@@ -270,7 +280,7 @@ async def delete_assistant(assistant_id: str) -> bool:
 
 async def create_credential(provider: str, credentials: dict) -> str | None:
     """Create a provider credential in Vapi (for BYO numbers). Returns credentialId or None."""
-    if not VAPI_KEY:
+    if not _vapi_key():
         return None
 
     payload = {"provider": provider, **credentials}
@@ -289,7 +299,7 @@ async def create_credential(provider: str, credentials: dict) -> str | None:
 
 async def buy_phone_number(name: str, area_code: str, assistant_id: str) -> dict:
     """Buy a Vapi-managed phone number. Returns {id, number} on success, {error: msg} on failure."""
-    if not VAPI_KEY:
+    if not _vapi_key():
         return {"error": "VAPI_PRIVATE_KEY is not configured on the server."}
 
     payload = {
@@ -325,7 +335,7 @@ async def buy_phone_number(name: str, area_code: str, assistant_id: str) -> dict
 
 async def import_phone_number(name: str, provider: str, credential_id: str, number: str, assistant_id: str) -> dict | None:
     """Import an existing phone number from Twilio/Telnyx/Vonage. Returns {id, number} or None."""
-    if not VAPI_KEY:
+    if not _vapi_key():
         return None
 
     payload = {
@@ -350,7 +360,7 @@ async def import_phone_number(name: str, provider: str, credential_id: str, numb
 
 async def assign_phone_number(phone_number_id: str, assistant_id: str) -> bool:
     """Reassign an existing phone number to an assistant."""
-    if not VAPI_KEY or not phone_number_id:
+    if not _vapi_key() or not phone_number_id:
         return False
 
     async with httpx.AsyncClient() as client:
@@ -368,7 +378,7 @@ async def assign_phone_number(phone_number_id: str, assistant_id: str) -> bool:
 
 
 async def delete_phone_number(phone_number_id: str) -> bool:
-    if not VAPI_KEY or not phone_number_id:
+    if not _vapi_key() or not phone_number_id:
         return False
 
     async with httpx.AsyncClient() as client:
@@ -382,7 +392,7 @@ async def delete_phone_number(phone_number_id: str) -> bool:
 
 async def list_calls(assistant_id: str, limit: int = 50) -> list:
     """List calls for an assistant from Vapi. Returns list of call objects (or [])."""
-    if not VAPI_KEY or not assistant_id:
+    if not _vapi_key() or not assistant_id:
         return []
     async with httpx.AsyncClient() as client:
         try:
@@ -401,7 +411,7 @@ async def list_calls(assistant_id: str, limit: int = 50) -> list:
 
 async def get_call(call_id: str) -> dict | None:
     """Fetch a single Vapi call including transcript + cost breakdown."""
-    if not VAPI_KEY or not call_id:
+    if not _vapi_key() or not call_id:
         return None
     async with httpx.AsyncClient() as client:
         try:
@@ -415,7 +425,7 @@ async def get_call(call_id: str) -> dict | None:
 
 async def get_phone_number_detail(phone_number_id: str) -> dict | None:
     """Fetch a phone number's live status from Vapi."""
-    if not VAPI_KEY or not phone_number_id:
+    if not _vapi_key() or not phone_number_id:
         return None
     async with httpx.AsyncClient() as client:
         try:
@@ -429,7 +439,7 @@ async def get_phone_number_detail(phone_number_id: str) -> dict | None:
 
 async def list_phone_numbers(assistant_id: str) -> list:
     """List phone numbers assigned to an assistant from Vapi."""
-    if not VAPI_KEY or not assistant_id:
+    if not _vapi_key() or not assistant_id:
         return []
     async with httpx.AsyncClient() as client:
         try:

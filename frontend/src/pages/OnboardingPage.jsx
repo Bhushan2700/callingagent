@@ -143,7 +143,7 @@ export default function OnboardingPage() {
       nav('/dashboard', { replace: true });
     } catch (err) {
       clearInterval(timer);
-      setError('Network error while creating your assistant. Please try again.');
+      setError(err?.message || 'Network error while creating your assistant. Please try again.');
       setPhase('error');
     }
   };
@@ -164,11 +164,13 @@ export default function OnboardingPage() {
             </div>
             {phase === 'error' ? (
               <>
-                <h1 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '0.75rem' }}>Assistant created</h1>
-                <p style={{ color: '#F46036', fontSize: '0.9rem', marginBottom: '1.5rem' }}>{error}</p>
+                <h1 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '0.75rem' }}>{localStorage.getItem('loggix_assistant_id') ? 'Almost there' : 'Something went wrong'}</h1>
+                <p style={{ color: '#F46036', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>{error}</p>
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
                   <button className="btn btn-primary" onClick={() => setPhase('form')}>Back to setup</button>
-                  <button className="btn" onClick={() => nav('/dashboard', { replace: true })} style={{ background: 'var(--brand-gradient)', color: '#fff', border: 'none', fontWeight: 600, borderRadius: 10, padding: '0.6rem 1.2rem', cursor: 'pointer' }}>Go to Dashboard</button>
+                  {localStorage.getItem('loggix_assistant_id') && (
+                    <button className="btn" onClick={() => nav('/dashboard', { replace: true })} style={{ background: 'var(--brand-gradient)', color: '#fff', border: 'none', fontWeight: 600, borderRadius: 10, padding: '0.6rem 1.2rem', cursor: 'pointer' }}>Go to Dashboard</button>
+                  )}
                 </div>
               </>
             ) : (

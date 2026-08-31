@@ -1415,8 +1415,8 @@ async def save_onboarding(request: Request):
                 str(phone_cfg.get("area_code", "") or "").strip() or "415",
                 assistant_id,
             )
-            if not bought:
-                detail = bought.get("error", "") if isinstance(bought, dict) else ""
+            if bought.get("error"):
+                detail = bought.get("error", "")
                 # Assistant was created but the number couldn't be bought — persist it and flag phone pending
                 try:
                     with get_db() as conn:
