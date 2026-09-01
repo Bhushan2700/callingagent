@@ -188,17 +188,17 @@ export default function RegisterPage() {
               }}>{error}</p>}
               <div>
                 <label style={labelStyle}>Company Name</label>
-                <input type="text" placeholder="Acme Inc." value={name} onChange={e => setName(e.target.value)} required
+                <input type="text" autoComplete="organization" placeholder="Acme Inc." value={name} onChange={e => setName(e.target.value)} required
                   style={inputStyle} {...focusProps} />
               </div>
               <div>
                 <label style={labelStyle}>Work Email</label>
-                <input type="email" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} required
+                <input type="email" autoComplete="username" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} required
                   style={inputStyle} {...focusProps} />
               </div>
               <div>
                 <label style={labelStyle}>Password</label>
-                <input type="password" autocomplete="new-password" placeholder="At least 6 characters" value={password} onChange={e => setPassword(e.target.value)} required minLength={6}
+                <input type="password" autoComplete="new-password" placeholder="At least 6 characters" value={password} onChange={e => setPassword(e.target.value)} required minLength={6}
                   style={inputStyle} {...focusProps} />
               </div>
               <button type="submit" disabled={busy} style={{
@@ -241,6 +241,7 @@ export default function RegisterPage() {
                     ref={el => otpRefs.current[i] = el}
                     type="text"
                     inputMode="numeric"
+                    autoComplete="one-time-code"
                     maxLength={1}
                     value={digit}
                     onChange={e => handleOtpChange(i, e.target.value)}

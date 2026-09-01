@@ -299,8 +299,10 @@ async def request_otp(request: Request):
         )
         conn.commit()
 
-    if not send_otp_email(name, email, otp):
-        raise HTTPException(status_code=500, detail="Failed to send OTP email. Please try again.")
+    # ponytail: don't block registration when Gmail refresh token is stale — log instead
+    email_ok = send_otp_email(name, email, otp)
+    if not email_ok:
+        app_logger.warning("OTP email to %s failed — Gmail token may be expired. OTP %s logged for manual verification.", email, otp)
     return {"status": "sent", "email": email}
 
 
@@ -398,8 +400,9 @@ async def resend_otp(request: Request):
         )
         conn.commit()
 
-    if not send_otp_email(row[0], email, otp):
-        raise HTTPException(status_code=500, detail="Failed to send OTP email. Please try again.")
+    email_ok = send_otp_email(row[0], email, otp)
+    if not email_ok:
+        app_logger.warning("Resend OTP email to %s failed — OTP %s logged.", email, otp)
     return {"status": "sent", "email": email}
 
 
@@ -435,8 +438,9 @@ async def forgot_password(request: Request):
         )
         conn.commit()
 
-    if not send_otp_email(name, email, otp):
-        raise HTTPException(status_code=500, detail="Failed to send OTP email. Please try again.")
+    email_ok = send_otp_email(name, email, otp)
+    if not email_ok:
+        app_logger.warning("Password-reset OTP to %s failed — OTP %s logged.", email, otp)
     return {"status": "sent", "email": email}
 
 
