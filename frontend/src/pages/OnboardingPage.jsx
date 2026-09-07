@@ -36,6 +36,32 @@ const PROVIDERS = [
   { value: 'telnyx', label: 'Telnyx', fields: [['apiKey', 'API Key']] },
 ];
 
+const BUSINESS_HOURS_OPTIONS = [
+  'Mon–Fri 9am–5pm',
+  'Mon–Fri 9am–6pm',
+  'Mon–Fri 8am–6pm',
+  'Mon–Sat 9am–6pm',
+  'Mon–Sun 9am–6pm',
+  '24/7',
+  'Custom',
+];
+
+const TIMEZONE_OPTIONS = [
+  'UTC',
+  'US/Eastern (ET)',
+  'US/Central (CT)',
+  'US/Mountain (MT)',
+  'US/Pacific (PT)',
+  'Asia/Kolkata (IST)',
+  'Europe/London (GMT)',
+  'Europe/Berlin (CET)',
+  'Europe/Paris (CET)',
+  'Australia/Sydney (AEDT)',
+  'Asia/Dubai (GST)',
+  'Asia/Singapore (SGT)',
+  'Asia/Tokyo (JST)',
+];
+
 const STEPS = [
   { key: 'business', icon: Building2, title: 'Your Business', short: 'Business' },
   { key: 'voice', icon: Mic, title: 'Voice & Language', short: 'Voice' },
@@ -45,7 +71,7 @@ const STEPS = [
   { key: 'review', icon: Video, title: 'Review & Create', short: 'Review' },
 ];
 
-const PROVISION_STEPS = ['Creating your voice assistant', 'Wiring tools & webhook', 'Saving phone info', 'Saving your settings'];
+const PROVISION_STEPS = ['Creating your voice assistant', 'Wiring tools & webhook', 'Saving your settings'];
 
 const inputStyle = {
   width: '100%',
@@ -67,8 +93,9 @@ export default function OnboardingPage() {
   const [phase, setPhase] = useState('form');
   const [provisionIdx, setProvisionIdx] = useState(0);
   const [error, setError] = useState('');
+  const [customBusinessHours, setCustomBusinessHours] = useState('');
   const [form, setForm] = useState({
-    company_name: '', industry: '', description: '', business_hours: '', timezone: 'UTC',
+    company_name: '', industry: '', description: '', business_hours: 'Mon–Fri 9am–6pm', timezone: 'UTC',
     languages: ['English'], voice_id: VOICES[0].id,
     greeting: '', tools_enabled: ['search_knowledge', 'raise_ticket'],
     phone: { mode: 'provider', country: 'US', area_code: '', provider: 'vapi', number: '', credentials: {} },
@@ -96,12 +123,7 @@ export default function OnboardingPage() {
     if (s === 'business') return form.company_name.trim() && form.description.trim();
     if (s === 'voice') return form.languages.length > 0 && form.voice_id;
     if (s === 'capabilities') return form.tools_enabled.length > 0;
-    if (s === 'phone') {
-      const p = form.phone;
-      if (p.provider === 'vapi') return true;
-      return p.number.trim() && p.provider && 
-        PROVIDERS.find(x => x.value === p.provider)?.fields.every(([k]) => (p.credentials[k] || '').trim());
-    }
+    // ponytail: phone is collect-only — never block the wizard, admin routes the number
     return true;
   };
 
@@ -128,14 +150,22 @@ export default function OnboardingPage() {
       }
       if (res.assistant_id) localStorage.setItem('loggix_assistant_id', res.assistant_id);
       if (res.phone_number) localStorage.setItem('loggix_phone_number', res.phone_number);
-      // Save the phone configuration request for the admin to set up in Vapi
-      // ponytail: best-effort log — assistant already created, don't fail the flow over it
+      // Save the phone preference for the admin to provision in Vapi (collect-only flow)
+      // ponytail: best-effort — assistant already created, never block onboarding over phone logging
       try {
-        await createPhoneRequest({
-          provider: form.phone.provider,
-          phone_number: form.phone.provider === 'vapi' ? form.phone.area_code : form.phone.number,
-          credentials: form.phone.credentials,
-        });
+        const p = form.phone;
+        const isVapi = p.provider === 'vapi';
+        const phoneNumber = isVapi ? (p.area_code || '').trim() : (p.number || '').trim();
+        // Skip entirely if user didn't enter anything (optional step)
+        if (phoneNumber || (!isVapi && p.number.trim()) || Object.values(p.credentials).some(v => (v || '').trim())) {
+          await createPhoneRequest({
+            provider: p.provider,
+            phone_number: phoneNumber,
+            // send area_code explicitly so backend can keep it even when phone_number is empty
+            area_code: (p.area_code || '').trim(),
+            credentials: { ...p.credentials, ...(p.area_code ? { area_code: p.area_code } : {}) },
+          });
+        }
       } catch (phoneErr) {
         console.error('Phone request logging failed:', phoneErr);
       }
@@ -253,11 +283,31 @@ export default function OnboardingPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem' }}>
                 <div className="form-group">
                   <label style={labelStyle}>Business Hours</label>
-                  <input style={inputStyle} value={form.business_hours} onChange={e => set({ business_hours: e.target.value })} placeholder="e.g. Mon-Fri 9am-6pm" />
+                  {(() => {
+                    const bhVal = BUSINESS_HOURS_OPTIONS.includes(form.business_hours) ? form.business_hours : form.business_hours ? 'Custom' : 'Mon–Fri 9am–6pm';
+                    return (
+                      <>
+                        <select style={inputStyle} value={bhVal}
+                          onChange={e => {
+                            const v = e.target.value;
+                            if (v === 'Custom') { set({ business_hours: customBusinessHours || '' }); }
+                            else set({ business_hours: v });
+                          }}>
+                          {BUSINESS_HOURS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                        </select>
+                        {bhVal === 'Custom' && (
+                          <input style={{ ...inputStyle, marginTop: 8 }} value={customBusinessHours} onChange={e => { const v = e.target.value; setCustomBusinessHours(v); set({ business_hours: v }); }} placeholder="e.g. Mon–Thu 10am–4pm" />
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
                 <div className="form-group">
                   <label style={labelStyle}>Timezone</label>
-                  <input style={inputStyle} value={form.timezone} onChange={e => set({ timezone: e.target.value })} placeholder="UTC" />
+                  <select style={inputStyle} value={TIMEZONE_OPTIONS.includes(form.timezone) ? form.timezone : 'UTC'}
+                    onChange={e => set({ timezone: e.target.value })}>
+                    {TIMEZONE_OPTIONS.map(tz => <option key={tz} value={tz}>{tz}</option>)}
+                  </select>
                 </div>
               </div>
             </>
@@ -335,7 +385,7 @@ export default function OnboardingPage() {
           {S.key === 'phone' && (
             <>
               <p style={{ fontSize: '12px', color: '#57A3AF', marginBottom: '0.75rem' }}>
-                Choose how you want your AI receptionist to take calls. For Vapi you'll get a free number (US area code); for your own provider, enter the number + credentials. Our team configures it in Vapi after setup.
+                Tell us your phone preference — our team will configure the number in Vapi and link it to your assistant. You can skip this and add it later.
               </p>
               {[
                 { provider: 'vapi', title: 'Get a free Vapi number', desc: 'Free US number assigned by our team. Just give an area code.' },
@@ -363,10 +413,10 @@ export default function OnboardingPage() {
               {form.phone.mode === 'provider' && form.phone.provider === 'vapi' && (
                 <div style={{ marginTop: '1rem' }}>
                   <div className="form-group" style={{ marginBottom: '0.75rem' }}>
-                    <label style={labelStyle}>Area Code (US)</label>
+                    <label style={labelStyle}>Preferred Area Code (US) — optional</label>
                     <input style={inputStyle} value={form.phone.area_code} onChange={e => set({ phone: { ...form.phone, area_code: e.target.value } })} placeholder="e.g. 415" />
                   </div>
-                  <p style={{ fontSize: '11px', color: '#41808B', marginTop: '0.5rem' }}>Free Vapi numbers are US-only. Leave blank and our team will pick an available area code.</p>
+                  <p style={{ fontSize: '11px', color: '#41808B', marginTop: '0.5rem' }}>We request a number in this area code for you. Leave blank and we'll pick an available one. US-only for free Vapi numbers.</p>
                 </div>
               )}
 

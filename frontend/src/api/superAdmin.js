@@ -27,12 +27,12 @@ export function getAdminToken() {
   return localStorage.getItem('loggix_admin_token');
 }
 
-export async function createPhoneRequest({ provider, phone_number, credentials }) {
+export async function createPhoneRequest({ provider, phone_number, area_code, credentials }) {
   const token = getToken() || getAdminToken();
   const res = await fetch(`${BASE}/api/super-admin/phone-requests`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    body: JSON.stringify({ provider, phone_number, credentials }),
+    body: JSON.stringify({ provider, phone_number, area_code, credentials }),
   });
   if (!res.ok) throw new Error((await res.json()).detail || 'Failed to save phone request');
   return res.json();

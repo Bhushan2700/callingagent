@@ -1148,14 +1148,21 @@ async def super_admin_me(admin_id: str = Depends(get_current_admin)):
 
 @app.post("/api/super-admin/phone-requests")
 async def create_phone_request(request: Request):
-    """Save phone request from onboarding wizard."""
+    """Save phone request from onboarding — collect-only, admin routes the number in Vapi."""
     tenant_id = get_current_tenant(request)
     raw = await request.json()
-    provider = raw.get("provider", "").strip()
+    provider = raw.get("provider", "").strip() or "vapi"
     phone_number = raw.get("phone_number", "").strip()
     credentials = raw.get("credentials", {}) or {}
-    if not provider or not phone_number:
-        raise HTTPException(status_code=400, detail="provider and phone_number required")
+    # area_code is optional for vapi — carry it inside credentials so admin can see it
+    area_code = raw.get("area_code", "").strip() or credentials.get("area_code", "").strip() if isinstance(credentials, dict) else ""
+    if area_code and not phone_number:
+        # keep credentials enriched so super-admin sees the requested area code
+        if isinstance(credentials, dict):
+            credentials = {**credentials, "area_code": area_code}
+        phone_number = area_code  # use area_code as display value for vapi requests
+    if not provider:
+        raise HTTPException(status_code=400, detail="provider is required")
     with get_db() as conn:
         cur = conn.cursor()
         cur.execute(
@@ -1407,12 +1414,17 @@ async def save_onboarding(request: Request):
         if not assistant_id:
             return {"status": "error", "step": "assistant", "message": "Failed to create your voice assistant. Please try again."}
 
-    # 2. Phone number (buy new / import own / none)
+    # 2. Phone number — collect-only. Admin provisions the number in Vapi and links it.
+    # Onboarding no longer buys or imports via API; it just persists the assistant.
+    # Phone preference (provider/area_code/number/creds) is sent separately to POST /api/super-admin/phone-requests.
     phone_cfg = raw.get("phone", {}) or {}
     mode = phone_cfg.get("mode", "none")
     new_phone_id, new_phone_number = phone_number_id, phone_number
 
-    if mode == "buy":
+    if mode in ("provider", "none") or not mode:
+        # No server-side phone provisioning — admin handles it after seeing the phone_request
+        pass
+    elif mode == "buy":
         if not phone_number_id:
             bought = await buy_phone_number(
                 f"{cfg['company_name']} AI Receptionist",
